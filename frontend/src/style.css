@@ -1,0 +1,33 @@
+@import "tailwindcss";
+
+/* Configure dark mode for Tailwind v4 */
+@theme {
+  --default-transition-duration: 150ms;
+}
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Light mode (default) */
+html {
+  color-scheme: light;
+}
+
+html, body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+}
+
+/* Dark mode */
+html.dark {
+  color-scheme: dark;
+}
+
+/* Smooth transitions for theme switching */
+* {
+  transition-property: background-color, border-color, color;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
