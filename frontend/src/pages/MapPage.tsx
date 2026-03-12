@@ -30,9 +30,9 @@ export function MapPage() {
     : { lat: 14.5995, lng: 120.9842 }; // Manila default
 
   return (
-    <div className="bg-white dark:bg-zinc-900 relative">
+    <div className="bg-white dark:bg-zinc-900 relative min-h-screen">
       {/* Top Search Bar */}
-      <div className="sticky top-[78px] z-40 bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800 px-4 py-4">
+      <div className="absolute top-[77px] left-0 right-0 z-40  px-4 py-4">
         <SearchBar 
           onSearch={handleSearch}
           placeholder="Search for stores or products..."
@@ -40,7 +40,7 @@ export function MapPage() {
       </div>
 
       {/* Main Content */}
-      <div className="sticky h-[calc(100vh-90px)]">
+      <div className="fixed top-[77px] left-0 right-0 bottom-0 z-[1]">
         {/* Full Screen Map */}
           <OpenStreetMap
             center={currentLocation}
