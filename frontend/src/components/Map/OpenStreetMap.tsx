@@ -47,10 +47,10 @@ export function OpenStreetMap({ center, zoom, onMapClick, markers = [] }: MapPro
       L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
         attribution: '© OpenStreetMap contributors © CARTO',
         subdomains: 'abcd',
-        maxZoom: 19,
+        maxZoom: 20,
       }).addTo(map);
 
-      // Apply custom styling to make it look more like Google Maps
+      // Apply custom styling - remove problematic marker filter
       const styleSheet = document.createElement('style');
       styleSheet.textContent = `
         .leaflet-container {
@@ -75,9 +75,6 @@ export function OpenStreetMap({ center, zoom, onMapClick, markers = [] }: MapPro
         }
         .leaflet-control-zoom a:last-child {
           border-bottom: none !important;
-        }
-        .leaflet-marker-icon {
-          filter: hue-rotate(120deg) saturate(1.5);
         }
       `;
       document.head.appendChild(styleSheet);
@@ -156,7 +153,22 @@ export function OpenStreetMap({ center, zoom, onMapClick, markers = [] }: MapPro
         document.head.removeChild(script);
       }
     };
-  }, [center, zoom, markers, onMapClick]);
+  }, []);
+
+  // Handle center and zoom changes - ALWAYS UPDATE
+  useEffect(() => {
+    if (mapInstanceRef.current && mapLoaded) {
+      const map = mapInstanceRef.current;
+      
+      console.log('Updating map to:', { center, zoom });
+      
+      // Always fly to the new location - no comparison bullshit
+      map.flyTo([center.lat, center.lng], zoom, {
+        duration: 1.5,
+        easeLinearity: 0.5
+      });
+    }
+  }, [center, zoom, mapLoaded]);
 
   return (
     <div className="w-full h-full relative">

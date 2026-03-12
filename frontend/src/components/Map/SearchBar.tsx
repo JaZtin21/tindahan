@@ -2,14 +2,15 @@ import { useState } from 'react';
 
 interface SearchBarProps {
   onSearch: (query: string) => void;
+  onStoreSelect?: (store: { lat: number; lng: number; name: string }) => void;
   placeholder?: string;
 }
 
-// Test data for stores and products
+// Test data for stores and products - MATCHING THE MAP MARKERS
 const testData = [
-  { type: 'store', name: 'Mang Kiko\'s Sari-Sari Store', location: 'Quezon City' },
-  { type: 'store', name: 'Aling Nena\'s Grocery', location: 'Manila' },
-  { type: 'store', name: 'Tindahan ni Tony', location: 'Pasay' },
+  { type: 'store', name: 'Mang Kiko\'s Sari-Sari Store', location: 'Quezon City', lat: 14.5995, lng: 120.9842 },
+  { type: 'store', name: 'Aling Nena\'s Grocery', location: 'Manila', lat: 14.6091, lng: 120.9799 },
+  { type: 'store', name: 'Tindahan ni Tony', location: 'Pasay', lat: 14.5897, lng: 120.9834 },
   { type: 'product', name: 'Pancit Canton', available: 12 },
   { type: 'product', name: 'Softdrinks (Coke)', available: 8 },
   { type: 'product', name: 'Instant Noodles', available: 15 },
@@ -18,7 +19,7 @@ const testData = [
   { type: 'product', name: 'Soap', available: 10 },
 ];
 
-export function SearchBar({ onSearch, placeholder = "Search for stores or products..." }: SearchBarProps) {
+export function SearchBar({ onSearch, onStoreSelect, placeholder = "Search for stores or products..." }: SearchBarProps) {
   const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState<typeof testData>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -48,6 +49,16 @@ export function SearchBar({ onSearch, placeholder = "Search for stores or produc
 
   const handleSuggestionClick = (suggestion: typeof testData[0]) => {
     setQuery(suggestion.name);
+    
+    // If it's a store, call the store select callback
+    if (suggestion.type === 'store' && onStoreSelect && 'lat' in suggestion && 'lng' in suggestion) {
+      onStoreSelect({
+        lat: suggestion.lat,
+        lng: suggestion.lng,
+        name: suggestion.name
+      });
+    }
+    
     handleSearch(suggestion.name);
   };
 
@@ -89,7 +100,7 @@ export function SearchBar({ onSearch, placeholder = "Search for stores or produc
                   </div>
                   <div className="text-sm text-zinc-500 dark:text-zinc-400">
                     {suggestion.type === 'store' 
-                      ? `📍 ${suggestion.location}`
+                      ? `📍 ${suggestion.location} (Click to view)`
                       : `📦 Available in ${suggestion.available} stores`
                     }
                   </div>
