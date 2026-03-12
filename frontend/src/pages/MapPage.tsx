@@ -69,6 +69,7 @@ export function MapPage() {
     console.log('Flying to store:', store);
     setMapCenter({ lat: store.lat, lng: store.lng });
     setMapZoom(18); // Zoom in to store level
+    setSearchQuery(''); // Clear search after selecting store
   };
 
   return (
@@ -100,20 +101,6 @@ export function MapPage() {
           onMapClick={handleMapClick}
           markers={filteredStores}
         />
-
-        {/* Search Results Info (when searching) */}
-        {searchQuery && (
-          <div className="absolute top-4 right-4 z-30">
-            <div className="bg-white dark:bg-zinc-900 rounded-xl shadow-xl border border-zinc-200 dark:border-zinc-700 px-4 py-3">
-              <div className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
-                Searching: "{searchQuery}"
-              </div>
-              <div className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-                Found {filteredStores.length} stores
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Map Controls Info */}
         <div className="absolute bottom-4 left-4 z-30">
