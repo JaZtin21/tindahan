@@ -31,19 +31,19 @@ export function HomePage() {
         <div className="rounded-2xl border border-zinc-800 p-5">
           <div className="text-sm font-semibold">Customer</div>
           <div className="mt-2 text-sm text-zinc-300">
-            Search “pancit canton” and see nearby stores with stock.
+            Search for items, find nearby stores, request products, track orders
           </div>
         </div>
         <div className="rounded-2xl border border-zinc-800 p-5">
-          <div className="text-sm font-semibold">Owner</div>
+          <div className="text-sm font-semibold">Store Owner</div>
           <div className="mt-2 text-sm text-zinc-300">
-            Update inventory fast and respond to item requests.
+            Manage inventory, pin store location, respond to requests
           </div>
         </div>
         <div className="rounded-2xl border border-zinc-800 p-5">
-          <div className="text-sm font-semibold">Trust</div>
+          <div className="text-sm font-semibold">Features</div>
           <div className="mt-2 text-sm text-zinc-300">
-            Customers see “last updated” and reviews for confidence.
+            Real-time search, map view, request tracking, inventory management
           </div>
         </div>
       </section>

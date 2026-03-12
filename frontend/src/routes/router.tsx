@@ -1,6 +1,6 @@
 import { Navigate, createBrowserRouter } from 'react-router-dom'
 
-import { App } from '../App'
+import App from '../App'
 import { HomePage } from '../pages/HomePage'
 import { MapPage } from '../pages/MapPage'
 import { OwnerPage } from '../pages/OwnerPage'
