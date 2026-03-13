@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:7.0
+    container_name: tindahan-mongodb
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password
+      MONGO_INITDB_DATABASE: tindahan_db
+    volumes:
+      - mongodb_data:/data/db
+      - ./scripts/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
+    networks:
+      - tindahan-network
+
+  tindahan-api:
+    build: .
+    container_name: tindahan-api
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      MONGO_URI: mongodb://admin:password@mongodb:27017
+      MONGO_DB_NAME: tindahan_db
+      JWT_SECRET: tindahan-super-secret-jwt-key-change-in-production
+      SERVER_PORT: 8080
+    depends_on:
+      - mongodb
+    networks:
+      - tindahan-network
+    volumes:
+      - .:/app
+    working_dir: /app
+
+volumes:
+  mongodb_data:
+
+networks:
+  tindahan-network:
+    driver: bridge
