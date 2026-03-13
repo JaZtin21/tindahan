@@ -52,6 +52,12 @@ export function MapPage() {
       console.log('ACTUAL User location:', userLocation);
       console.log('GPS Accuracy:', position.coords.accuracy, 'meters');
       
+      // Check if accuracy is reasonable (less than 1km)
+      if (position.coords.accuracy > 1000) {
+        console.warn('Location accuracy is poor (', position.coords.accuracy, 'meters)');
+        alert(`Location accuracy is poor (${position.coords.accuracy.toFixed(0)}m). This is normal on PC. For better accuracy, try on your phone.`);
+      }
+      
       // Update map center to user location and zoom in hard
       setMapCenter(userLocation);
       setMapZoom(20); // Maximum zoom level
@@ -68,7 +74,7 @@ export function MapPage() {
   const handleStoreSelect = (store: { lat: number; lng: number; name: string }) => {
     console.log('Flying to store:', store);
     setMapCenter({ lat: store.lat, lng: store.lng });
-    setMapZoom(18); // Zoom in to store level
+    setMapZoom(20); // MAX zoom for search results
     setSearchQuery(''); // Clear search after selecting store
   };
 

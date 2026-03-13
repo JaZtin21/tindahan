@@ -19,23 +19,86 @@ const testData = [
   { type: 'product', name: 'Soap', available: 10 },
 ];
 
-export function SearchBar({ onSearch, onStoreSelect, placeholder = "Search for stores or products..." }: SearchBarProps) {
+// Nominatim geocoding function
+const searchLocation = async (query: string) => {
+  try {
+    console.log('🔍 API TRIGGERED - Searching for:', query);
+    console.log('📡 Making request to: https://nominatim.openstreetmap.org/search');
+    
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5`
+    );
+    
+    console.log('📡 Response status:', response.status);
+    
+    const data = await response.json();
+    console.log('📊 Raw API response:', data);
+    console.log('📈 Results count:', data.length);
+    
+    const results = data.map((item: any) => ({
+      type: 'location',
+      name: item.display_name,
+      lat: parseFloat(item.lat),
+      lng: parseFloat(item.lon),
+      details: item.class
+    }));
+    
+    console.log('✅ Processed results:', results);
+    return results;
+  } catch (error: any) {
+    console.error('❌ API ERROR:', error);
+    console.error('❌ Error details:', error?.message || 'Unknown error');
+    return [];
+  }
+};
+
+export function SearchBar({ onSearch, onStoreSelect, placeholder = "Search for stores, products, or locations..." }: SearchBarProps) {
   const [query, setQuery] = useState('');
-  const [suggestions, setSuggestions] = useState<typeof testData>([]);
+  const [suggestions, setSuggestions] = useState<any[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [searchTimeout, setSearchTimeout] = useState<number | null>(null);
 
   const handleInputChange = (value: string) => {
     setQuery(value);
     
+    // Clear previous timeout
+    if (searchTimeout) {
+      clearTimeout(searchTimeout);
+    }
+    
     if (value.trim()) {
-      const filtered = testData.filter(item =>
-        item.name.toLowerCase().includes(value.toLowerCase())
-      );
-      setSuggestions(filtered);
-      setShowSuggestions(true);
+      setIsLoading(true);
+      
+      // Debounce search - wait 800ms after typing stops
+      const timeout = setTimeout(async () => {
+        console.log('Debounce triggered for:', value);
+        
+        // Search local data first (instant)
+        const localResults = testData.filter(item =>
+          item.name.toLowerCase().includes(value.toLowerCase())
+        );
+        
+        // Search for locations (always trigger API)
+        const locationResults = await searchLocation(value);
+        console.log('API results:', locationResults);
+        
+        // Combine results
+        const allResults = [
+          ...localResults.map((item: any) => ({ ...item, source: 'local' })),
+          ...locationResults.map((item: any) => ({ ...item, source: 'geocoding' }))
+        ];
+        
+        setSuggestions(allResults);
+        setShowSuggestions(true);
+        setIsLoading(false);
+      }, 300); // Reduced to 300ms for faster response
+      
+      setSearchTimeout(timeout);
     } else {
       setSuggestions([]);
       setShowSuggestions(false);
+      setIsLoading(false);
     }
   };
 
@@ -47,11 +110,20 @@ export function SearchBar({ onSearch, onStoreSelect, placeholder = "Search for s
     }
   };
 
-  const handleSuggestionClick = (suggestion: typeof testData[0]) => {
+  const handleSuggestionClick = (suggestion: any) => {
     setQuery(suggestion.name);
     
     // If it's a store, call the store select callback
     if (suggestion.type === 'store' && onStoreSelect && 'lat' in suggestion && 'lng' in suggestion) {
+      onStoreSelect({
+        lat: suggestion.lat,
+        lng: suggestion.lng,
+        name: suggestion.name
+      });
+    }
+    
+    // If it's a location, fly to it
+    if (suggestion.type === 'location' && onStoreSelect && 'lat' in suggestion && 'lng' in suggestion) {
       onStoreSelect({
         lat: suggestion.lat,
         lng: suggestion.lng,
@@ -74,7 +146,7 @@ export function SearchBar({ onSearch, onStoreSelect, placeholder = "Search for s
           className="w-full px-4 py-3 pl-12 text-lg border border-zinc-300 dark:border-zinc-600 rounded-xl bg-white dark:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent shadow-lg"
         />
         <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-zinc-400">
-          🔍
+          {isLoading ? '⏳' : '🔍'}
         </div>
         <button
           onClick={() => handleSearch()}
@@ -101,12 +173,14 @@ export function SearchBar({ onSearch, onStoreSelect, placeholder = "Search for s
                   <div className="text-sm text-zinc-500 dark:text-zinc-400">
                     {suggestion.type === 'store' 
                       ? `📍 ${suggestion.location} (Click to view)`
-                      : `📦 Available in ${suggestion.available} stores`
+                      : suggestion.type === 'product'
+                      ? `📦 Available in ${suggestion.available} stores`
+                      : `🌍 ${suggestion.details} (Click to fly here)`
                     }
                   </div>
                 </div>
                 <div className="text-xs px-2 py-1 bg-zinc-100 dark:bg-zinc-800 rounded-full text-zinc-600 dark:text-zinc-400">
-                  {suggestion.type}
+                  {suggestion.source === 'geocoding' ? '📍 Location' : suggestion.type}
                 </div>
               </div>
             </div>

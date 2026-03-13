@@ -1,0 +1,25 @@
+# gqlgen configuration file
+# Refer to https://gqlgen.com/config/
+schema:
+  - graphql/*.graphql
+exec:
+  filename: graphql/generated.go
+  package: graphql
+model:
+  filename: graphql/models_gen.go
+  package: graphql
+resolver:
+  filename: graphql/resolver.go
+  package: graphql
+  type: Resolver
+models:
+  ID:
+    model: github.com/99designs/gqlgen/graphql.ID
+  Int:
+    model: github.com/99designs/gqlgen/graphql.Int
+  Float:
+    model: github.com/99designs/gqlgen/graphql.Float
+  String:
+    model: github.com/99designs/gqlgen/graphql.String
+  Boolean:
+    model: github.com/99designs/gqlgen/graphql.Boolean
