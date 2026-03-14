@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import type { RootState } from '../store';
 import { OpenStreetMap, SearchBar } from '../components/Map';
+import { openSideNav } from '../store';
 
 export function MapPage() {
-  const location = useSelector((state: RootState) => state.location);
+  const dispatch = useDispatch();
   const [searchQuery, setSearchQuery] = useState('');
   const [mapCenter, setMapCenter] = useState(
     { lat: 14.5995, lng: 120.9842 } // Manila default - no hardcoded location check
@@ -76,6 +77,18 @@ export function MapPage() {
     setMapCenter({ lat: store.lat, lng: store.lng });
     setMapZoom(20); // MAX zoom for search results
     setSearchQuery(''); // Clear search after selecting store
+    
+    // Open SideNav with selected location using Redux
+    dispatch(openSideNav({
+      name: store.name,
+      lat: store.lat,
+      lng: store.lng,
+      type: 'store',
+      description: 'Local sari-sari store offering daily essentials and snacks.',
+      address: 'Address not available',
+      phone: '+63 XXX XXX XXXX',
+      hours: '6:00 AM - 9:00 PM'
+    }));
   };
 
   return (
