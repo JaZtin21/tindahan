@@ -80,35 +80,29 @@ export function OpenStreetMap({ center, zoom, onMapClick, onMarkerClick, markers
       `;
       document.head.appendChild(styleSheet);
 
-      // Add custom markers with better styling
+      // Add custom markers with store/house icons
       markers.forEach(markerData => {
         const customIcon = L.divIcon({
           html: `
             <div style="
-              background: #ea4335;
-              width: 32px;
-              height: 32px;
-              border-radius: 50% 50% 50% 0;
-              transform: rotate(-45deg);
+              background: #4285f4;
+              width: 36px;
+              height: 36px;
+              border-radius: 8px;
               border: 2px solid white;
               box-shadow: 0 2px 8px rgba(0,0,0,0.3);
               display: flex;
               align-items: center;
               justify-content: center;
+              font-size: 18px;
             ">
-              <div style="
-                background: white;
-                width: 8px;
-                height: 8px;
-                border-radius: 50%;
-                transform: rotate(45deg);
-              "></div>
+              🏪
             </div>
           `,
-          iconSize: [32, 32],
-          iconAnchor: [16, 32],
-          popupAnchor: [0, -32],
-          className: 'custom-marker'
+          iconSize: [36, 36],
+          iconAnchor: [18, 36],
+          popupAnchor: [0, -36],
+          className: 'custom-store-marker'
         });
 
         const marker = L.marker([markerData.lat, markerData.lng], { icon: customIcon })
