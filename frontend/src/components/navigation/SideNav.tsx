@@ -1,4 +1,6 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
+import { useDispatch } from 'react-redux';
+import { clearSideNavContent } from '../../store';
 
 interface SideNavProps {
   isOpen: boolean;
@@ -17,12 +19,32 @@ interface SideNavProps {
 }
 
 export function SideNav({ isOpen, onClose, selectedLocation }: SideNavProps) {
-  if (!isOpen) return null;
+  const dispatch = useDispatch();
+  const sideNavRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isOpen && selectedLocation) {
+      // Clear content after 300ms (animation duration)
+      const timer = setTimeout(() => {
+        dispatch(clearSideNavContent());
+      }, 300);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen, selectedLocation, dispatch]);
 
   return (
     <>
-      {/* Side Navigation - LEFT SIDE with FIXED WIDTH - NO BACKDROP */}
-      <div className="fixed top-0 left-0 h-full w-80 max-w-sm bg-white dark:bg-zinc-900 shadow-2xl z-50">
+      {/* Side Navigation - LEFT SIDE with FIXED WIDTH - ANIMATED */}
+      <div 
+        ref={sideNavRef}
+        className="fixed top-0 left-0 h-full w-80 max-w-sm bg-white dark:bg-zinc-900 shadow-2xl z-50"
+        style={{
+          transform: isOpen ? 'translateX(0)' : 'translateX(-100%)',
+          transition: 'transform 0.3s ease-in-out',
+          willChange: 'transform'
+        }}
+      >
         
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-zinc-200 dark:border-zinc-700">

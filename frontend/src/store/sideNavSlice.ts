@@ -30,10 +30,14 @@ const sideNavSlice = createSlice({
     },
     closeSideNav: (state) => {
       state.isOpen = false;
+      // Don't clear selectedLocation immediately - let animation finish
+      // state.selectedLocation = undefined;
+    },
+    clearSideNavContent: (state) => {
       state.selectedLocation = undefined;
     },
   },
 });
 
-export const { openSideNav, closeSideNav } = sideNavSlice.actions;
+export const { openSideNav, closeSideNav, clearSideNavContent } = sideNavSlice.actions;
 export default sideNavSlice.reducer;

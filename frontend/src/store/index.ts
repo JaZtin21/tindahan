@@ -1,6 +1,6 @@
 import { configureStore } from '@reduxjs/toolkit'
 import { userSlice, themeSlice, locationSlice } from './slices'
-import sideNavSlice, { openSideNav, closeSideNav } from './sideNavSlice'
+import sideNavSlice, { openSideNav, closeSideNav, clearSideNavContent } from './sideNavSlice'
 
 export const store = configureStore({
   reducer: {
@@ -18,4 +18,4 @@ export type AppDispatch = typeof store.dispatch;
 export const { setUser, clearUser } = userSlice.actions;
 export const { toggleTheme, setTheme } = themeSlice.actions;
 export const { setLocation, clearLocation } = locationSlice.actions;
-export { openSideNav, closeSideNav };
+export { openSideNav, closeSideNav, clearSideNavContent };
