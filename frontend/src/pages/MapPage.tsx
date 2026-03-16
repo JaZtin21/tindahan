@@ -118,6 +118,7 @@ export function MapPage() {
           center={mapCenter}
           zoom={mapZoom}
           onMapClick={handleMapClick}
+          onMarkerClick={handleStoreSelect}
           markers={filteredStores}
         />
 

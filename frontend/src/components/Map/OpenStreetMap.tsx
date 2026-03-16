@@ -4,10 +4,11 @@ interface MapProps {
   center: { lat: number; lng: number };
   zoom: number;
   onMapClick?: (lat: number, lng: number) => void;
+  onMarkerClick?: (store: { lat: number; lng: number; name: string }) => void;
   markers?: Array<{ lat: number; lng: number; title?: string }>;
 }
 
-export function OpenStreetMap({ center, zoom, onMapClick, markers = [] }: MapProps) {
+export function OpenStreetMap({ center, zoom, onMapClick, onMarkerClick, markers = [] }: MapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
@@ -119,7 +120,16 @@ export function OpenStreetMap({ center, zoom, onMapClick, markers = [] }: MapPro
             <div style="color: #5f6368; font-size: 12px;">
               📍 ${markerData.lat.toFixed(4)}, ${markerData.lng.toFixed(4)}
             </div>
-          `);
+          `)
+          .on('click', () => {
+            if (onMarkerClick && markerData.title) {
+              onMarkerClick({
+                lat: markerData.lat,
+                lng: markerData.lng,
+                name: markerData.title
+              });
+            }
+          });
       });
 
       // Add click listener
