@@ -83,6 +83,11 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
       console.log('Initializing map with ref:', mapRef.current);
       console.log('Map container dimensions:', mapRef.current.offsetWidth, 'x', mapRef.current.offsetHeight);
       
+      // Clear any existing content
+      if (mapRef.current) {
+        mapRef.current.innerHTML = '';
+      }
+      
       // Force container to have dimensions
       mapRef.current.style.width = '100%';
       mapRef.current.style.height = '100%';
