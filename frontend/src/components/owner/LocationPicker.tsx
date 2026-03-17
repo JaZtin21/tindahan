@@ -9,7 +9,6 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
   const [selectedLocation, setSelectedLocation] = useState(initialLocation);
   const [showModal, setShowModal] = useState(false);
   const [address, setAddress] = useState('');
-  const [mapLoaded, setMapLoaded] = useState(false);
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const L = (window as any).L;
@@ -52,7 +51,7 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
         className: 'custom-store-marker'
       });
 
-      const marker = L.marker([lat, lng], { icon: customIcon })
+      L.marker([lat, lng], { icon: customIcon })
         .addTo(mapInstanceRef.current)
         .bindPopup(`
           <div style="font-weight: 600; color: #202124; margin-bottom: 4px;">
@@ -210,7 +209,7 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
         className: 'custom-store-marker'
       });
 
-      const marker = L.marker([selectedLocation.lat, selectedLocation.lng], { icon: customIcon })
+      L.marker([selectedLocation.lat, selectedLocation.lng], { icon: customIcon })
         .addTo(map)
         .bindPopup(`
           <div style="font-weight: 600; color: #202124; margin-bottom: 4px;">
@@ -227,12 +226,10 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
         const lng = event.latlng.lng;
         handleMapClick(lat, lng);
       });
-
-      setMapLoaded(true);
     };
 
     script.onerror = () => {
-      setMapLoaded(false);
+      console.error('Failed to load Leaflet');
     };
 
     document.head.appendChild(script);

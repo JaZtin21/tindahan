@@ -11,11 +11,10 @@ interface ShopFormProps {
 export function ShopForm({ shop, onSaveShop, onCancel }: ShopFormProps) {
   const [formData, setFormData] = useState({
     name: shop?.name || '',
-    location: shop?.location || '',
     phone: shop?.contactDetails.phone || '',
     email: shop?.contactDetails.email || '',
     address: shop?.contactDetails.address || '',
-    storefrontImage: shop?.storefrontImage || '',
+    storefrontImage: shop?.storefrontImage || 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=400',
     coordinates: shop?.coordinates || { lat: 14.5995, lng: 120.9842 }
   });
 
@@ -31,15 +30,15 @@ export function ShopForm({ shop, onSaveShop, onCancel }: ShopFormProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.name || !formData.location || !formData.phone || !formData.email || !formData.address) {
-      alert('Please fill in all required fields');
+    if (!formData.name) {
+      alert('Please fill in shop name');
       return;
     }
 
     const shopData: Shop = {
       id: shop?.id || Date.now().toString(),
       name: formData.name,
-      location: formData.location,
+      location: formData.address,
       coordinates: formData.coordinates,
       storefrontImage: formData.storefrontImage || 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=400',
       contactDetails: {
@@ -55,14 +54,14 @@ export function ShopForm({ shop, onSaveShop, onCancel }: ShopFormProps) {
   };
 
   return (
-    <div className="max-w-2xl">
+    <div className="w-full">
       <div className="bg-zinc-50 dark:bg-zinc-800 rounded-lg p-6 shadow-lg">
         <h2 className="text-2xl font-semibold mb-6">
           {shop ? 'Edit Shop' : 'Add New Shop'}
         </h2>
         
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
             <div>
               <label className="block text-sm font-medium mb-2">Shop Name *</label>
               <input
@@ -75,42 +74,38 @@ export function ShopForm({ shop, onSaveShop, onCancel }: ShopFormProps) {
               />
             </div>
             
-            <div>
-              <label className="block text-sm font-medium mb-2">Location *</label>
-              <input
-                type="text"
-                value={formData.location}
-                onChange={(e) => setFormData({...formData, location: e.target.value})}
-                className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                placeholder="City, Country"
-                required
-              />
-            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium mb-2">Phone Number *</label>
+              <label className="block text-sm font-medium mb-2">Phone</label>
               <input
                 type="tel"
                 value={formData.phone}
                 onChange={(e) => setFormData({...formData, phone: e.target.value})}
                 className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                 placeholder="+63 XXX XXX XXXX"
-                required
               />
             </div>
             
             <div>
-              <label className="block text-sm font-medium mb-2">Email Address *</label>
+              <label className="block text-sm font-medium mb-2">Email</label>
               <input
                 type="email"
                 value={formData.email}
                 onChange={(e) => setFormData({...formData, email: e.target.value})}
                 className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                 placeholder="shop@email.com"
-                required
               />
+            </div>
+          </div>
+
+          <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+            <div className="flex items-start space-x-2">
+              <span className="text-amber-600 dark:text-amber-400 text-sm">⚠️</span>
+              <p className="text-sm text-amber-800 dark:text-amber-200">
+                <strong>Privacy Notice:</strong> Don't put your personal phone number or email to prevent receiving spam messages or calls. Use a business contact instead.
+              </p>
             </div>
           </div>
 
@@ -127,41 +122,20 @@ export function ShopForm({ shop, onSaveShop, onCancel }: ShopFormProps) {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-2">Latitude</label>
+          <div className="grid grid-cols-1 gap-4">
+            <div className="md:col-span-1">
+              <label className="block text-sm font-medium mb-2">Storefront Image URL</label>
               <input
-                type="number"
-                step="0.0001"
-                value={formData.coordinates.lat}
-                onChange={(e) => setFormData({...formData, coordinates: {...formData.coordinates, lat: parseFloat(e.target.value) || 0}})}
+                type="url"
+                value={formData.storefrontImage}
+                onChange={(e) => setFormData({...formData, storefrontImage: e.target.value})}
                 className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                placeholder="14.5995"
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium mb-2">Longitude</label>
-              <input
-                type="number"
-                step="0.0001"
-                value={formData.coordinates.lng}
-                onChange={(e) => setFormData({...formData, coordinates: {...formData.coordinates, lng: parseFloat(e.target.value) || 0}})}
-                className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                placeholder="120.9842"
+                placeholder="https://example.com/image.jpg"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium mb-2">Storefront Image URL</label>
-            <input
-              type="url"
-              value={formData.storefrontImage}
-              onChange={(e) => setFormData({...formData, storefrontImage: e.target.value})}
-              className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-              placeholder="https://example.com/image.jpg"
-            />
             <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
               Leave empty to use default image
             </p>
