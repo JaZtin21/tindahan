@@ -9,6 +9,7 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
   const [selectedLocation, setSelectedLocation] = useState(initialLocation);
   const [showModal, setShowModal] = useState(false);
   const [address, setAddress] = useState('');
+  const [mapLoaded, setMapLoaded] = useState(false);
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const L = (window as any).L;
@@ -98,7 +99,7 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
 
       // Add tile layer
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors',
+        attribution: ' OpenStreetMap contributors',
         maxZoom: 19,
       }).addTo(map);
 
@@ -121,35 +122,123 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
   };
 
   useEffect(() => {
-    if (showModal) {
-      // Load Leaflet if not already loaded
-      if (!(window as any).L) {
-        console.log('Loading Leaflet...');
-        const link = document.createElement('link');
-        link.rel = 'stylesheet';
-        link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-        document.head.appendChild(link);
+    if (!showModal || !mapRef.current || mapInstanceRef.current) return;
 
-        const script = document.createElement('script');
-        script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-        script.async = true;
+    // Load Leaflet CSS
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+    document.head.appendChild(link);
 
-        script.onload = () => {
-          console.log('Leaflet loaded, initializing map...');
-          setTimeout(() => {
-            initializeMap();
-          }, 100); // Small delay to ensure DOM is ready
-        };
+    // Load Leaflet JS
+    const script = document.createElement('script');
+    script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    script.async = true;
 
-        document.head.appendChild(script);
-      } else {
-        console.log('Leaflet already loaded, initializing map...');
-        setTimeout(() => {
-          initializeMap();
-        }, 100); // Small delay to ensure DOM is ready
+    script.onload = () => {
+      const L = (window as any).L;
+      
+      // Check if container already has a map
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
       }
-    }
-  }, [showModal]);
+      
+      // Clear any existing content
+      if (mapRef.current) {
+        mapRef.current.innerHTML = '';
+      }
+      
+      // Initialize map
+      const map = L.map(mapRef.current).setView([selectedLocation.lat, selectedLocation.lng], 15);
+      mapInstanceRef.current = map;
+
+      // Use CartoDB Voyager tile layer (more Google Maps-like)
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        attribution: '© OpenStreetMap contributors © CARTO',
+        subdomains: 'abcd',
+        maxZoom: 20,
+      }).addTo(map);
+
+      // Apply custom styling
+      const styleSheet = document.createElement('style');
+      styleSheet.textContent = `
+        .leaflet-container {
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        .leaflet-popup-content-wrapper {
+          border-radius: 8px;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+        .leaflet-popup-content {
+          font-size: 14px;
+          margin: 12px;
+        }
+        .leaflet-control-zoom {
+          border: none !important;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.15) !important;
+        }
+        .leaflet-control-zoom a {
+          background: white !important;
+          color: #333 !important;
+          border-bottom: 1px solid #ccc !important;
+        }
+        .leaflet-control-zoom a:last-child {
+          border-bottom: none !important;
+        }
+      `;
+      document.head.appendChild(styleSheet);
+
+      // Add initial marker
+      const customIcon = L.divIcon({
+        html: `
+          <div style="
+            background: #4285f4;
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            border: 2px solid white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+          ">
+            📍
+          </div>
+        `,
+        iconSize: [36, 36],
+        iconAnchor: [18, 36],
+        popupAnchor: [0, -36],
+        className: 'custom-store-marker'
+      });
+
+      const marker = L.marker([selectedLocation.lat, selectedLocation.lng], { icon: customIcon })
+        .addTo(map)
+        .bindPopup(`
+          <div style="font-weight: 600; color: #202124; margin-bottom: 4px;">
+            Selected Location
+          </div>
+          <div style="color: #5f6368; font-size: 12px;">
+            📍 ${selectedLocation.lat.toFixed(4)}, ${selectedLocation.lng.toFixed(4)}
+          </div>
+        `);
+
+      // Add click handler
+      map.on('click', (event: any) => {
+        const lat = event.latlng.lat;
+        const lng = event.latlng.lng;
+        handleMapClick(lat, lng);
+      });
+
+      setMapLoaded(true);
+    };
+
+    script.onerror = () => {
+      setMapLoaded(false);
+    };
+
+    document.head.appendChild(script);
+  }, [showModal, selectedLocation]);
 
   // Cleanup map when modal closes
   useEffect(() => {
