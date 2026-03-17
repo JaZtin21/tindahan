@@ -46,12 +46,12 @@ export function OpenStreetMap({ center, zoom, onMapClick, onMarkerClick, markers
 
       // Use CartoDB Voyager tile layer (more Google Maps-like)
       L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-        attribution: '© OpenStreetMap contributors © CARTO',
+        attribution: 'OpenStreetMap contributors CARTO',
         subdomains: 'abcd',
         maxZoom: 20,
       }).addTo(map);
 
-      // Apply custom styling - remove problematic marker filter
+      // Apply custom styling
       const styleSheet = document.createElement('style');
       styleSheet.textContent = `
         .leaflet-container {
@@ -76,6 +76,9 @@ export function OpenStreetMap({ center, zoom, onMapClick, onMarkerClick, markers
         }
         .leaflet-control-zoom a:last-child {
           border-bottom: none !important;
+        }
+        .leaflet-control-attribution {
+          display: none !important;
         }
       `;
       document.head.appendChild(styleSheet);

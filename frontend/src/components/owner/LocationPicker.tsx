@@ -19,6 +19,8 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
     
     // Add marker to map
     if (mapInstanceRef.current) {
+      const L = (window as any).L;
+      
       // Clear existing markers
       mapInstanceRef.current.eachLayer((layer: any) => {
         if (layer instanceof L.Marker) {
@@ -26,9 +28,40 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
         }
       });
       
-      // Add new marker
-      const marker = L.marker([lat, lng]).addTo(mapInstanceRef.current);
-      marker.bindPopup(`Selected: ${lat.toFixed(4)}, ${lng.toFixed(4)}`).openPopup();
+      // Add new marker with custom icon
+      const customIcon = L.divIcon({
+        html: `
+          <div style="
+            background: #4285f4;
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            border: 2px solid white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+          ">
+            📍
+          </div>
+        `,
+        iconSize: [36, 36],
+        iconAnchor: [18, 36],
+        popupAnchor: [0, -36],
+        className: 'custom-store-marker'
+      });
+
+      const marker = L.marker([lat, lng], { icon: customIcon })
+        .addTo(mapInstanceRef.current)
+        .bindPopup(`
+          <div style="font-weight: 600; color: #202124; margin-bottom: 4px;">
+            Selected Location
+          </div>
+          <div style="color: #5f6368; font-size: 12px;">
+            📍 ${lat.toFixed(4)}, ${lng.toFixed(4)}
+          </div>
+        `);
     }
     
     // Reverse geocoding to get address
@@ -44,7 +77,9 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
       });
   };
 
-  const handleGetCurrentLocation = () => {
+  const handleGetCurrentLocation = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent event from reaching form behind
+    
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -73,53 +108,13 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
     }
   };
 
-  const handleConfirmLocation = () => {
+  const handleConfirmLocation = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent event from reaching form behind
     console.log('Confirming location:', selectedLocation, address);
     onLocationSelect(selectedLocation, address);
     setShowModal(false);
   };
 
-  const initializeMap = () => {
-    if (mapRef.current && !mapInstanceRef.current) {
-      console.log('Initializing map with ref:', mapRef.current);
-      console.log('Map container dimensions:', mapRef.current.offsetWidth, 'x', mapRef.current.offsetHeight);
-      
-      // Clear any existing content
-      if (mapRef.current) {
-        mapRef.current.innerHTML = '';
-      }
-      
-      // Force container to have dimensions
-      mapRef.current.style.width = '100%';
-      mapRef.current.style.height = '100%';
-      
-      // Initialize map
-      const map = L.map(mapRef.current).setView([selectedLocation.lat, selectedLocation.lng], 15);
-      mapInstanceRef.current = map;
-
-      // Add tile layer
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: ' OpenStreetMap contributors',
-        maxZoom: 19,
-      }).addTo(map);
-
-      // Add initial marker
-      const marker = L.marker([selectedLocation.lat, selectedLocation.lng]).addTo(map);
-      marker.bindPopup('Initial location').openPopup();
-
-      // Add click handler
-      map.on('click', (event: any) => {
-        const { lat, lng } = event.latlng;
-        handleMapClick(lat, lng);
-      });
-      
-      // Force map to redraw after a short delay
-      setTimeout(() => {
-        map.invalidateSize();
-        console.log('Map initialized and redrawn');
-      }, 200);
-    }
-  };
 
   useEffect(() => {
     if (!showModal || !mapRef.current || mapInstanceRef.current) return;
@@ -184,6 +179,9 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
         }
         .leaflet-control-zoom a:last-child {
           border-bottom: none !important;
+        }
+        .leaflet-control-attribution {
+          display: none !important;
         }
       `;
       document.head.appendChild(styleSheet);
@@ -269,8 +267,8 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-zinc-900 rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+    <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4">
+      <div className="bg-white dark:bg-zinc-900 rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh]  overflow-auto" onClick={(e) => e.stopPropagation()}>
         <div className="p-6 border-b border-zinc-200 dark:border-zinc-700">
           <div className="flex justify-between items-center">
             <h3 className="text-xl font-semibold">Select Shop Location</h3>
@@ -285,28 +283,18 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
           </div>
         </div>
 
-        <div className="flex">
+        <div className="flex flex-col md:flex-row ">
           {/* Map Container */}
-          <div className="flex-1 h-96 relative">
+          <div className="flex-1 relative p-4" onClick={(e) => e.stopPropagation()}>
             <div 
               ref={mapRef} 
-              className="w-full h-full rounded-lg overflow-hidden"
+              className="w-full h-[300px] md:h-[500px] rounded-lg overflow-hidden pointer-events-auto"
               style={{ cursor: 'crosshair' }}
             />
-            
-            {/* Instructions Overlay */}
-            <div className="absolute top-4 left-4 bg-white dark:bg-zinc-800 rounded-lg p-3 shadow-lg max-w-xs z-10">
-              <h4 className="font-semibold mb-2">Instructions:</h4>
-              <ul className="text-sm space-y-1">
-                <li>• Click on map to select location</li>
-                <li>• Or use "Use My Location" button</li>
-                <li>• Selected: {selectedLocation.lat.toFixed(4)}, {selectedLocation.lng.toFixed(4)}</li>
-              </ul>
-            </div>
           </div>
 
           {/* Sidebar */}
-          <div className="w-80 p-6 border-l border-zinc-200 dark:border-zinc-700">
+          <div className="w-full md:w-80 p-6 md:border-l border-zinc-200 dark:border-zinc-700 pointer-events-auto" onClick={(e) => e.stopPropagation()}>
             <div className="space-y-4">
               <div>
                 <h4 className="font-semibold mb-2">Selected Location</h4>
@@ -326,6 +314,7 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
               <button
                 onClick={handleGetCurrentLocation}
                 className="w-full px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors"
+                type="button"
               >
                 📍 Use My Location
               </button>
@@ -335,12 +324,17 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
                   onClick={handleConfirmLocation}
                   disabled={!address}
                   className="w-full px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  type="button"
                 >
                   Confirm Location
                 </button>
                 <button
-                  onClick={() => setShowModal(false)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowModal(false);
+                  }}
                   className="w-full px-4 py-2 mt-2 bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-300 dark:hover:bg-zinc-600 transition-colors"
+                  type="button"
                 >
                   Cancel
                 </button>
