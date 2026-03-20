@@ -1,28 +1,4 @@
-export interface Shop {
-  id: string;
-  name: string;
-  location: string;
-  coordinates: { lat: number; lng: number };
-  storefrontImage: string;
-  contactDetails: {
-    phone: string;
-    email: string;
-    address: string;
-  };
-  inventory: Item[];
-  createdAt: string;
-}
-
-export interface Item {
-  id: string;
-  name: string;
-  price: number;
-  description: string;
-  category: string;
-  stock: number;
-  image?: string;
-}
-
+// Owner-specific types and interfaces
 export type ActiveTab = 'shops' | 'add-item' | 'inventory' | 'add-shop' | 'inquiries' | 'edit-shop';
 
 export interface NewItemForm {
@@ -31,4 +7,15 @@ export interface NewItemForm {
   description: string;
   category: string;
   stock: string;
+}
+
+export interface Owner {
+  id: string;
+  name: string;
+  email: string;
+  phone: string;
+  shops: string[]; // Array of shop IDs
+  createdAt: string;
+  updatedAt?: string;
+  isActive: boolean;
 }
