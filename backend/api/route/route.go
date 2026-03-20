@@ -66,7 +66,33 @@ func Setup(router *gin.Engine, app *bootstrap.Application) {
 				userGroup.PUT("/profile", userController.UpdateProfile)
 			}
 
-			// Store owner routes
+			// Owner-specific routes
+			ownerGroup := protected.Group("/owner")
+			ownerGroup.Use(middleware.RequireRole("owner", "admin"))
+			{
+				// Shop management
+				ownerGroup.POST("/shops", storeController.CreateStore)
+				ownerGroup.PUT("/shops/:id", storeController.UpdateStore, middleware.StoreOwnerMiddleware(app))
+				ownerGroup.DELETE("/shops/:id", storeController.DeleteStore, middleware.StoreOwnerMiddleware(app))
+				ownerGroup.GET("/shops", storeController.GetMyStores)
+				ownerGroup.GET("/shops/:id", storeController.GetStoreByID, middleware.StoreOwnerMiddleware(app))
+
+				// Product management
+				productGroup := ownerGroup.Group("/products")
+				{
+					productGroup.POST("", productController.CreateProduct)
+					productGroup.PUT("/:id", productController.UpdateProduct, middleware.ProductOwnerMiddleware(app))
+					productGroup.DELETE("/:id", productController.DeleteProduct, middleware.ProductOwnerMiddleware(app))
+					productGroup.GET("", productController.GetMyProducts)
+					productGroup.GET("/:id", productController.GetProductByID, middleware.ProductOwnerMiddleware(app))
+				}
+
+				// Owner profile management
+				ownerGroup.GET("/profile", userController.GetProfile)
+				ownerGroup.PUT("/profile", userController.UpdateProfile)
+			}
+
+			// Store owner routes (legacy - kept for compatibility)
 			storeOwnerGroup := protected.Group("")
 			storeOwnerGroup.Use(middleware.RequireRole("owner", "admin"))
 			{
