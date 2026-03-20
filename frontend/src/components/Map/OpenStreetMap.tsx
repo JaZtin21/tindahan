@@ -6,11 +6,13 @@ interface MapProps {
   onMapClick?: (lat: number, lng: number) => void;
   onMarkerClick?: (store: { lat: number; lng: number; name: string }) => void;
   markers?: Array<{ lat: number; lng: number; title?: string }>;
+  currentLocation?: { lat: number; lng: number; name?: string } | null;
 }
 
-export function OpenStreetMap({ center, zoom, onMapClick, onMarkerClick, markers = [] }: MapProps) {
+export function OpenStreetMap({ center, zoom, onMapClick, onMarkerClick, markers = [], currentLocation }: MapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
+  const currentLocationMarkerRef = useRef<any>(null);
   const [mapLoaded, setMapLoaded] = useState(false);
 
   useEffect(() => {
@@ -176,6 +178,70 @@ export function OpenStreetMap({ center, zoom, onMapClick, onMarkerClick, markers
       });
     }
   }, [center, zoom, mapLoaded]);
+
+  // Handle current location marker updates
+  useEffect(() => {
+    if (!mapInstanceRef.current || !mapLoaded) return;
+
+    const map = mapInstanceRef.current;
+    const L = (window as any).L;
+
+    // Remove existing current location marker
+    if (currentLocationMarkerRef.current) {
+      map.removeLayer(currentLocationMarkerRef.current);
+      currentLocationMarkerRef.current = null;
+    }
+
+    // Add current location marker if available
+    if (currentLocation) {
+      const currentLocationIcon = L.divIcon({
+        html: `
+          <div style="
+            background: #ea4335;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 3px solid white;
+            box-shadow: 0 2px 12px rgba(234, 67, 53, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            animation: pulse 2s infinite;
+          ">
+            🎯
+          </div>
+          <style>
+            @keyframes pulse {
+              0% { transform: scale(1); opacity: 1; }
+              50% { transform: scale(1.1); opacity: 0.8; }
+              100% { transform: scale(1); opacity: 1; }
+            }
+          </style>
+        `,
+        iconSize: [40, 40],
+        iconAnchor: [20, 40],
+        popupAnchor: [0, -40],
+        className: 'current-location-marker'
+      });
+
+      const marker = L.marker([currentLocation.lat, currentLocation.lng], { icon: currentLocationIcon })
+        .addTo(map)
+        .bindPopup(`
+          <div style="font-weight: 600; color: #202124; margin-bottom: 4px;">
+            🎯 Your Current Location
+          </div>
+          <div style="color: #5f6368; font-size: 12px; margin-bottom: 4px;">
+            ${currentLocation.name || 'Current Location'}
+          </div>
+          <div style="color: #5f6368; font-size: 12px;">
+            📍 ${currentLocation.lat.toFixed(4)}, ${currentLocation.lng.toFixed(4)}
+          </div>
+        `);
+
+      currentLocationMarkerRef.current = marker;
+    }
+  }, [currentLocation, mapLoaded]);
 
   return (
     <div className="w-full h-full relative">

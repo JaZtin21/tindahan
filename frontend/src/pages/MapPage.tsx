@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import type { RootState } from '../store';
-import { OpenStreetMap, SearchBar } from '../components/Map';
+import { OpenStreetMap, SearchBar, LocationSearchBar } from '../components/Map';
 import { openSideNav } from '../store';
 
 export function MapPage() {
@@ -16,6 +16,15 @@ export function MapPage() {
     { lat: 14.6091, lng: 120.9799, title: 'Aling Nena\'s Grocery' },
     { lat: 14.5897, lng: 120.9834, title: 'Tindahan ni Tony' },
   ]);
+  const [locationQuery, setLocationQuery] = useState('');
+  const [currentLocation, setCurrentLocation] = useState<{ lat: number; lng: number; name?: string } | null>(null);
+
+  const handleLocationSelect = (location: { lat: number; lng: number; name: string }) => {
+    setMapCenter({ lat: location.lat, lng: location.lng });
+    setMapZoom(16);
+    setLocationQuery(location.name);
+    setCurrentLocation({ lat: location.lat, lng: location.lng, name: location.name });
+  };
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
@@ -27,6 +36,28 @@ export function MapPage() {
   const handleMapClick = (lat: number, lng: number) => {
     console.log('Map clicked at:', { lat, lng });
     // Map click functionality removed
+  };
+
+  // Reverse geocoding function to get address from coordinates
+  const reverseGeocode = async (lat: number, lng: number) => {
+    try {
+      console.log('🔍 Reverse geocoding for:', { lat, lng });
+      
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1`
+      );
+      
+      const data = await response.json();
+      
+      if (data && data.display_name) {
+        return data.display_name;
+      } else {
+        return `Unknown Location (${lat.toFixed(4)}, ${lng.toFixed(4)})`;
+      }
+    } catch (error: any) {
+      console.error('❌ Reverse geocoding ERROR:', error);
+      return `My Location (${lat.toFixed(4)}, ${lng.toFixed(4)})`;
+    }
   };
 
   const handleMyLocation = async () => {
@@ -63,7 +94,13 @@ export function MapPage() {
       setMapCenter(userLocation);
       setMapZoom(20); // Maximum zoom level
       
+      // Get address from coordinates
+      const address = await reverseGeocode(userLocation.lat, userLocation.lng);
+      setLocationQuery(address);
+      setCurrentLocation({ ...userLocation, name: address });
+      
       console.log('Map centered and MAX zoomed on your location!');
+      console.log('Address found:', address);
       
     } catch (error) {
       console.error('Error getting location:', error);
@@ -94,21 +131,35 @@ export function MapPage() {
   return (
     <div className="bg-white dark:bg-zinc-900 relative min-h-screen">
       {/* Top Search Bar */}
-      <div className="absolute top-[77px] z-40  px-4 py-4 flex items-center gap-3 left-[50%] transform -translate-x-1/2 w-[700px]">
-        {/* My Location Button */}
-        <button
-          onClick={handleMyLocation}
-          className="flex-shrink-0 p-3 bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-600 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
-          title="Go to my location"
-        >
-          🎯
-        </button>
+      <div className="absolute top-[77px] z-40 px-4 py-4 left-[50%] transform -translate-x-1/2 w-[700px]">
+        {/* First Row: My Location and Manual Location Search */}
+        <div className="flex items-center gap-3 mb-3">
+          {/* My Location Button */}
+          <button
+            onClick={handleMyLocation}
+            className="flex-shrink-0 p-3 bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-600 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors"
+            title="Go to my location"
+          >
+            🎯
+          </button>
+          
+          {/* Manual Location Search Bar */}
+          <LocationSearchBar 
+            onLocationSelect={handleLocationSelect}
+            placeholder="Search for your current location"
+            value={locationQuery}
+            onChange={setLocationQuery}
+          />
+        </div>
         
-        <SearchBar 
-          onSearch={handleSearch}
-          onStoreSelect={handleStoreSelect}
-          placeholder="Search for stores or products..."
-        />
+        {/* Second Row: Current Search Bar */}
+        <div>
+          <SearchBar 
+            onSearch={handleSearch}
+            onStoreSelect={handleStoreSelect}
+            placeholder="Search for stores or products near you"
+          />
+        </div>
       </div>
 
       {/* Main Content */}
@@ -120,6 +171,7 @@ export function MapPage() {
           onMapClick={handleMapClick}
           onMarkerClick={handleStoreSelect}
           markers={filteredStores}
+          currentLocation={currentLocation}
         />
 
         {/* Map Controls Info */}

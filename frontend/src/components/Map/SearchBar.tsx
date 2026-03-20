@@ -143,17 +143,11 @@ export function SearchBar({ onSearch, onStoreSelect, placeholder = "Search for s
           onChange={(e) => handleInputChange(e.target.value)}
           onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
           placeholder={placeholder}
-          className="w-full px-4 py-3 pl-12 text-lg border border-zinc-300 dark:border-zinc-600 rounded-xl bg-white dark:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent shadow-lg"
+          className="w-full px-4 py-3 pl-12 text-lg border border-zinc-300 dark:border-zinc-600 rounded-xl bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent shadow-lg"
         />
         <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-zinc-400">
           {isLoading ? '⏳' : '🔍'}
         </div>
-        <button
-          onClick={() => handleSearch()}
-          className="absolute right-2 top-1/2 transform -translate-y-1/2 px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors font-medium text-sm"
-        >
-          Search
-        </button>
       </div>
 
       {/* Suggestions dropdown */}
