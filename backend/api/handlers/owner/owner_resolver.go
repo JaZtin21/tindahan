@@ -13,180 +13,178 @@ import (
 
 type OwnerResolver struct {
 	productRepo repository.ProductRepository
+	storeRepo   repository.StoreRepository
 }
 
 func NewOwnerResolver(db *mongo.Database) *OwnerResolver {
 	return &OwnerResolver{
 		productRepo: repository.NewProductRepository(db),
+		storeRepo:   repository.NewStoreRepository(db),
 	}
 }
 
-// GetOwnerShops retrieves all shops for a specific owner
+// GetOwnerShops retrieves all shops for a specific owner (real DB implementation)
 func (r *OwnerResolver) GetOwnerShops(ctx context.Context, ownerId string, page, limit int) (map[string]interface{}, error) {
+	// Convert ownerId to ObjectID
+	ownerObjectID, err := primitive.ObjectIDFromHex(ownerId)
+	if err != nil {
+		return map[string]interface{}{
+			"success": false,
+			"message": "Invalid owner ID format",
+		}, err
+	}
+
+	// Fetch from database
+	stores, total, err := r.storeRepo.GetMyStores(ctx, ownerObjectID, page, limit)
+	if err != nil {
+		return map[string]interface{}{
+			"success": false,
+			"message": "Failed to fetch shops: " + err.Error(),
+		}, err
+	}
+
+	// Convert to response format
+	data := make([]map[string]interface{}, len(stores))
+	for i, store := range stores {
+		data[i] = map[string]interface{}{
+			"id":        store.ID.Hex(),
+			"name":      store.Name,
+			"location":  store.Address,
+			"status":    "ACTIVE",
+			"createdAt": store.CreatedAt.Format(time.RFC3339),
+			"createdBy": store.OwnerID.Hex(),
+		}
+	}
+
 	return map[string]interface{}{
 		"success": true,
 		"message": "Owner shops retrieved successfully",
-		"data": []map[string]interface{}{
-			{
-				"id":     "owner-shop-id",
-				"name":   "Owner Shop",
-				"location": "Owner Location",
-				"coordinates": map[string]interface{}{
-					"lat": 0.0,
-					"lng": 0.0,
-				},
-				"coverPhoto": "owner-cover.jpg",
-				"businessHours": map[string]interface{}{
-					"openTime":  "09:00",
-					"closeTime": "18:00",
-					"days":      []string{"Mon", "Tue", "Wed", "Thu", "Fri"},
-				},
-				"businessType": "SARI_SARI_STORE",
-				"paymentMethods": map[string]interface{}{
-					"cash":   true,
-					"gcash":  false,
-					"paymaya": false,
-					"card":   false,
-				},
-				"delivery": map[string]interface{}{
-					"available": false,
-					"radius":    5.0,
-					"fee":       50.0,
-					"minOrder":  200.0,
-				},
-				"socialMedia": map[string]interface{}{
-					"facebook":  "https://facebook.com/ownershop",
-					"instagram": "https://instagram.com/ownershop",
-				},
-				"verification": map[string]interface{}{
-					"isVerified":   true,
-					"verifiedDate": "2023-01-01T00:00:00Z",
-					"verificationId": "VER123",
-				},
-				"contactDetails": map[string]interface{}{
-					"phone":   "1234567890",
-					"email":   "owner@example.com",
-					"address": "Owner Address",
-				},
-				"createdAt": "2023-01-01T00:00:00Z",
-				"updatedAt": "2023-01-01T00:00:00Z",
-				"createdBy": ownerId,
-				"status": "ACTIVE",
-			},
-		},
+		"data":    data,
+		"total":   total,
 	}, nil
 }
 
-// CreateShop creates a new shop for the owner
+// CreateShop creates a new shop for the owner (real DB implementation)
 func (r *OwnerResolver) CreateShop(ctx context.Context, ownerId string, name, location string) (map[string]interface{}, error) {
+	// Convert ownerId to ObjectID
+	ownerObjectID, err := primitive.ObjectIDFromHex(ownerId)
+	if err != nil {
+		return map[string]interface{}{
+			"success": false,
+			"message": "Invalid owner ID format",
+		}, err
+	}
+
+	// Create store domain object
+	store := &domain.Store{
+		ID:          primitive.NewObjectID(),
+		Name:        name,
+		Address:     location,
+		Description: "",
+		City:        "",
+		Latitude:    0.0,
+		Longitude:   0.0,
+		OwnerID:     ownerObjectID,
+		Category:    "",
+		Rating:      0.0,
+		IsActive:    true,
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
+	}
+
+	// Save to database
+	if err := r.storeRepo.CreateStore(ctx, store); err != nil {
+		return map[string]interface{}{
+			"success": false,
+			"message": "Failed to create shop: " + err.Error(),
+		}, err
+	}
+
 	return map[string]interface{}{
 		"success": true,
 		"message": "Shop created successfully",
 		"data": map[string]interface{}{
-			"id":     "new-owner-shop-id",
-			"name":   name,
-			"location": location,
-			"coordinates": map[string]interface{}{
-				"lat": 0.0,
-				"lng": 0.0,
-			},
-			"coverPhoto": "new-cover.jpg",
-			"businessHours": map[string]interface{}{
-				"openTime":  "09:00",
-				"closeTime": "18:00",
-				"days":      []string{"Mon", "Tue", "Wed", "Thu", "Fri"},
-			},
-			"businessType": "SARI_SARI_STORE",
-			"paymentMethods": map[string]interface{}{
-				"cash":   true,
-				"gcash":  false,
-				"paymaya": false,
-				"card":   false,
-			},
-			"delivery": map[string]interface{}{
-				"available": false,
-				"radius":    5.0,
-				"fee":       50.0,
-				"minOrder":  200.0,
-			},
-			"socialMedia": map[string]interface{}{
-				"facebook":  "",
-				"instagram": "",
-			},
-			"verification": map[string]interface{}{
-				"isVerified":   false,
-				"verifiedDate": nil,
-				"verificationId": "",
-			},
-			"contactDetails": map[string]interface{}{
-				"phone":   "",
-				"email":   "",
-				"address": "",
-			},
-			"createdAt": "2023-01-01T00:00:00Z",
-			"updatedAt": "2023-01-01T00:00:00Z",
+			"id":        store.ID.Hex(),
+			"name":      store.Name,
+			"location":  store.Address,
+			"status":    "ACTIVE",
+			"createdAt": store.CreatedAt.Format(time.RFC3339),
 			"createdBy": ownerId,
-			"status": "ACTIVE",
 		},
 	}, nil
 }
 
-// UpdateShop updates an existing shop
+// UpdateShop updates an existing shop (real DB implementation)
 func (r *OwnerResolver) UpdateShop(ctx context.Context, shopId, ownerId string, name, location string) (map[string]interface{}, error) {
+	// Convert shopId to ObjectID
+	shopObjectID, err := primitive.ObjectIDFromHex(shopId)
+	if err != nil {
+		return map[string]interface{}{
+			"success": false,
+			"message": "Invalid shop ID format",
+		}, err
+	}
+
+	// Build update request
+	updates := &domain.UpdateStoreRequest{
+		Name:    &name,
+		Address: &location,
+	}
+
+	// Update in database
+	if err := r.storeRepo.UpdateStore(ctx, shopObjectID, updates); err != nil {
+		return map[string]interface{}{
+			"success": false,
+			"message": "Failed to update shop: " + err.Error(),
+		}, err
+	}
+
+	// Fetch updated store
+	store, err := r.storeRepo.GetStoreByID(ctx, shopObjectID)
+	if err != nil {
+		return map[string]interface{}{
+			"success": true,
+			"message": "Shop updated but failed to fetch updated data",
+			"data": map[string]interface{}{
+				"id":       shopId,
+				"name":     name,
+				"location": location,
+			},
+		}, nil
+	}
+
 	return map[string]interface{}{
 		"success": true,
 		"message": "Shop updated successfully",
 		"data": map[string]interface{}{
-			"id":     shopId,
-			"name":   name,
-			"location": location,
-			"coordinates": map[string]interface{}{
-				"lat": 0.0,
-				"lng": 0.0,
-			},
-			"coverPhoto": "updated-cover.jpg",
-			"businessHours": map[string]interface{}{
-				"openTime":  "09:00",
-				"closeTime": "18:00",
-				"days":      []string{"Mon", "Tue", "Wed", "Thu", "Fri"},
-			},
-			"businessType": "SARI_SARI_STORE",
-			"paymentMethods": map[string]interface{}{
-				"cash":   true,
-				"gcash":  false,
-				"paymaya": false,
-				"card":   false,
-			},
-			"delivery": map[string]interface{}{
-				"available": false,
-				"radius":    5.0,
-				"fee":       50.0,
-				"minOrder":  200.0,
-			},
-			"socialMedia": map[string]interface{}{
-				"facebook":  "https://facebook.com/updatedshop",
-				"instagram": "https://instagram.com/updatedshop",
-			},
-			"verification": map[string]interface{}{
-				"isVerified":   true,
-				"verifiedDate": "2023-01-01T00:00:00Z",
-				"verificationId": "VER123",
-			},
-			"contactDetails": map[string]interface{}{
-				"phone":   "1234567890",
-				"email":   "updated@example.com",
-				"address": "Updated Address",
-			},
-			"createdAt": "2023-01-01T00:00:00Z",
-			"updatedAt": "2023-01-01T00:00:00Z",
-			"createdBy": ownerId,
-			"status": "ACTIVE",
+			"id":        store.ID.Hex(),
+			"name":      store.Name,
+			"location":  store.Address,
+			"status":    "ACTIVE",
+			"updatedAt": store.UpdatedAt.Format(time.RFC3339),
 		},
 	}, nil
 }
 
-// DeleteShop deletes a shop
+// DeleteShop deletes a shop (real DB implementation)
 func (r *OwnerResolver) DeleteShop(ctx context.Context, shopId, ownerId string) (map[string]interface{}, error) {
+	// Convert shopId to ObjectID
+	shopObjectID, err := primitive.ObjectIDFromHex(shopId)
+	if err != nil {
+		return map[string]interface{}{
+			"success": false,
+			"message": "Invalid shop ID format",
+		}, err
+	}
+
+	// Delete from database
+	if err := r.storeRepo.DeleteStore(ctx, shopObjectID); err != nil {
+		return map[string]interface{}{
+			"success": false,
+			"message": "Failed to delete shop: " + err.Error(),
+		}, err
+	}
+
 	return map[string]interface{}{
 		"success": true,
 		"message": "Shop deleted successfully",
@@ -229,6 +227,11 @@ func (r *OwnerResolver) GetOwnerItems(ctx context.Context, ownerId string, page,
 			},
 		},
 	}, nil
+}
+
+// GetStoreByID retrieves a store by ID using the repository
+func (r *OwnerResolver) GetStoreByID(ctx context.Context, id primitive.ObjectID) (*domain.Store, error) {
+	return r.storeRepo.GetStoreByID(ctx, id)
 }
 
 // CreateItem creates a new item for the owner (real DB implementation)

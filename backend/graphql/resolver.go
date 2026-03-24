@@ -172,18 +172,32 @@ func (r *Resolver) UpdateUserStatus(ctx context.Context, id string, isActive boo
 	}, nil
 }
 
-// Shop resolvers - delegate to shop resolver
 func (r *Resolver) Shop(ctx context.Context, id string) (*ShopPayload, error) {
-	result, _ := r.shopResolver.Shop(ctx, id)
-	data := result["data"].(map[string]interface{})
+	// Convert string ID to ObjectID
+	objectID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return &ShopPayload{
+			Success: false,
+			Message: "Invalid shop ID format",
+		}, nil
+	}
+	
+	// Fetch from database using owner resolver's store repo
+	store, err := r.ownerResolver.GetStoreByID(ctx, objectID)
+	if err != nil {
+		return &ShopPayload{
+			Success: false,
+			Message: "Shop not found",
+		}, nil
+	}
 	
 	return &ShopPayload{
-		Success: result["success"].(bool),
-		Message: result["message"].(string),
+		Success: true,
+		Message: "Shop retrieved successfully",
 		Data: &Shop{
-			ID:     data["id"].(string),
-			Name:   data["name"].(string),
-			Status: ShopStatus(data["status"].(string)),
+			ID:     store.ID.Hex(),
+			Name:   store.Name,
+			Status: ShopStatus("ACTIVE"),
 		},
 	}, nil
 }
@@ -198,10 +212,19 @@ func (r *Resolver) Shops(ctx context.Context, input *ShopSearchInput) (*ShopsPay
 		limitVal = *input.Limit
 	}
 	
-	result, _ := r.shopResolver.Shops(ctx, pageVal, limitVal)
-	data := result["data"].([]map[string]interface{})
-	shops := make([]*Shop, len(data))
-	for i, shopMap := range data {
+	// Use owner resolver to get all stores (admin view)
+	result, err := r.ownerResolver.GetOwnerShops(ctx, "000000000000000000000001", pageVal, limitVal)
+	if err != nil {
+		return &ShopsPayload{
+			Success: false,
+			Message: result["message"].(string),
+			Data:    []*Shop{},
+		}, nil
+	}
+	
+	shopData := result["data"].([]map[string]interface{})
+	shops := make([]*Shop, len(shopData))
+	for i, shopMap := range shopData {
 		shops[i] = &Shop{
 			ID:     shopMap["id"].(string),
 			Name:   shopMap["name"].(string),
@@ -218,7 +241,13 @@ func (r *Resolver) Shops(ctx context.Context, input *ShopSearchInput) (*ShopsPay
 
 func (r *Resolver) CreateShop(ctx context.Context, input CreateShopInput) (*ShopPayload, error) {
 	// Delegate to owner resolver for shop creation
-	result, _ := r.ownerResolver.CreateShop(ctx, "owner123", input.Name, input.Location)
+	result, err := r.ownerResolver.CreateShop(ctx, "000000000000000000000001", input.Name, input.Location)
+	if err != nil {
+		return &ShopPayload{
+			Success: false,
+			Message: result["message"].(string),
+		}, nil
+	}
 	data := result["data"].(map[string]interface{})
 	
 	return &ShopPayload{
@@ -234,7 +263,13 @@ func (r *Resolver) CreateShop(ctx context.Context, input CreateShopInput) (*Shop
 
 func (r *Resolver) UpdateShop(ctx context.Context, id string, input UpdateShopInput) (*ShopPayload, error) {
 	// Delegate to owner resolver for shop updates
-	result, _ := r.ownerResolver.UpdateShop(ctx, id, "owner123", *input.Name, *input.Location)
+	result, err := r.ownerResolver.UpdateShop(ctx, id, "000000000000000000000001", *input.Name, *input.Location)
+	if err != nil {
+		return &ShopPayload{
+			Success: false,
+			Message: result["message"].(string),
+		}, nil
+	}
 	data := result["data"].(map[string]interface{})
 	
 	return &ShopPayload{
@@ -250,7 +285,13 @@ func (r *Resolver) UpdateShop(ctx context.Context, id string, input UpdateShopIn
 
 func (r *Resolver) DeleteShop(ctx context.Context, id string) (*DeletePayload, error) {
 	// Delegate to owner resolver for shop deletion
-	result, _ := r.ownerResolver.DeleteShop(ctx, id, "owner123")
+	result, err := r.ownerResolver.DeleteShop(ctx, id, "000000000000000000000001")
+	if err != nil {
+		return &DeletePayload{
+			Success: false,
+			Message: result["message"].(string),
+		}, nil
+	}
 	
 	return &DeletePayload{
 		Success: result["success"].(bool),
