@@ -8,6 +8,9 @@ import (
 	"tindahan-backend/api/handlers/product"
 	"tindahan-backend/api/handlers/shop"
 	"tindahan-backend/api/handlers/user"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type Resolver struct {
@@ -18,13 +21,13 @@ type Resolver struct {
 	ownerResolver  *owner.OwnerResolver
 }
 
-func NewResolver() *Resolver {
+func NewResolver(db *mongo.Database) *Resolver {
 	return &Resolver{
 		authResolver:    auth.NewAuthResolver(),
 		userResolver:    user.NewUserResolver(),
 		shopResolver:    shop.NewShopResolver(),
 		productResolver: product.NewProductResolver(),
-		ownerResolver:  owner.NewOwnerResolver(),
+		ownerResolver:  owner.NewOwnerResolver(db),
 	}
 }
 
@@ -255,20 +258,35 @@ func (r *Resolver) DeleteShop(ctx context.Context, id string) (*DeletePayload, e
 	}, nil
 }
 
-// Product resolvers - delegate to product resolver
+// Product resolvers - use real product repository
 func (r *Resolver) Item(ctx context.Context, id string) (*ItemPayload, error) {
-	result, _ := r.productResolver.Item(ctx, id)
-	data := result["data"].(map[string]interface{})
+	// Convert string ID to ObjectID
+	objectID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return &ItemPayload{
+			Success: false,
+			Message: "Invalid item ID format",
+		}, nil
+	}
+	
+	// Fetch from database using owner resolver's product repo
+	product, err := r.ownerResolver.GetProductByID(ctx, objectID)
+	if err != nil {
+		return &ItemPayload{
+			Success: false,
+			Message: "Item not found",
+		}, nil
+	}
 	
 	return &ItemPayload{
-		Success: result["success"].(bool),
-		Message: result["message"].(string),
+		Success: true,
+		Message: "Item retrieved successfully",
 		Data: &Item{
-			ID:       data["id"].(string),
-			Name:     data["name"].(string),
-			Price:    data["price"].(float64),
-			Stock:    int(data["stock"].(float64)),
-			IsActive: data["isActive"].(bool),
+			ID:       product.ID.Hex(),
+			Name:     product.Name,
+			Price:    product.Price,
+			Stock:    product.Stock,
+			IsActive: product.IsActive,
 		},
 	}, nil
 }
@@ -336,7 +354,14 @@ func (r *Resolver) MyItems(ctx context.Context, page *int, limit *int) (*ItemsPa
 
 func (r *Resolver) CreateItem(ctx context.Context, input CreateItemInput) (*ItemPayload, error) {
 	// Delegate to owner resolver for item creation
-	result, _ := r.ownerResolver.CreateItem(ctx, "owner123", input.ShopID, input.Name, input.Price, input.Stock)
+	result, err := r.ownerResolver.CreateItem(ctx, "owner123", input.ShopID, input.Name, input.Price, input.Stock)
+	if err != nil {
+		return &ItemPayload{
+			Success: false,
+			Message: result["message"].(string),
+		}, nil
+	}
+	
 	data := result["data"].(map[string]interface{})
 	
 	return &ItemPayload{
@@ -346,7 +371,7 @@ func (r *Resolver) CreateItem(ctx context.Context, input CreateItemInput) (*Item
 			ID:       data["id"].(string),
 			Name:     data["name"].(string),
 			Price:    data["price"].(float64),
-			Stock:    int(data["stock"].(float64)),
+			Stock:    int(data["stock"].(int)),
 			IsActive: data["isActive"].(bool),
 		},
 	}, nil
@@ -354,7 +379,14 @@ func (r *Resolver) CreateItem(ctx context.Context, input CreateItemInput) (*Item
 
 func (r *Resolver) UpdateItem(ctx context.Context, id string, input UpdateItemInput) (*ItemPayload, error) {
 	// Delegate to owner resolver for item updates
-	result, _ := r.ownerResolver.UpdateItem(ctx, id, "owner123", *input.Name, *input.Price)
+	result, err := r.ownerResolver.UpdateItem(ctx, id, "owner123", *input.Name, *input.Price)
+	if err != nil {
+		return &ItemPayload{
+			Success: false,
+			Message: result["message"].(string),
+		}, nil
+	}
+	
 	data := result["data"].(map[string]interface{})
 	
 	return &ItemPayload{
@@ -364,13 +396,21 @@ func (r *Resolver) UpdateItem(ctx context.Context, id string, input UpdateItemIn
 			ID:       data["id"].(string),
 			Name:     data["name"].(string),
 			Price:    data["price"].(float64),
+			Stock:    int(data["stock"].(int)),
+			IsActive: data["isActive"].(bool),
 		},
 	}, nil
 }
 
 func (r *Resolver) DeleteItem(ctx context.Context, id string) (*DeletePayload, error) {
 	// Delegate to owner resolver for item deletion
-	result, _ := r.ownerResolver.DeleteItem(ctx, id, "owner123")
+	result, err := r.ownerResolver.DeleteItem(ctx, id, "owner123")
+	if err != nil {
+		return &DeletePayload{
+			Success: false,
+			Message: result["message"].(string),
+		}, nil
+	}
 	
 	return &DeletePayload{
 		Success: result["success"].(bool),

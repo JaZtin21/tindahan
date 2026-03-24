@@ -22,7 +22,7 @@ func Setup(router *gin.Engine, app *bootstrap.Application) {
 
 	// Initialize GraphQL setup
 	graphqlConfig := graphql.Config{
-		Resolvers: graphql.NewResolver(),
+		Resolvers: graphql.NewResolver(app.MongoDatabase),
 	}
 
 	graphqlHandler := handler.NewDefaultServer(graphql.NewExecutableSchema(graphqlConfig))

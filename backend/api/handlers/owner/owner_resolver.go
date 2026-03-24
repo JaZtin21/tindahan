@@ -2,12 +2,23 @@ package owner
 
 import (
 	"context"
+	"time"
+
+	"tindahan-backend/domain"
+	"tindahan-backend/repository"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
-type OwnerResolver struct{}
+type OwnerResolver struct {
+	productRepo repository.ProductRepository
+}
 
-func NewOwnerResolver() *OwnerResolver {
-	return &OwnerResolver{}
+func NewOwnerResolver(db *mongo.Database) *OwnerResolver {
+	return &OwnerResolver{
+		productRepo: repository.NewProductRepository(db),
+	}
 }
 
 // GetOwnerShops retrieves all shops for a specific owner
@@ -220,80 +231,131 @@ func (r *OwnerResolver) GetOwnerItems(ctx context.Context, ownerId string, page,
 	}, nil
 }
 
-// CreateItem creates a new item for the owner
+// CreateItem creates a new item for the owner (real DB implementation)
 func (r *OwnerResolver) CreateItem(ctx context.Context, ownerId, shopId string, name string, price float64, stock int) (map[string]interface{}, error) {
+	// Convert shopId string to ObjectID
+	shopObjectID, err := primitive.ObjectIDFromHex(shopId)
+	if err != nil {
+		return map[string]interface{}{
+			"success": false,
+			"message": "Invalid shop ID format",
+		}, err
+	}
+
+	// Create product domain object
+	product := &domain.Product{
+		ID:          primitive.NewObjectID(),
+		Name:        name,
+		Price:       price,
+		Stock:       stock,
+		StoreID:     shopObjectID,
+		IsActive:    true,
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
+	}
+
+	// Save to database
+	if err := r.productRepo.CreateProduct(ctx, product); err != nil {
+		return map[string]interface{}{
+			"success": false,
+			"message": "Failed to create item: " + err.Error(),
+		}, err
+	}
+
 	return map[string]interface{}{
 		"success": true,
 		"message": "Item created successfully",
 		"data": map[string]interface{}{
-			"id":           "new-owner-item-id",
-			"name":         name,
-			"price":        price,
-			"description":  "New Owner Item Description",
-			"category":     "New Owner Category",
-			"subCategory":  "New Owner SubCategory",
-			"stock":        stock,
-			"coverPhoto":   "new-owner-item.jpg",
-			"otherPhotos":  []string{"new1a.jpg", "new1b.jpg"},
-			"sku":          "NEWOWNER001",
-			"barcode":      "NEWOWNERBAR001",
-			"weight":       1.5,
-			"unit":         "kg",
-			"expiryDate":  "2024-12-31",
-			"supplier":     "New Owner Supplier",
-			"brand":        "New Owner Brand",
-			"origin":       "New Owner Origin",
-			"tags":         []string{"new", "owner"},
-			"isActive":    true,
-			"discount": map[string]interface{}{
-				"percentage": 10.0,
-				"validUntil": "2024-12-31",
-			},
-			"createdAt":    "2023-01-01T00:00:00Z",
-			"updatedAt":    "2023-01-01T00:00:00Z",
-			"shopId":       shopId,
+			"id":        product.ID.Hex(),
+			"name":      product.Name,
+			"price":     product.Price,
+			"stock":     product.Stock,
+			"isActive":  product.IsActive,
+			"shopId":    shopId,
+			"createdAt": product.CreatedAt.Format(time.RFC3339),
+			"updatedAt": product.UpdatedAt.Format(time.RFC3339),
 		},
 	}, nil
 }
 
-// UpdateItem updates an existing item
+// GetProductByID retrieves a product by ID using the repository
+func (r *OwnerResolver) GetProductByID(ctx context.Context, id primitive.ObjectID) (*domain.Product, error) {
+	return r.productRepo.GetProductByID(ctx, id)
+}
+
+// UpdateItem updates an existing item (real DB implementation)
 func (r *OwnerResolver) UpdateItem(ctx context.Context, itemId, ownerId string, name string, price float64) (map[string]interface{}, error) {
+	// Convert itemId to ObjectID
+	objectID, err := primitive.ObjectIDFromHex(itemId)
+	if err != nil {
+		return map[string]interface{}{
+			"success": false,
+			"message": "Invalid item ID format",
+		}, err
+	}
+
+	// Build update request
+	updates := &domain.UpdateProductRequest{
+		Name:  &name,
+		Price: &price,
+	}
+
+	// Update in database
+	if err := r.productRepo.UpdateProduct(ctx, objectID, updates); err != nil {
+		return map[string]interface{}{
+			"success": false,
+			"message": "Failed to update item: " + err.Error(),
+		}, err
+	}
+
+	// Fetch updated product
+	product, err := r.productRepo.GetProductByID(ctx, objectID)
+	if err != nil {
+		return map[string]interface{}{
+			"success": true,
+			"message": "Item updated but failed to fetch updated data",
+			"data": map[string]interface{}{
+				"id":    itemId,
+				"name":  name,
+				"price": price,
+			},
+		}, nil
+	}
+
 	return map[string]interface{}{
 		"success": true,
 		"message": "Item updated successfully",
 		"data": map[string]interface{}{
-			"id":           itemId,
-			"name":         name,
-			"price":        price,
-			"description":  "Updated Owner Item Description",
-			"category":     "Updated Owner Category",
-			"subCategory":  "Updated Owner SubCategory",
-			"stock":        20,
-			"coverPhoto":   "updated-owner-item.jpg",
-			"otherPhotos":  []string{"updated1a.jpg", "updated1b.jpg"},
-			"sku":          "UPDATEDOWNER001",
-			"barcode":      "UPDATEDOWNERBAR001",
-			"weight":       1.5,
-			"unit":         "kg",
-			"expiryDate":  "2024-12-31",
-			"supplier":     "Updated Owner Supplier",
-			"brand":        "Updated Owner Brand",
-			"origin":       "Updated Owner Origin",
-			"tags":         []string{"updated", "owner"},
-			"isActive":    true,
-			"discount": map[string]interface{}{
-				"percentage": 10.0,
-				"validUntil": "2024-12-31",
-			},
-			"createdAt":    "2023-01-01T00:00:00Z",
-			"updatedAt":    "2023-01-01T00:00:00Z",
-			"shopId":       "owner-shop-id",
+			"id":        product.ID.Hex(),
+			"name":      product.Name,
+			"price":     product.Price,
+			"stock":     product.Stock,
+			"isActive":  product.IsActive,
+			"shopId":    product.StoreID.Hex(),
+			"updatedAt": product.UpdatedAt.Format(time.RFC3339),
 		},
 	}, nil
 }
 
-// DeleteItem deletes an item
+// DeleteItem deletes an item (real DB implementation)
 func (r *OwnerResolver) DeleteItem(ctx context.Context, itemId, ownerId string) (map[string]interface{}, error) {
+	// Convert itemId to ObjectID
+	objectID, err := primitive.ObjectIDFromHex(itemId)
+	if err != nil {
+		return map[string]interface{}{
+			"success": false,
+			"message": "Invalid item ID format",
+		}, err
+	}
+
+	// Delete from database
+	if err := r.productRepo.DeleteProduct(ctx, objectID); err != nil {
+		return map[string]interface{}{
+			"success": false,
+			"message": "Failed to delete item: " + err.Error(),
+		}, err
+	}
+
 	return map[string]interface{}{
 		"success": true,
 		"message": "Item deleted successfully",
