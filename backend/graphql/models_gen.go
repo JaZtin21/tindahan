@@ -92,6 +92,14 @@ type CreateShopInput struct {
 	ContactDetails *ContactDetailsInput  `json:"contactDetails"`
 }
 
+type CreateUserInput struct {
+	FirstName string   `json:"firstName"`
+	LastName  string   `json:"lastName"`
+	Email     string   `json:"email"`
+	Password  string   `json:"password"`
+	Role      UserRole `json:"role"`
+}
+
 type DeletePayload struct {
 	Success bool   `json:"success"`
 	Message string `json:"message"`

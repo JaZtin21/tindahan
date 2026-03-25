@@ -17,6 +17,7 @@ type UserRepository interface {
 	GetUserByEmail(ctx context.Context, email string) (*domain.User, error)
 	GetUserByID(ctx context.Context, userID primitive.ObjectID) (*domain.User, error)
 	UpdateUser(ctx context.Context, userID primitive.ObjectID, updates *domain.UpdateUserRequest) error
+	DeleteUser(ctx context.Context, userID primitive.ObjectID) error
 	GetAllUsers(ctx context.Context, page, limit int) ([]*domain.User, int64, error)
 	UpdateUserStatus(ctx context.Context, userID primitive.ObjectID, isActive bool) error
 }
@@ -124,5 +125,10 @@ func (r *userRepository) UpdateUserStatus(ctx context.Context, userID primitive.
 			},
 		},
 	)
+	return err
+}
+
+func (r *userRepository) DeleteUser(ctx context.Context, userID primitive.ObjectID) error {
+	_, err := r.collection.DeleteOne(ctx, bson.M{"_id": userID})
 	return err
 }

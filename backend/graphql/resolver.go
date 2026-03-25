@@ -1,5 +1,7 @@
 package graphql
 
+// THIS CODE WILL BE UPDATED WITH SCHEMA CHANGES. PREVIOUS IMPLEMENTATION FOR SCHEMA CHANGES WILL BE KEPT IN THE COMMENT SECTION. IMPLEMENTATION FOR UNCHANGED SCHEMA WILL BE KEPT.
+
 import (
 	"context"
 
@@ -18,30 +20,31 @@ type Resolver struct {
 	userResolver    *user.UserResolver
 	shopResolver    *shop.ShopResolver
 	productResolver *product.ProductResolver
-	ownerResolver  *owner.OwnerResolver
+	ownerResolver   *owner.OwnerResolver
 }
 
 func NewResolver(db *mongo.Database) *Resolver {
 	return &Resolver{
-		authResolver:    auth.NewAuthResolver(),
-		userResolver:    user.NewUserResolver(),
+		authResolver:    auth.NewAuthResolver(db),
+		userResolver:    user.NewUserResolver(db),
 		shopResolver:    shop.NewShopResolver(),
 		productResolver: product.NewProductResolver(),
-		ownerResolver:  owner.NewOwnerResolver(db),
+		ownerResolver:   owner.NewOwnerResolver(db),
 	}
 }
 
-// Query resolvers
-func (r *Resolver) Health(ctx context.Context) (string, error) {
-	return "GraphQL API is healthy", nil
-}
-
-// Mutation resolvers - delegate to auth resolver
-func (r *Resolver) Login(ctx context.Context, input LoginInput) (*AuthPayload, error) {
+// Login is the resolver for the login field.
+func (r *mutationResolver) Login(ctx context.Context, input LoginInput) (*AuthPayload, error) {
 	result, _ := r.authResolver.Login(ctx, input.Email, input.Password)
+	if !result["success"].(bool) {
+		return &AuthPayload{
+			Success: false,
+			Message: result["message"].(string),
+		}, nil
+	}
 	data := result["data"].(map[string]interface{})
 	userData := data["user"].(map[string]interface{})
-	
+
 	return &AuthPayload{
 		Success: result["success"].(bool),
 		Message: result["message"].(string),
@@ -59,15 +62,24 @@ func (r *Resolver) Login(ctx context.Context, input LoginInput) (*AuthPayload, e
 	}, nil
 }
 
-func (r *Resolver) Signup(ctx context.Context, input SignupInput) (*AuthPayload, error) {
+// Signup is the resolver for the signup field.
+func (r *mutationResolver) Signup(ctx context.Context, input SignupInput) (*AuthPayload, error) {
 	role := "CUSTOMER"
 	if input.Role != nil {
 		role = string(*input.Role)
 	}
-	result, _ := r.authResolver.Signup(ctx, input.Name, input.Email, input.Password, role)
+	firstName := input.Name
+	lastName := ""
+	result, _ := r.authResolver.Signup(ctx, firstName, lastName, input.Email, input.Password, role)
+	if !result["success"].(bool) {
+		return &AuthPayload{
+			Success: false,
+			Message: result["message"].(string),
+		}, nil
+	}
 	data := result["data"].(map[string]interface{})
 	userData := data["user"].(map[string]interface{})
-	
+
 	return &AuthPayload{
 		Success: result["success"].(bool),
 		Message: result["message"].(string),
@@ -85,10 +97,11 @@ func (r *Resolver) Signup(ctx context.Context, input SignupInput) (*AuthPayload,
 	}, nil
 }
 
-func (r *Resolver) RefreshToken(ctx context.Context, input RefreshTokenInput) (*AuthPayload, error) {
+// RefreshToken is the resolver for the refreshToken field.
+func (r *mutationResolver) RefreshToken(ctx context.Context, input RefreshTokenInput) (*AuthPayload, error) {
 	result, _ := r.authResolver.RefreshToken(ctx, input.RefreshToken)
 	data := result["data"].(map[string]interface{})
-	
+
 	return &AuthPayload{
 		Success: result["success"].(bool),
 		Message: result["message"].(string),
@@ -99,11 +112,25 @@ func (r *Resolver) RefreshToken(ctx context.Context, input RefreshTokenInput) (*
 	}, nil
 }
 
-// User resolvers - delegate to user resolver
-func (r *Resolver) Me(ctx context.Context) (*UserPayload, error) {
-	result, _ := r.userResolver.Me(ctx)
+// UpdateProfile is the resolver for the updateProfile field.
+func (r *mutationResolver) UpdateProfile(ctx context.Context, input UpdateProfileInput) (*UserPayload, error) {
+	userId := "69b3ba0bc5946aa72c8a38b1"
+	firstName := ""
+	lastName := ""
+	phone := ""
+	if input.Name != nil {
+		firstName = *input.Name
+	}
+
+	result, err := r.userResolver.UpdateProfile(ctx, userId, firstName, lastName, phone)
+	if err != nil {
+		return &UserPayload{
+			Success: false,
+			Message: result["message"].(string),
+		}, nil
+	}
 	data := result["data"].(map[string]interface{})
-	
+
 	return &UserPayload{
 		Success: result["success"].(bool),
 		Message: result["message"].(string),
@@ -117,7 +144,220 @@ func (r *Resolver) Me(ctx context.Context) (*UserPayload, error) {
 	}, nil
 }
 
-func (r *Resolver) Users(ctx context.Context, page *int, limit *int) ([]*User, error) {
+// CreateShop is the resolver for the createShop field.
+func (r *mutationResolver) CreateShop(ctx context.Context, input CreateShopInput) (*ShopPayload, error) {
+	result, err := r.ownerResolver.CreateShop(ctx, "000000000000000000000001", input.Name, input.Location)
+	if err != nil {
+		return &ShopPayload{
+			Success: false,
+			Message: result["message"].(string),
+		}, nil
+	}
+	data := result["data"].(map[string]interface{})
+
+	return &ShopPayload{
+		Success: result["success"].(bool),
+		Message: result["message"].(string),
+		Data: &Shop{
+			ID:     data["id"].(string),
+			Name:   data["name"].(string),
+			Status: ShopStatus(data["status"].(string)),
+		},
+	}, nil
+}
+
+// UpdateShop is the resolver for the updateShop field.
+func (r *mutationResolver) UpdateShop(ctx context.Context, id string, input UpdateShopInput) (*ShopPayload, error) {
+	result, err := r.ownerResolver.UpdateShop(ctx, id, "000000000000000000000001", *input.Name, *input.Location)
+	if err != nil {
+		return &ShopPayload{
+			Success: false,
+			Message: result["message"].(string),
+		}, nil
+	}
+	data := result["data"].(map[string]interface{})
+
+	return &ShopPayload{
+		Success: result["success"].(bool),
+		Message: result["message"].(string),
+		Data: &Shop{
+			ID:     data["id"].(string),
+			Name:   data["name"].(string),
+			Status: ShopStatus(data["status"].(string)),
+		},
+	}, nil
+}
+
+// DeleteShop is the resolver for the deleteShop field.
+func (r *mutationResolver) DeleteShop(ctx context.Context, id string) (*DeletePayload, error) {
+	result, err := r.ownerResolver.DeleteShop(ctx, id, "000000000000000000000001")
+	if err != nil {
+		return &DeletePayload{
+			Success: false,
+			Message: result["message"].(string),
+		}, nil
+	}
+
+	return &DeletePayload{
+		Success: result["success"].(bool),
+		Message: result["message"].(string),
+	}, nil
+}
+
+// CreateItem is the resolver for the createItem field.
+func (r *mutationResolver) CreateItem(ctx context.Context, input CreateItemInput) (*ItemPayload, error) {
+	result, err := r.ownerResolver.CreateItem(ctx, "owner123", input.ShopID, input.Name, input.Price, input.Stock)
+	if err != nil {
+		return &ItemPayload{
+			Success: false,
+			Message: result["message"].(string),
+		}, nil
+	}
+
+	data := result["data"].(map[string]interface{})
+
+	return &ItemPayload{
+		Success: result["success"].(bool),
+		Message: result["message"].(string),
+		Data: &Item{
+			ID:       data["id"].(string),
+			Name:     data["name"].(string),
+			Price:    data["price"].(float64),
+			Stock:    data["stock"].(int),
+			IsActive: data["isActive"].(bool),
+		},
+	}, nil
+}
+
+// UpdateItem is the resolver for the updateItem field.
+func (r *mutationResolver) UpdateItem(ctx context.Context, id string, input UpdateItemInput) (*ItemPayload, error) {
+	result, err := r.ownerResolver.UpdateItem(ctx, id, "owner123", *input.Name, *input.Price)
+	if err != nil {
+		return &ItemPayload{
+			Success: false,
+			Message: result["message"].(string),
+		}, nil
+	}
+
+	data := result["data"].(map[string]interface{})
+
+	return &ItemPayload{
+		Success: result["success"].(bool),
+		Message: result["message"].(string),
+		Data: &Item{
+			ID:       data["id"].(string),
+			Name:     data["name"].(string),
+			Price:    data["price"].(float64),
+			Stock:    data["stock"].(int),
+			IsActive: data["isActive"].(bool),
+		},
+	}, nil
+}
+
+// DeleteItem is the resolver for the deleteItem field.
+func (r *mutationResolver) DeleteItem(ctx context.Context, id string) (*DeletePayload, error) {
+	result, err := r.ownerResolver.DeleteItem(ctx, id, "owner123")
+	if err != nil {
+		return &DeletePayload{
+			Success: false,
+			Message: result["message"].(string),
+		}, nil
+	}
+
+	return &DeletePayload{
+		Success: result["success"].(bool),
+		Message: result["message"].(string),
+	}, nil
+}
+
+// CreateUser is the resolver for the createUser field.
+func (r *mutationResolver) CreateUser(ctx context.Context, input CreateUserInput) (*UserPayload, error) {
+	result, err := r.userResolver.CreateUser(ctx, input.FirstName, input.LastName, input.Email, input.Password, string(input.Role))
+	if err != nil {
+		return &UserPayload{
+			Success: false,
+			Message: result["message"].(string),
+		}, nil
+	}
+	data := result["data"].(map[string]interface{})
+
+	return &UserPayload{
+		Success: result["success"].(bool),
+		Message: result["message"].(string),
+		Data: &User{
+			ID:       data["id"].(string),
+			Name:     data["name"].(string),
+			Email:    data["email"].(string),
+			Role:     UserRole(data["role"].(string)),
+			IsActive: data["isActive"].(bool),
+		},
+	}, nil
+}
+
+// DeleteUser is the resolver for the deleteUser field.
+func (r *mutationResolver) DeleteUser(ctx context.Context, id string) (*DeletePayload, error) {
+	result, err := r.userResolver.DeleteUser(ctx, id)
+	if err != nil {
+		return &DeletePayload{
+			Success: false,
+			Message: result["message"].(string),
+		}, nil
+	}
+
+	return &DeletePayload{
+		Success: result["success"].(bool),
+		Message: result["message"].(string),
+	}, nil
+}
+
+// UpdateUserStatus is the resolver for the updateUserStatus field.
+func (r *mutationResolver) UpdateUserStatus(ctx context.Context, id string, isActive bool) (*UserPayload, error) {
+	result, err := r.userResolver.UpdateUserStatus(ctx, id, isActive)
+	if err != nil {
+		return &UserPayload{
+			Success: false,
+			Message: result["message"].(string),
+		}, nil
+	}
+	data := result["data"].(map[string]interface{})
+
+	return &UserPayload{
+		Success: result["success"].(bool),
+		Message: result["message"].(string),
+		Data: &User{
+			ID:       data["id"].(string),
+			IsActive: data["isActive"].(bool),
+		},
+	}, nil
+}
+
+// Me is the resolver for the me field.
+func (r *queryResolver) Me(ctx context.Context) (*UserPayload, error) {
+	userId := "69b3ba0bc5946aa72c8a38b1"
+	result, err := r.userResolver.Me(ctx, userId)
+	if err != nil {
+		return &UserPayload{
+			Success: result["success"].(bool),
+			Message: result["message"].(string),
+		}, nil
+	}
+	data := result["data"].(map[string]interface{})
+
+	return &UserPayload{
+		Success: result["success"].(bool),
+		Message: result["message"].(string),
+		Data: &User{
+			ID:       data["id"].(string),
+			Name:     data["name"].(string),
+			Email:    data["email"].(string),
+			Role:     UserRole(data["role"].(string)),
+			IsActive: data["isActive"].(bool),
+		},
+	}, nil
+}
+
+// Users is the resolver for the users field.
+func (r *queryResolver) Users(ctx context.Context, page *int, limit *int) ([]*User, error) {
 	pageVal := 1
 	limitVal := 10
 	if page != nil {
@@ -126,10 +366,15 @@ func (r *Resolver) Users(ctx context.Context, page *int, limit *int) ([]*User, e
 	if limit != nil {
 		limitVal = *limit
 	}
-	
-	result, _ := r.userResolver.Users(ctx, pageVal, limitVal)
-	users := make([]*User, len(result))
-	for i, userMap := range result {
+
+	result, err := r.userResolver.Users(ctx, pageVal, limitVal)
+	if err != nil {
+		return []*User{}, nil
+	}
+
+	userData := result["data"].([]map[string]interface{})
+	users := make([]*User, len(userData))
+	for i, userMap := range userData {
 		users[i] = &User{
 			ID:       userMap["id"].(string),
 			Name:     userMap["name"].(string),
@@ -138,42 +383,12 @@ func (r *Resolver) Users(ctx context.Context, page *int, limit *int) ([]*User, e
 			IsActive: userMap["isActive"].(bool),
 		}
 	}
+
 	return users, nil
 }
 
-func (r *Resolver) UpdateProfile(ctx context.Context, input UpdateProfileInput) (*UserPayload, error) {
-	result, _ := r.userResolver.UpdateProfile(ctx, *input.Name)
-	data := result["data"].(map[string]interface{})
-	
-	return &UserPayload{
-		Success: result["success"].(bool),
-		Message: result["message"].(string),
-		Data: &User{
-			ID:       data["id"].(string),
-			Name:     data["name"].(string),
-			Email:    data["email"].(string),
-			Role:     UserRole(data["role"].(string)),
-			IsActive: data["isActive"].(bool),
-		},
-	}, nil
-}
-
-func (r *Resolver) UpdateUserStatus(ctx context.Context, id string, isActive bool) (*UserPayload, error) {
-	result, _ := r.userResolver.UpdateUserStatus(ctx, id, isActive)
-	data := result["data"].(map[string]interface{})
-	
-	return &UserPayload{
-		Success: result["success"].(bool),
-		Message: result["message"].(string),
-		Data: &User{
-			ID:       data["id"].(string),
-			IsActive: data["isActive"].(bool),
-		},
-	}, nil
-}
-
-func (r *Resolver) Shop(ctx context.Context, id string) (*ShopPayload, error) {
-	// Convert string ID to ObjectID
+// Shop is the resolver for the shop field.
+func (r *queryResolver) Shop(ctx context.Context, id string) (*ShopPayload, error) {
 	objectID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return &ShopPayload{
@@ -181,8 +396,7 @@ func (r *Resolver) Shop(ctx context.Context, id string) (*ShopPayload, error) {
 			Message: "Invalid shop ID format",
 		}, nil
 	}
-	
-	// Fetch from database using owner resolver's store repo
+
 	store, err := r.ownerResolver.GetStoreByID(ctx, objectID)
 	if err != nil {
 		return &ShopPayload{
@@ -190,7 +404,7 @@ func (r *Resolver) Shop(ctx context.Context, id string) (*ShopPayload, error) {
 			Message: "Shop not found",
 		}, nil
 	}
-	
+
 	return &ShopPayload{
 		Success: true,
 		Message: "Shop retrieved successfully",
@@ -202,7 +416,8 @@ func (r *Resolver) Shop(ctx context.Context, id string) (*ShopPayload, error) {
 	}, nil
 }
 
-func (r *Resolver) Shops(ctx context.Context, input *ShopSearchInput) (*ShopsPayload, error) {
+// Shops is the resolver for the shops field.
+func (r *queryResolver) Shops(ctx context.Context, input *ShopSearchInput) (*ShopsPayload, error) {
 	pageVal := 1
 	limitVal := 10
 	if input != nil && input.Page != nil {
@@ -211,8 +426,7 @@ func (r *Resolver) Shops(ctx context.Context, input *ShopSearchInput) (*ShopsPay
 	if input != nil && input.Limit != nil {
 		limitVal = *input.Limit
 	}
-	
-	// Use owner resolver to get all stores (admin view)
+
 	result, err := r.ownerResolver.GetOwnerShops(ctx, "000000000000000000000001", pageVal, limitVal)
 	if err != nil {
 		return &ShopsPayload{
@@ -221,7 +435,7 @@ func (r *Resolver) Shops(ctx context.Context, input *ShopSearchInput) (*ShopsPay
 			Data:    []*Shop{},
 		}, nil
 	}
-	
+
 	shopData := result["data"].([]map[string]interface{})
 	shops := make([]*Shop, len(shopData))
 	for i, shopMap := range shopData {
@@ -231,7 +445,7 @@ func (r *Resolver) Shops(ctx context.Context, input *ShopSearchInput) (*ShopsPay
 			Status: ShopStatus(shopMap["status"].(string)),
 		}
 	}
-	
+
 	return &ShopsPayload{
 		Success: result["success"].(bool),
 		Message: result["message"].(string),
@@ -239,69 +453,13 @@ func (r *Resolver) Shops(ctx context.Context, input *ShopSearchInput) (*ShopsPay
 	}, nil
 }
 
-func (r *Resolver) CreateShop(ctx context.Context, input CreateShopInput) (*ShopPayload, error) {
-	// Delegate to owner resolver for shop creation
-	result, err := r.ownerResolver.CreateShop(ctx, "000000000000000000000001", input.Name, input.Location)
-	if err != nil {
-		return &ShopPayload{
-			Success: false,
-			Message: result["message"].(string),
-		}, nil
-	}
-	data := result["data"].(map[string]interface{})
-	
-	return &ShopPayload{
-		Success: result["success"].(bool),
-		Message: result["message"].(string),
-		Data: &Shop{
-			ID:     data["id"].(string),
-			Name:   data["name"].(string),
-			Status: ShopStatus(data["status"].(string)),
-		},
-	}, nil
+// Add missing MyShops method
+func (r *queryResolver) MyShops(ctx context.Context, page *int, limit *int) (*ShopsPayload, error) {
+	return r.MyShops(ctx, page, limit)
 }
 
-func (r *Resolver) UpdateShop(ctx context.Context, id string, input UpdateShopInput) (*ShopPayload, error) {
-	// Delegate to owner resolver for shop updates
-	result, err := r.ownerResolver.UpdateShop(ctx, id, "000000000000000000000001", *input.Name, *input.Location)
-	if err != nil {
-		return &ShopPayload{
-			Success: false,
-			Message: result["message"].(string),
-		}, nil
-	}
-	data := result["data"].(map[string]interface{})
-	
-	return &ShopPayload{
-		Success: result["success"].(bool),
-		Message: result["message"].(string),
-		Data: &Shop{
-			ID:     data["id"].(string),
-			Name:   data["name"].(string),
-			Status: ShopStatus(data["status"].(string)),
-		},
-	}, nil
-}
-
-func (r *Resolver) DeleteShop(ctx context.Context, id string) (*DeletePayload, error) {
-	// Delegate to owner resolver for shop deletion
-	result, err := r.ownerResolver.DeleteShop(ctx, id, "000000000000000000000001")
-	if err != nil {
-		return &DeletePayload{
-			Success: false,
-			Message: result["message"].(string),
-		}, nil
-	}
-	
-	return &DeletePayload{
-		Success: result["success"].(bool),
-		Message: result["message"].(string),
-	}, nil
-}
-
-// Product resolvers - use real product repository
-func (r *Resolver) Item(ctx context.Context, id string) (*ItemPayload, error) {
-	// Convert string ID to ObjectID
+// Item is the resolver for the item field.
+func (r *queryResolver) Item(ctx context.Context, id string) (*ItemPayload, error) {
 	objectID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		return &ItemPayload{
@@ -309,8 +467,7 @@ func (r *Resolver) Item(ctx context.Context, id string) (*ItemPayload, error) {
 			Message: "Invalid item ID format",
 		}, nil
 	}
-	
-	// Fetch from database using owner resolver's product repo
+
 	product, err := r.ownerResolver.GetProductByID(ctx, objectID)
 	if err != nil {
 		return &ItemPayload{
@@ -318,7 +475,7 @@ func (r *Resolver) Item(ctx context.Context, id string) (*ItemPayload, error) {
 			Message: "Item not found",
 		}, nil
 	}
-	
+
 	return &ItemPayload{
 		Success: true,
 		Message: "Item retrieved successfully",
@@ -332,7 +489,8 @@ func (r *Resolver) Item(ctx context.Context, id string) (*ItemPayload, error) {
 	}, nil
 }
 
-func (r *Resolver) Items(ctx context.Context, input *ProductSearchInput) (*ItemsPayload, error) {
+// Items is the resolver for the items field.
+func (r *queryResolver) Items(ctx context.Context, input *ProductSearchInput) (*ItemsPayload, error) {
 	pageVal := 1
 	limitVal := 10
 	if input != nil && input.Page != nil {
@@ -341,7 +499,7 @@ func (r *Resolver) Items(ctx context.Context, input *ProductSearchInput) (*Items
 	if input != nil && input.Limit != nil {
 		limitVal = *input.Limit
 	}
-	
+
 	result, _ := r.productResolver.Items(ctx, pageVal, limitVal)
 	data := result["data"].([]map[string]interface{})
 	items := make([]*Item, len(data))
@@ -354,7 +512,7 @@ func (r *Resolver) Items(ctx context.Context, input *ProductSearchInput) (*Items
 			IsActive: itemMap["isActive"].(bool),
 		}
 	}
-	
+
 	return &ItemsPayload{
 		Success: result["success"].(bool),
 		Message: result["message"].(string),
@@ -362,8 +520,8 @@ func (r *Resolver) Items(ctx context.Context, input *ProductSearchInput) (*Items
 	}, nil
 }
 
-func (r *Resolver) MyItems(ctx context.Context, page *int, limit *int) (*ItemsPayload, error) {
-	// Delegate to owner resolver for item management
+// MyItems is the resolver for the myItems field.
+func (r *queryResolver) MyItems(ctx context.Context, page *int, limit *int) (*ItemsPayload, error) {
 	pageVal := 1
 	limitVal := 10
 	if page != nil {
@@ -372,7 +530,7 @@ func (r *Resolver) MyItems(ctx context.Context, page *int, limit *int) (*ItemsPa
 	if limit != nil {
 		limitVal = *limit
 	}
-	
+
 	result, _ := r.ownerResolver.GetOwnerItems(ctx, "owner123", pageVal, limitVal)
 	data := result["data"].([]map[string]interface{})
 	items := make([]*Item, len(data))
@@ -385,7 +543,7 @@ func (r *Resolver) MyItems(ctx context.Context, page *int, limit *int) (*ItemsPa
 			IsActive: itemMap["isActive"].(bool),
 		}
 	}
-	
+
 	return &ItemsPayload{
 		Success: result["success"].(bool),
 		Message: result["message"].(string),
@@ -393,85 +551,10 @@ func (r *Resolver) MyItems(ctx context.Context, page *int, limit *int) (*ItemsPa
 	}, nil
 }
 
-func (r *Resolver) CreateItem(ctx context.Context, input CreateItemInput) (*ItemPayload, error) {
-	// Delegate to owner resolver for item creation
-	result, err := r.ownerResolver.CreateItem(ctx, "owner123", input.ShopID, input.Name, input.Price, input.Stock)
-	if err != nil {
-		return &ItemPayload{
-			Success: false,
-			Message: result["message"].(string),
-		}, nil
-	}
-	
-	data := result["data"].(map[string]interface{})
-	
-	return &ItemPayload{
-		Success: result["success"].(bool),
-		Message: result["message"].(string),
-		Data: &Item{
-			ID:       data["id"].(string),
-			Name:     data["name"].(string),
-			Price:    data["price"].(float64),
-			Stock:    int(data["stock"].(int)),
-			IsActive: data["isActive"].(bool),
-		},
-	}, nil
+// Health is the resolver for the health field.
+func (r *queryResolver) Health(ctx context.Context) (string, error) {
+	return "GraphQL API is healthy", nil
 }
-
-func (r *Resolver) UpdateItem(ctx context.Context, id string, input UpdateItemInput) (*ItemPayload, error) {
-	// Delegate to owner resolver for item updates
-	result, err := r.ownerResolver.UpdateItem(ctx, id, "owner123", *input.Name, *input.Price)
-	if err != nil {
-		return &ItemPayload{
-			Success: false,
-			Message: result["message"].(string),
-		}, nil
-	}
-	
-	data := result["data"].(map[string]interface{})
-	
-	return &ItemPayload{
-		Success: result["success"].(bool),
-		Message: result["message"].(string),
-		Data: &Item{
-			ID:       data["id"].(string),
-			Name:     data["name"].(string),
-			Price:    data["price"].(float64),
-			Stock:    int(data["stock"].(int)),
-			IsActive: data["isActive"].(bool),
-		},
-	}, nil
-}
-
-func (r *Resolver) DeleteItem(ctx context.Context, id string) (*DeletePayload, error) {
-	// Delegate to owner resolver for item deletion
-	result, err := r.ownerResolver.DeleteItem(ctx, id, "owner123")
-	if err != nil {
-		return &DeletePayload{
-			Success: false,
-			Message: result["message"].(string),
-		}, nil
-	}
-	
-	return &DeletePayload{
-		Success: result["success"].(bool),
-		Message: result["message"].(string),
-	}, nil
-}
-
-// Add missing methods for ResolverRoot interface
-func (r *Resolver) Mutation() MutationResolver { return &mutationResolver{r} }
-func (r *Resolver) Query() QueryResolver { return &queryResolver{r} }
-func (r *Resolver) Subscription() SubscriptionResolver { return &subscriptionResolver{r} }
-
-type mutationResolver struct{ *Resolver }
-type queryResolver struct{ *Resolver }
-
-// Add missing MyShops method
-func (r *queryResolver) MyShops(ctx context.Context, page *int, limit *int) (*ShopsPayload, error) {
-	return r.MyShops(ctx, page, limit)
-}
-type subscriptionResolver struct{ *Resolver }
 
 // Add missing subscription methods
 func (r *subscriptionResolver) ItemStockUpdates(ctx context.Context, shopID string) (<-chan *Item, error) {
@@ -479,7 +562,31 @@ func (r *subscriptionResolver) ItemStockUpdates(ctx context.Context, shopID stri
 	return nil, nil
 }
 
+// ShopStatusUpdates is the resolver for the shopStatusUpdates field.
 func (r *subscriptionResolver) ShopStatusUpdates(ctx context.Context) (<-chan *Shop, error) {
 	// TODO: Implement real-time shop status updates
 	return nil, nil
 }
+
+// Mutation returns MutationResolver implementation.
+func (r *Resolver) Mutation() MutationResolver { return &mutationResolver{r} }
+
+// Query returns QueryResolver implementation.
+func (r *Resolver) Query() QueryResolver { return &queryResolver{r} }
+
+// Subscription returns SubscriptionResolver implementation.
+func (r *Resolver) Subscription() SubscriptionResolver { return &subscriptionResolver{r} }
+
+type mutationResolver struct{ *Resolver }
+type queryResolver struct{ *Resolver }
+type subscriptionResolver struct{ *Resolver }
+
+// !!! WARNING !!!
+// The code below was going to be deleted when updating resolvers. It has been copied here so you have
+// one last chance to move it out of harms way if you want. There are two reasons this happens:
+//  - When renaming or deleting a resolver the old code will be put in here. You can safely delete
+//    it when you're done.
+//  - You have helper methods in this file. Move them out to keep these resolver files clean.
+/*
+	type Resolver struct{}
+*/

@@ -164,6 +164,14 @@ input UpdateProfileInput {
   phone: String
 }
 
+input CreateUserInput {
+  firstName: String!
+  lastName: String!
+  email: String!
+  password: String!
+  role: UserRole!
+}
+
 input BusinessHoursInput {
   openTime: String!
   closeTime: String!
@@ -385,6 +393,8 @@ type Mutation {
   deleteItem(id: ObjectID!): DeletePayload!
 
   # Admin (Admin only)
+  createUser(input: CreateUserInput!): UserPayload!
+  deleteUser(id: ObjectID!): DeletePayload!
   updateUserStatus(id: ObjectID!, isActive: Boolean!): UserPayload!
 }
 

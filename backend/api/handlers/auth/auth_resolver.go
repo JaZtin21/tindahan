@@ -2,48 +2,128 @@ package auth
 
 import (
 	"context"
+	"time"
+
+	"tindahan-backend/domain"
+	"tindahan-backend/repository"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
+	"golang.org/x/crypto/bcrypt"
 )
 
-type AuthResolver struct{}
-
-func NewAuthResolver() *AuthResolver {
-	return &AuthResolver{}
+type AuthResolver struct {
+	userRepo repository.UserRepository
 }
 
-// Login resolves the login mutation
+func NewAuthResolver(db *mongo.Database) *AuthResolver {
+	return &AuthResolver{
+		userRepo: repository.NewUserRepository(db),
+	}
+}
+
+// hashPassword hashes a password using bcrypt
+func hashPassword(password string) (string, error) {
+	bytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	return string(bytes), err
+}
+
+// checkPasswordHash compares a password with a hash
+func checkPasswordHash(password, hash string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+	return err == nil
+}
+
+// Login resolves the login mutation (real DB implementation with bcrypt)
 func (r *AuthResolver) Login(ctx context.Context, email, password string) (map[string]interface{}, error) {
+	// Find user by email
+	user, err := r.userRepo.GetUserByEmail(ctx, email)
+	if err != nil {
+		return map[string]interface{}{
+			"success": false,
+			"message": "Invalid email or password",
+		}, err
+	}
+
+	// Check password with bcrypt
+	if !checkPasswordHash(password, user.Password) {
+		return map[string]interface{}{
+			"success": false,
+			"message": "Invalid email or password",
+		}, nil
+	}
+
 	return map[string]interface{}{
 		"success": true,
 		"message": "Login successful",
 		"data": map[string]interface{}{
 			"user": map[string]interface{}{
-				"id":       "test-user-id",
-				"name":     "Test User",
-				"email":    email,
-				"role":     "CUSTOMER",
-				"isActive": true,
+				"id":       user.ID.Hex(),
+				"name":     user.FirstName + " " + user.LastName,
+				"email":    user.Email,
+				"role":     user.Role,
+				"isActive": user.IsActive,
 			},
-			"accessToken":  "test-access-token",
-			"refreshToken": "test-refresh-token",
+			"accessToken":  "real-access-token-" + user.ID.Hex(),
+			"refreshToken": "real-refresh-token-" + user.ID.Hex(),
 		},
 	}, nil
 }
 
-// Signup resolves the signup mutation
-func (r *AuthResolver) Signup(ctx context.Context, name, email, password, role string) (map[string]interface{}, error) {
+// Signup resolves the signup mutation (real DB implementation with bcrypt)
+func (r *AuthResolver) Signup(ctx context.Context, firstName, lastName, email, password, role string) (map[string]interface{}, error) {
+	// Check if user already exists
+	existingUser, _ := r.userRepo.GetUserByEmail(ctx, email)
+	if existingUser != nil {
+		return map[string]interface{}{
+			"success": false,
+			"message": "User with this email already exists",
+		}, nil
+	}
+
+	// Hash password with bcrypt
+	hashedPassword, err := hashPassword(password)
+	if err != nil {
+		return map[string]interface{}{
+			"success": false,
+			"message": "Failed to hash password",
+		}, err
+	}
+
+	// Create new user
+	user := &domain.User{
+		ID:        primitive.NewObjectID(),
+		FirstName: firstName,
+		LastName:  lastName,
+		Email:     email,
+		Password:  hashedPassword,
+		Role:      role,
+		IsActive:  true,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+
+	// Save to database
+	if err := r.userRepo.CreateUser(ctx, user); err != nil {
+		return map[string]interface{}{
+			"success": false,
+			"message": "Failed to create user: " + err.Error(),
+		}, err
+	}
+
 	return map[string]interface{}{
 		"success": true,
 		"message": "Signup successful",
 		"data": map[string]interface{}{
 			"user": map[string]interface{}{
-				"id":       "new-user-id",
-				"name":     name,
-				"email":    email,
-				"role":     role,
-				"isActive": true,
+				"id":       user.ID.Hex(),
+				"name":     user.FirstName + " " + user.LastName,
+				"email":    user.Email,
+				"role":     user.Role,
+				"isActive": user.IsActive,
 			},
-			"accessToken":  "new-access-token",
-			"refreshToken": "new-refresh-token",
+			"accessToken":  "new-access-token-" + user.ID.Hex(),
+			"refreshToken": "new-refresh-token-" + user.ID.Hex(),
 		},
 	}, nil
 }
