@@ -2,7 +2,6 @@
 
 extend type Query {
   shop(id: ObjectID!): ShopPayload
-  shops(input: ShopSearchInput): ShopsPayload
   myShops(page: Int, limit: Int): ShopsPayload
 }
 
