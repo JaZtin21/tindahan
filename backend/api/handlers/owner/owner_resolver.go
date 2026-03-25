@@ -191,41 +191,89 @@ func (r *OwnerResolver) DeleteShop(ctx context.Context, shopId, ownerId string) 
 	}, nil
 }
 
-// GetOwnerItems retrieves all items for a specific owner
+// GetOwnerItems retrieves all items for a specific owner (real DB implementation)
 func (r *OwnerResolver) GetOwnerItems(ctx context.Context, ownerId string, page, limit int) (map[string]interface{}, error) {
+	// Convert ownerId to ObjectID
+	ownerObjectID, err := primitive.ObjectIDFromHex(ownerId)
+	if err != nil {
+		return map[string]interface{}{
+			"success": false,
+			"message": "Invalid owner ID format",
+		}, err
+	}
+
+	// Get all stores owned by the owner
+	stores, _, err := r.storeRepo.GetMyStores(ctx, ownerObjectID, 1, 1000)
+	if err != nil {
+		return map[string]interface{}{
+			"success": false,
+			"message": "Failed to fetch owner stores: " + err.Error(),
+		}, err
+	}
+
+	if len(stores) == 0 {
+		return map[string]interface{}{
+			"success": true,
+			"message": "No stores found for this owner",
+			"data":    []map[string]interface{}{},
+			"total":   0,
+		}, nil
+	}
+
+	// Collect all products from all stores
+	var allProducts []*domain.Product
+	var totalCount int64
+
+	for _, store := range stores {
+		products, count, err := r.productRepo.GetMyProducts(ctx, store.ID, 1, 1000)
+		if err != nil {
+			continue // Skip stores with errors
+		}
+		allProducts = append(allProducts, products...)
+		totalCount += count
+	}
+
+	// Pagination
+	if page <= 0 {
+		page = 1
+	}
+	if limit <= 0 {
+		limit = 10
+	}
+
+	start := (page - 1) * limit
+	end := start + limit
+	if start > len(allProducts) {
+		start = len(allProducts)
+	}
+	if end > len(allProducts) {
+		end = len(allProducts)
+	}
+
+	paginatedProducts := allProducts[start:end]
+
+	// Convert to response format
+	data := make([]map[string]interface{}, len(paginatedProducts))
+	for i, product := range paginatedProducts {
+		data[i] = map[string]interface{}{
+			"id":          product.ID.Hex(),
+			"name":        product.Name,
+			"price":       product.Price,
+			"description": product.Description,
+			"category":    product.Category,
+			"stock":       product.Stock,
+			"isActive":    product.IsActive,
+			"shopId":      product.StoreID.Hex(),
+			"createdAt":   product.CreatedAt.Format(time.RFC3339),
+			"updatedAt":   product.UpdatedAt.Format(time.RFC3339),
+		}
+	}
+
 	return map[string]interface{}{
 		"success": true,
 		"message": "Owner items retrieved successfully",
-		"data": []map[string]interface{}{
-			{
-				"id":           "owner-item-id",
-				"name":         "Owner Item",
-				"price":        75.0,
-				"description":  "Owner Item Description",
-				"category":     "Owner Category",
-				"subCategory":  "Owner SubCategory",
-				"stock":        25,
-				"coverPhoto":   "owner-item.jpg",
-				"otherPhotos":  []string{"owner1a.jpg", "owner1b.jpg"},
-				"sku":          "OWNER001",
-				"barcode":      "OWNERBAR001",
-				"weight":       1.5,
-				"unit":         "kg",
-				"expiryDate":  "2024-12-31",
-				"supplier":     "Owner Supplier",
-				"brand":        "Owner Brand",
-				"origin":       "Owner Origin",
-				"tags":         []string{"owner", "sample"},
-				"isActive":    true,
-				"discount": map[string]interface{}{
-					"percentage": 10.0,
-					"validUntil": "2024-12-31",
-				},
-				"createdAt":    "2023-01-01T00:00:00Z",
-				"updatedAt":    "2023-01-01T00:00:00Z",
-				"shopId":       "owner-shop-id",
-			},
-		},
+		"data":    data,
+		"total":   totalCount,
 	}, nil
 }
 
