@@ -1,6 +1,7 @@
 package route
 
 import (
+	"tindahan-backend/api/handlers/middleware"
 	"tindahan-backend/bootstrap"
 	"tindahan-backend/graphql"
 
@@ -22,7 +23,7 @@ func Setup(router *gin.Engine, app *bootstrap.Application) {
 
 	// Initialize GraphQL setup
 	graphqlConfig := graphql.Config{
-		Resolvers: graphql.NewResolver(app.MongoDatabase),
+		Resolvers: graphql.NewResolver(app.MongoDatabase, app.Env.JWTSecret),
 	}
 
 	graphqlHandler := handler.NewDefaultServer(graphql.NewExecutableSchema(graphqlConfig))
@@ -38,5 +39,8 @@ func Setup(router *gin.Engine, app *bootstrap.Application) {
 	// GraphQL endpoints - separate playground from GraphQL endpoint
 	playgroundHandler := playground.Handler("GraphQL Playground", "/query")
 	router.GET("/playground", gin.WrapH(playgroundHandler))
-	router.POST("/query", gin.WrapH(graphqlHandler))
+	
+	// Apply auth middleware to GraphQL endpoint
+	authMiddleware := middleware.AuthMiddleware(app.Env.JWTSecret)
+	router.POST("/query", authMiddleware, gin.WrapH(graphqlHandler))
 }

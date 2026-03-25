@@ -1,0 +1,115 @@
+# Product/Item Schema - Product Management
+
+extend type Query {
+  item(id: ObjectID!): ItemPayload
+  items(input: ProductSearchInput): ItemsPayload
+  myItems(page: Int, limit: Int): ItemsPayload
+}
+
+extend type Mutation {
+  createItem(input: CreateItemInput!): ItemPayload!
+  updateItem(id: ObjectID!, input: UpdateItemInput!): ItemPayload!
+  deleteItem(id: ObjectID!): DeletePayload!
+}
+
+type Item {
+  id: ObjectID!
+  name: String!
+  price: Float!
+  description: String!
+  category: String!
+  subCategory: String
+  stock: Int!
+  coverPhoto: String!
+  otherPhotos: [String!]!
+  sku: String
+  barcode: String
+  weight: Float
+  unit: String
+  expiryDate: Time
+  supplier: String
+  brand: String
+  origin: String
+  tags: [String!]!
+  isActive: Boolean!
+  discount: Discount
+  createdAt: Time
+  updatedAt: Time
+  shopId: ObjectID!
+}
+
+type Discount {
+  percentage: Float
+  validUntil: Time
+}
+
+type ItemPayload {
+  success: Boolean!
+  message: String!
+  data: Item
+}
+
+type ItemsPayload {
+  success: Boolean!
+  message: String!
+  data: [Item!]!
+}
+
+input CreateItemInput {
+  name: String!
+  price: Float!
+  description: String!
+  category: String!
+  subCategory: String
+  stock: Int!
+  coverPhoto: String!
+  otherPhotos: [String!]!
+  sku: String
+  barcode: String
+  weight: Float
+  unit: String
+  expiryDate: Time
+  supplier: String
+  brand: String
+  origin: String
+  tags: [String!]!
+  shopId: ObjectID!
+  discount: DiscountInput
+}
+
+input UpdateItemInput {
+  name: String
+  price: Float
+  description: String
+  category: String
+  subCategory: String
+  stock: Int
+  coverPhoto: String
+  otherPhotos: [String!]
+  sku: String
+  barcode: String
+  weight: Float
+  unit: String
+  expiryDate: Time
+  supplier: String
+  brand: String
+  origin: String
+  tags: [String!]
+  discount: DiscountInput
+}
+
+input DiscountInput {
+  percentage: Float
+  validUntil: Time
+}
+
+input ProductSearchInput {
+  query: String
+  category: String
+  minPrice: Float
+  maxPrice: Float
+  shopId: ObjectID
+  isActive: Boolean
+  page: Int
+  limit: Int
+}

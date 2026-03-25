@@ -1,0 +1,28 @@
+# Shared Scalars and Enums
+
+scalar Time
+scalar ObjectID
+
+enum UserRole {
+  CUSTOMER
+  OWNER
+  ADMIN
+}
+
+enum ShopStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum BusinessType {
+  SARI_SARI_STORE
+  GROCERY
+  CONVENIENCE_STORE
+  MINI_MART
+}
+
+enum ItemStatus {
+  ACTIVE
+  INACTIVE
+}

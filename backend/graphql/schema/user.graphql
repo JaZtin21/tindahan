@@ -1,0 +1,25 @@
+# User Schema - User Management
+
+extend type Query {
+  users(page: Int, limit: Int): [User!]!
+}
+
+extend type Mutation {
+  updateProfile(input: UpdateProfileInput!): UserPayload
+  createUser(input: CreateUserInput!): UserPayload!
+  deleteUser(id: ObjectID!): DeletePayload!
+  updateUserStatus(id: ObjectID!, isActive: Boolean!): UserPayload!
+}
+
+input CreateUserInput {
+  firstName: String!
+  lastName: String!
+  email: String!
+  password: String!
+  role: UserRole!
+}
+
+type DeletePayload {
+  success: Boolean!
+  message: String!
+}

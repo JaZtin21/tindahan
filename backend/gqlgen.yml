@@ -1,7 +1,7 @@
 # gqlgen configuration file
 # Refer to https://gqlgen.com/config/
 schema:
-  - graphql/*.graphql
+  - graphql/schema/*.graphql
 exec:
   filename: graphql/generated.go
   package: graphql

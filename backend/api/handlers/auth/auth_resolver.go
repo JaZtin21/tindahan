@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"tindahan-backend/domain"
+	"tindahan-backend/internal/tokenutil"
 	"tindahan-backend/repository"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -13,12 +14,14 @@ import (
 )
 
 type AuthResolver struct {
-	userRepo repository.UserRepository
+	userRepo  repository.UserRepository
+	jwtSecret string
 }
 
-func NewAuthResolver(db *mongo.Database) *AuthResolver {
+func NewAuthResolver(db *mongo.Database, jwtSecret string) *AuthResolver {
 	return &AuthResolver{
-		userRepo: repository.NewUserRepository(db),
+		userRepo:  repository.NewUserRepository(db),
+		jwtSecret: jwtSecret,
 	}
 }
 
@@ -53,6 +56,23 @@ func (r *AuthResolver) Login(ctx context.Context, email, password string) (map[s
 		}, nil
 	}
 
+	// Generate real JWT tokens
+	accessToken, err := tokenutil.GenerateAccessToken(user.ID.Hex(), user.Email, user.Role, r.jwtSecret)
+	if err != nil {
+		return map[string]interface{}{
+			"success": false,
+			"message": "Failed to generate access token",
+		}, err
+	}
+
+	refreshToken, err := tokenutil.GenerateRefreshToken(user.ID.Hex(), user.Email, user.Role, r.jwtSecret)
+	if err != nil {
+		return map[string]interface{}{
+			"success": false,
+			"message": "Failed to generate refresh token",
+		}, err
+	}
+
 	return map[string]interface{}{
 		"success": true,
 		"message": "Login successful",
@@ -64,8 +84,8 @@ func (r *AuthResolver) Login(ctx context.Context, email, password string) (map[s
 				"role":     user.Role,
 				"isActive": user.IsActive,
 			},
-			"accessToken":  "real-access-token-" + user.ID.Hex(),
-			"refreshToken": "real-refresh-token-" + user.ID.Hex(),
+			"accessToken":  accessToken,
+			"refreshToken": refreshToken,
 		},
 	}, nil
 }
@@ -111,6 +131,23 @@ func (r *AuthResolver) Signup(ctx context.Context, firstName, lastName, email, p
 		}, err
 	}
 
+	// Generate real JWT tokens
+	accessToken, err := tokenutil.GenerateAccessToken(user.ID.Hex(), user.Email, user.Role, r.jwtSecret)
+	if err != nil {
+		return map[string]interface{}{
+			"success": false,
+			"message": "Failed to generate access token",
+		}, err
+	}
+
+	refreshToken, err := tokenutil.GenerateRefreshToken(user.ID.Hex(), user.Email, user.Role, r.jwtSecret)
+	if err != nil {
+		return map[string]interface{}{
+			"success": false,
+			"message": "Failed to generate refresh token",
+		}, err
+	}
+
 	return map[string]interface{}{
 		"success": true,
 		"message": "Signup successful",
@@ -122,8 +159,8 @@ func (r *AuthResolver) Signup(ctx context.Context, firstName, lastName, email, p
 				"role":     user.Role,
 				"isActive": user.IsActive,
 			},
-			"accessToken":  "new-access-token-" + user.ID.Hex(),
-			"refreshToken": "new-refresh-token-" + user.ID.Hex(),
+			"accessToken":  accessToken,
+			"refreshToken": refreshToken,
 		},
 	}, nil
 }

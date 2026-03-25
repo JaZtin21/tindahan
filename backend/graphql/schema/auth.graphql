@@ -1,0 +1,63 @@
+# Auth Schema - Authentication & Authorization
+
+extend type Query {
+  me: UserPayload
+  health: String!
+}
+
+extend type Mutation {
+  login(input: LoginInput!): AuthPayload!
+  signup(input: SignupInput!): AuthPayload!
+  refreshToken(input: RefreshTokenInput!): AuthPayload!
+}
+
+type User {
+  id: ObjectID!
+  name: String!
+  email: String!
+  phone: String
+  role: UserRole!
+  shops: [ObjectID!]
+  createdAt: Time!
+  updatedAt: Time
+  isActive: Boolean!
+}
+
+type AuthResponse {
+  user: User!
+  accessToken: String!
+  refreshToken: String!
+}
+
+type AuthPayload {
+  success: Boolean!
+  message: String!
+  data: AuthResponse
+}
+
+type UserPayload {
+  success: Boolean!
+  message: String!
+  data: User
+}
+
+input LoginInput {
+  email: String!
+  password: String!
+}
+
+input SignupInput {
+  name: String!
+  email: String!
+  password: String!
+  role: UserRole
+}
+
+input RefreshTokenInput {
+  refreshToken: String!
+}
+
+input UpdateProfileInput {
+  name: String
+  phone: String
+}

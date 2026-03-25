@@ -1,0 +1,164 @@
+# Shop Schema - Shop Management
+
+extend type Query {
+  shop(id: ObjectID!): ShopPayload
+  shops(input: ShopSearchInput): ShopsPayload
+  myShops(page: Int, limit: Int): ShopsPayload
+}
+
+extend type Mutation {
+  createShop(input: CreateShopInput!): ShopPayload!
+  updateShop(id: ObjectID!, input: UpdateShopInput!): ShopPayload!
+  deleteShop(id: ObjectID!): DeletePayload!
+}
+
+type Shop {
+  id: ObjectID!
+  name: String!
+  location: String!
+  coordinates: Coordinates!
+  coverPhoto: String!
+  otherPhotos: [String!]!
+  businessHours: BusinessHours!
+  businessType: BusinessType!
+  paymentMethods: PaymentMethods!
+  delivery: DeliveryOptions!
+  socialMedia: SocialMedia!
+  verification: Verification!
+  contactDetails: ContactDetails!
+  inventory: [Item!]!
+  createdAt: Time!
+  updatedAt: Time
+  createdBy: ObjectID!
+  status: ShopStatus!
+}
+
+type Coordinates {
+  lat: Float!
+  lng: Float!
+}
+
+type BusinessHours {
+  openTime: String!
+  closeTime: String!
+  days: [String!]!
+}
+
+type PaymentMethods {
+  cash: Boolean!
+  gcash: Boolean!
+  paymaya: Boolean!
+  card: Boolean!
+}
+
+type DeliveryOptions {
+  available: Boolean!
+  radius: Float
+  fee: Float
+  minOrder: Float
+}
+
+type SocialMedia {
+  facebook: String
+  instagram: String
+}
+
+type ContactDetails {
+  phone: String!
+  email: String!
+  address: String!
+}
+
+type Verification {
+  isVerified: Boolean!
+  verifiedDate: Time
+  verificationId: String
+}
+
+type ShopPayload {
+  success: Boolean!
+  message: String!
+  data: Shop
+}
+
+type ShopsPayload {
+  success: Boolean!
+  message: String!
+  data: [Shop!]!
+}
+
+input CreateShopInput {
+  name: String!
+  location: String!
+  coordinates: CoordinatesInput!
+  coverPhoto: String!
+  otherPhotos: [String!]!
+  businessHours: BusinessHoursInput!
+  businessType: BusinessType!
+  paymentMethods: PaymentMethodsInput!
+  delivery: DeliveryOptionsInput!
+  socialMedia: SocialMediaInput!
+  contactDetails: ContactDetailsInput!
+}
+
+input UpdateShopInput {
+  name: String
+  location: String
+  coordinates: CoordinatesInput
+  coverPhoto: String
+  otherPhotos: [String!]
+  businessHours: BusinessHoursInput
+  businessType: BusinessType
+  paymentMethods: PaymentMethodsInput
+  delivery: DeliveryOptionsInput
+  socialMedia: SocialMediaInput
+  contactDetails: ContactDetailsInput
+}
+
+input CoordinatesInput {
+  lat: Float!
+  lng: Float!
+}
+
+input BusinessHoursInput {
+  openTime: String!
+  closeTime: String!
+  days: [String!]!
+}
+
+input PaymentMethodsInput {
+  cash: Boolean!
+  gcash: Boolean!
+  paymaya: Boolean!
+  card: Boolean!
+}
+
+input DeliveryOptionsInput {
+  available: Boolean!
+  radius: Float
+  fee: Float
+  minOrder: Float
+}
+
+input SocialMediaInput {
+  facebook: String
+  instagram: String
+}
+
+input ContactDetailsInput {
+  phone: String!
+  email: String!
+  address: String!
+}
+
+input ShopSearchInput {
+  query: String
+  lat: Float
+  lng: Float
+  radius: Float
+  category: String
+  businessType: BusinessType
+  status: ShopStatus
+  page: Int
+  limit: Int
+}

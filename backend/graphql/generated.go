@@ -228,27 +228,27 @@ type MutationResolver interface {
 	Login(ctx context.Context, input LoginInput) (*AuthPayload, error)
 	Signup(ctx context.Context, input SignupInput) (*AuthPayload, error)
 	RefreshToken(ctx context.Context, input RefreshTokenInput) (*AuthPayload, error)
-	UpdateProfile(ctx context.Context, input UpdateProfileInput) (*UserPayload, error)
-	CreateShop(ctx context.Context, input CreateShopInput) (*ShopPayload, error)
-	UpdateShop(ctx context.Context, id string, input UpdateShopInput) (*ShopPayload, error)
-	DeleteShop(ctx context.Context, id string) (*DeletePayload, error)
 	CreateItem(ctx context.Context, input CreateItemInput) (*ItemPayload, error)
 	UpdateItem(ctx context.Context, id string, input UpdateItemInput) (*ItemPayload, error)
 	DeleteItem(ctx context.Context, id string) (*DeletePayload, error)
+	CreateShop(ctx context.Context, input CreateShopInput) (*ShopPayload, error)
+	UpdateShop(ctx context.Context, id string, input UpdateShopInput) (*ShopPayload, error)
+	DeleteShop(ctx context.Context, id string) (*DeletePayload, error)
+	UpdateProfile(ctx context.Context, input UpdateProfileInput) (*UserPayload, error)
 	CreateUser(ctx context.Context, input CreateUserInput) (*UserPayload, error)
 	DeleteUser(ctx context.Context, id string) (*DeletePayload, error)
 	UpdateUserStatus(ctx context.Context, id string, isActive bool) (*UserPayload, error)
 }
 type QueryResolver interface {
 	Me(ctx context.Context) (*UserPayload, error)
-	Users(ctx context.Context, page *int, limit *int) ([]*User, error)
-	Shop(ctx context.Context, id string) (*ShopPayload, error)
-	Shops(ctx context.Context, input *ShopSearchInput) (*ShopsPayload, error)
-	MyShops(ctx context.Context, page *int, limit *int) (*ShopsPayload, error)
+	Health(ctx context.Context) (string, error)
 	Item(ctx context.Context, id string) (*ItemPayload, error)
 	Items(ctx context.Context, input *ProductSearchInput) (*ItemsPayload, error)
 	MyItems(ctx context.Context, page *int, limit *int) (*ItemsPayload, error)
-	Health(ctx context.Context) (string, error)
+	Shop(ctx context.Context, id string) (*ShopPayload, error)
+	Shops(ctx context.Context, input *ShopSearchInput) (*ShopsPayload, error)
+	MyShops(ctx context.Context, page *int, limit *int) (*ShopsPayload, error)
+	Users(ctx context.Context, page *int, limit *int) ([]*User, error)
 }
 type SubscriptionResolver interface {
 	ItemStockUpdates(ctx context.Context, shopID string) (<-chan *Item, error)
@@ -1234,7 +1234,7 @@ func newExecutionContext(
 	}
 }
 
-//go:embed "schema.graphql"
+//go:embed "schema/auth.graphql" "schema/common.graphql" "schema/product.graphql" "schema/shop.graphql" "schema/subscription.graphql" "schema/user.graphql"
 var sourcesFS embed.FS
 
 func sourceData(filename string) string {
@@ -1246,7 +1246,12 @@ func sourceData(filename string) string {
 }
 
 var sources = []*ast.Source{
-	{Name: "schema.graphql", Input: sourceData("schema.graphql"), BuiltIn: false},
+	{Name: "schema/auth.graphql", Input: sourceData("schema/auth.graphql"), BuiltIn: false},
+	{Name: "schema/common.graphql", Input: sourceData("schema/common.graphql"), BuiltIn: false},
+	{Name: "schema/product.graphql", Input: sourceData("schema/product.graphql"), BuiltIn: false},
+	{Name: "schema/shop.graphql", Input: sourceData("schema/shop.graphql"), BuiltIn: false},
+	{Name: "schema/subscription.graphql", Input: sourceData("schema/subscription.graphql"), BuiltIn: false},
+	{Name: "schema/user.graphql", Input: sourceData("schema/user.graphql"), BuiltIn: false},
 }
 var parsedSchema = gqlparser.MustLoadSchema(sources...)
 
@@ -3334,24 +3339,24 @@ func (ec *executionContext) fieldContext_Mutation_refreshToken(ctx context.Conte
 	return fc, nil
 }
 
-func (ec *executionContext) _Mutation_updateProfile(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+func (ec *executionContext) _Mutation_createItem(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Mutation_updateProfile,
+		ec.fieldContext_Mutation_createItem,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.Resolvers.Mutation().UpdateProfile(ctx, fc.Args["input"].(UpdateProfileInput))
+			return ec.Resolvers.Mutation().CreateItem(ctx, fc.Args["input"].(CreateItemInput))
 		},
 		nil,
-		ec.marshalOUserPayload2ᚖtindahanᚑbackendᚋgraphqlᚐUserPayload,
+		ec.marshalNItemPayload2ᚖtindahanᚑbackendᚋgraphqlᚐItemPayload,
 		true,
-		false,
+		true,
 	)
 }
 
-func (ec *executionContext) fieldContext_Mutation_updateProfile(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Mutation_createItem(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Mutation",
 		Field:      field,
@@ -3360,13 +3365,13 @@ func (ec *executionContext) fieldContext_Mutation_updateProfile(ctx context.Cont
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "success":
-				return ec.fieldContext_UserPayload_success(ctx, field)
+				return ec.fieldContext_ItemPayload_success(ctx, field)
 			case "message":
-				return ec.fieldContext_UserPayload_message(ctx, field)
+				return ec.fieldContext_ItemPayload_message(ctx, field)
 			case "data":
-				return ec.fieldContext_UserPayload_data(ctx, field)
+				return ec.fieldContext_ItemPayload_data(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type UserPayload", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type ItemPayload", field.Name)
 		},
 	}
 	defer func() {
@@ -3376,7 +3381,103 @@ func (ec *executionContext) fieldContext_Mutation_updateProfile(ctx context.Cont
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_updateProfile_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Mutation_createItem_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_updateItem(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_updateItem,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().UpdateItem(ctx, fc.Args["id"].(string), fc.Args["input"].(UpdateItemInput))
+		},
+		nil,
+		ec.marshalNItemPayload2ᚖtindahanᚑbackendᚋgraphqlᚐItemPayload,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_updateItem(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "success":
+				return ec.fieldContext_ItemPayload_success(ctx, field)
+			case "message":
+				return ec.fieldContext_ItemPayload_message(ctx, field)
+			case "data":
+				return ec.fieldContext_ItemPayload_data(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type ItemPayload", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_updateItem_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_deleteItem(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_deleteItem,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().DeleteItem(ctx, fc.Args["id"].(string))
+		},
+		nil,
+		ec.marshalNDeletePayload2ᚖtindahanᚑbackendᚋgraphqlᚐDeletePayload,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_deleteItem(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "success":
+				return ec.fieldContext_DeletePayload_success(ctx, field)
+			case "message":
+				return ec.fieldContext_DeletePayload_message(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type DeletePayload", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_deleteItem_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -3528,24 +3629,24 @@ func (ec *executionContext) fieldContext_Mutation_deleteShop(ctx context.Context
 	return fc, nil
 }
 
-func (ec *executionContext) _Mutation_createItem(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+func (ec *executionContext) _Mutation_updateProfile(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Mutation_createItem,
+		ec.fieldContext_Mutation_updateProfile,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.Resolvers.Mutation().CreateItem(ctx, fc.Args["input"].(CreateItemInput))
+			return ec.Resolvers.Mutation().UpdateProfile(ctx, fc.Args["input"].(UpdateProfileInput))
 		},
 		nil,
-		ec.marshalNItemPayload2ᚖtindahanᚑbackendᚋgraphqlᚐItemPayload,
+		ec.marshalOUserPayload2ᚖtindahanᚑbackendᚋgraphqlᚐUserPayload,
 		true,
-		true,
+		false,
 	)
 }
 
-func (ec *executionContext) fieldContext_Mutation_createItem(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Mutation_updateProfile(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Mutation",
 		Field:      field,
@@ -3554,13 +3655,13 @@ func (ec *executionContext) fieldContext_Mutation_createItem(ctx context.Context
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "success":
-				return ec.fieldContext_ItemPayload_success(ctx, field)
+				return ec.fieldContext_UserPayload_success(ctx, field)
 			case "message":
-				return ec.fieldContext_ItemPayload_message(ctx, field)
+				return ec.fieldContext_UserPayload_message(ctx, field)
 			case "data":
-				return ec.fieldContext_ItemPayload_data(ctx, field)
+				return ec.fieldContext_UserPayload_data(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type ItemPayload", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type UserPayload", field.Name)
 		},
 	}
 	defer func() {
@@ -3570,103 +3671,7 @@ func (ec *executionContext) fieldContext_Mutation_createItem(ctx context.Context
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_createItem_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return fc, err
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Mutation_updateItem(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Mutation_updateItem,
-		func(ctx context.Context) (any, error) {
-			fc := graphql.GetFieldContext(ctx)
-			return ec.Resolvers.Mutation().UpdateItem(ctx, fc.Args["id"].(string), fc.Args["input"].(UpdateItemInput))
-		},
-		nil,
-		ec.marshalNItemPayload2ᚖtindahanᚑbackendᚋgraphqlᚐItemPayload,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_Mutation_updateItem(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Mutation",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "success":
-				return ec.fieldContext_ItemPayload_success(ctx, field)
-			case "message":
-				return ec.fieldContext_ItemPayload_message(ctx, field)
-			case "data":
-				return ec.fieldContext_ItemPayload_data(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type ItemPayload", field.Name)
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_updateItem_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return fc, err
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Mutation_deleteItem(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Mutation_deleteItem,
-		func(ctx context.Context) (any, error) {
-			fc := graphql.GetFieldContext(ctx)
-			return ec.Resolvers.Mutation().DeleteItem(ctx, fc.Args["id"].(string))
-		},
-		nil,
-		ec.marshalNDeletePayload2ᚖtindahanᚑbackendᚋgraphqlᚐDeletePayload,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_Mutation_deleteItem(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Mutation",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "success":
-				return ec.fieldContext_DeletePayload_success(ctx, field)
-			case "message":
-				return ec.fieldContext_DeletePayload_message(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type DeletePayload", field.Name)
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_deleteItem_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Mutation_updateProfile_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -3971,24 +3976,53 @@ func (ec *executionContext) fieldContext_Query_me(_ context.Context, field graph
 	return fc, nil
 }
 
-func (ec *executionContext) _Query_users(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+func (ec *executionContext) _Query_health(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Query_users,
+		ec.fieldContext_Query_health,
 		func(ctx context.Context) (any, error) {
-			fc := graphql.GetFieldContext(ctx)
-			return ec.Resolvers.Query().Users(ctx, fc.Args["page"].(*int), fc.Args["limit"].(*int))
+			return ec.Resolvers.Query().Health(ctx)
 		},
 		nil,
-		ec.marshalNUser2ᚕᚖtindahanᚑbackendᚋgraphqlᚐUserᚄ,
+		ec.marshalNString2string,
 		true,
 		true,
 	)
 }
 
-func (ec *executionContext) fieldContext_Query_users(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Query_health(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_item(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_item,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Query().Item(ctx, fc.Args["id"].(string))
+		},
+		nil,
+		ec.marshalOItemPayload2ᚖtindahanᚑbackendᚋgraphqlᚐItemPayload,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_item(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
 		Field:      field,
@@ -3996,26 +4030,14 @@ func (ec *executionContext) fieldContext_Query_users(ctx context.Context, field 
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "id":
-				return ec.fieldContext_User_id(ctx, field)
-			case "name":
-				return ec.fieldContext_User_name(ctx, field)
-			case "email":
-				return ec.fieldContext_User_email(ctx, field)
-			case "phone":
-				return ec.fieldContext_User_phone(ctx, field)
-			case "role":
-				return ec.fieldContext_User_role(ctx, field)
-			case "shops":
-				return ec.fieldContext_User_shops(ctx, field)
-			case "createdAt":
-				return ec.fieldContext_User_createdAt(ctx, field)
-			case "updatedAt":
-				return ec.fieldContext_User_updatedAt(ctx, field)
-			case "isActive":
-				return ec.fieldContext_User_isActive(ctx, field)
+			case "success":
+				return ec.fieldContext_ItemPayload_success(ctx, field)
+			case "message":
+				return ec.fieldContext_ItemPayload_message(ctx, field)
+			case "data":
+				return ec.fieldContext_ItemPayload_data(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type ItemPayload", field.Name)
 		},
 	}
 	defer func() {
@@ -4025,7 +4047,105 @@ func (ec *executionContext) fieldContext_Query_users(ctx context.Context, field 
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Query_users_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Query_item_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_items(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_items,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Query().Items(ctx, fc.Args["input"].(*ProductSearchInput))
+		},
+		nil,
+		ec.marshalOItemsPayload2ᚖtindahanᚑbackendᚋgraphqlᚐItemsPayload,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_items(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "success":
+				return ec.fieldContext_ItemsPayload_success(ctx, field)
+			case "message":
+				return ec.fieldContext_ItemsPayload_message(ctx, field)
+			case "data":
+				return ec.fieldContext_ItemsPayload_data(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type ItemsPayload", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_items_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_myItems(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_myItems,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Query().MyItems(ctx, fc.Args["page"].(*int), fc.Args["limit"].(*int))
+		},
+		nil,
+		ec.marshalOItemsPayload2ᚖtindahanᚑbackendᚋgraphqlᚐItemsPayload,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_myItems(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "success":
+				return ec.fieldContext_ItemsPayload_success(ctx, field)
+			case "message":
+				return ec.fieldContext_ItemsPayload_message(ctx, field)
+			case "data":
+				return ec.fieldContext_ItemsPayload_data(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type ItemsPayload", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_myItems_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -4179,24 +4299,24 @@ func (ec *executionContext) fieldContext_Query_myShops(ctx context.Context, fiel
 	return fc, nil
 }
 
-func (ec *executionContext) _Query_item(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+func (ec *executionContext) _Query_users(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Query_item,
+		ec.fieldContext_Query_users,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.Resolvers.Query().Item(ctx, fc.Args["id"].(string))
+			return ec.Resolvers.Query().Users(ctx, fc.Args["page"].(*int), fc.Args["limit"].(*int))
 		},
 		nil,
-		ec.marshalOItemPayload2ᚖtindahanᚑbackendᚋgraphqlᚐItemPayload,
+		ec.marshalNUser2ᚕᚖtindahanᚑbackendᚋgraphqlᚐUserᚄ,
 		true,
-		false,
+		true,
 	)
 }
 
-func (ec *executionContext) fieldContext_Query_item(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Query_users(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
 		Field:      field,
@@ -4204,14 +4324,26 @@ func (ec *executionContext) fieldContext_Query_item(ctx context.Context, field g
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "success":
-				return ec.fieldContext_ItemPayload_success(ctx, field)
-			case "message":
-				return ec.fieldContext_ItemPayload_message(ctx, field)
-			case "data":
-				return ec.fieldContext_ItemPayload_data(ctx, field)
+			case "id":
+				return ec.fieldContext_User_id(ctx, field)
+			case "name":
+				return ec.fieldContext_User_name(ctx, field)
+			case "email":
+				return ec.fieldContext_User_email(ctx, field)
+			case "phone":
+				return ec.fieldContext_User_phone(ctx, field)
+			case "role":
+				return ec.fieldContext_User_role(ctx, field)
+			case "shops":
+				return ec.fieldContext_User_shops(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_User_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_User_updatedAt(ctx, field)
+			case "isActive":
+				return ec.fieldContext_User_isActive(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type ItemPayload", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
 		},
 	}
 	defer func() {
@@ -4221,136 +4353,9 @@ func (ec *executionContext) fieldContext_Query_item(ctx context.Context, field g
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Query_item_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Query_users_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Query_items(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Query_items,
-		func(ctx context.Context) (any, error) {
-			fc := graphql.GetFieldContext(ctx)
-			return ec.Resolvers.Query().Items(ctx, fc.Args["input"].(*ProductSearchInput))
-		},
-		nil,
-		ec.marshalOItemsPayload2ᚖtindahanᚑbackendᚋgraphqlᚐItemsPayload,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_Query_items(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Query",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "success":
-				return ec.fieldContext_ItemsPayload_success(ctx, field)
-			case "message":
-				return ec.fieldContext_ItemsPayload_message(ctx, field)
-			case "data":
-				return ec.fieldContext_ItemsPayload_data(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type ItemsPayload", field.Name)
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Query_items_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return fc, err
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Query_myItems(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Query_myItems,
-		func(ctx context.Context) (any, error) {
-			fc := graphql.GetFieldContext(ctx)
-			return ec.Resolvers.Query().MyItems(ctx, fc.Args["page"].(*int), fc.Args["limit"].(*int))
-		},
-		nil,
-		ec.marshalOItemsPayload2ᚖtindahanᚑbackendᚋgraphqlᚐItemsPayload,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_Query_myItems(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Query",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "success":
-				return ec.fieldContext_ItemsPayload_success(ctx, field)
-			case "message":
-				return ec.fieldContext_ItemsPayload_message(ctx, field)
-			case "data":
-				return ec.fieldContext_ItemsPayload_data(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type ItemsPayload", field.Name)
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Query_myItems_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return fc, err
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Query_health(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Query_health,
-		func(ctx context.Context) (any, error) {
-			return ec.Resolvers.Query().Health(ctx)
-		},
-		nil,
-		ec.marshalNString2string,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_Query_health(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Query",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
 	}
 	return fc, nil
 }
@@ -9258,31 +9263,6 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "updateProfile":
-			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_updateProfile(ctx, field)
-			})
-		case "createShop":
-			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_createShop(ctx, field)
-			})
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "updateShop":
-			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_updateShop(ctx, field)
-			})
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "deleteShop":
-			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_deleteShop(ctx, field)
-			})
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
 		case "createItem":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_createItem(ctx, field)
@@ -9304,6 +9284,31 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "createShop":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_createShop(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "updateShop":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_updateShop(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "deleteShop":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_deleteShop(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "updateProfile":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_updateProfile(ctx, field)
+			})
 		case "createUser":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_createUser(ctx, field)
@@ -9440,7 +9445,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
-		case "users":
+		case "health":
 			field := field
 
 			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
@@ -9449,67 +9454,10 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._Query_users(ctx, field)
+				res = ec._Query_health(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
-				return res
-			}
-
-			rrm := func(ctx context.Context) graphql.Marshaler {
-				return ec.OperationContext.RootResolverMiddleware(ctx,
-					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
-		case "shop":
-			field := field
-
-			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Query_shop(ctx, field)
-				return res
-			}
-
-			rrm := func(ctx context.Context) graphql.Marshaler {
-				return ec.OperationContext.RootResolverMiddleware(ctx,
-					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
-		case "shops":
-			field := field
-
-			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Query_shops(ctx, field)
-				return res
-			}
-
-			rrm := func(ctx context.Context) graphql.Marshaler {
-				return ec.OperationContext.RootResolverMiddleware(ctx,
-					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
-		case "myShops":
-			field := field
-
-			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Query_myShops(ctx, field)
 				return res
 			}
 
@@ -9576,7 +9524,64 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
-		case "health":
+		case "shop":
+			field := field
+
+			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_shop(ctx, field)
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "shops":
+			field := field
+
+			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_shops(ctx, field)
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "myShops":
+			field := field
+
+			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_myShops(ctx, field)
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "users":
 			field := field
 
 			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
@@ -9585,7 +9590,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._Query_health(ctx, field)
+				res = ec._Query_users(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}

@@ -1,0 +1,9 @@
+# Subscription Schema - Real-time updates
+
+type Subscription {
+  # Real-time inventory updates
+  itemStockUpdates(shopId: ObjectID!): Item!
+
+  # Real-time shop status updates
+  shopStatusUpdates: Shop!
+}
