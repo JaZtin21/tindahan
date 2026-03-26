@@ -2,7 +2,10 @@ import { ApolloClient, InMemoryCache, createHttpLink, from } from '@apollo/clien
 import { setContext } from '@apollo/client/link/context';
 
 // GraphQL endpoint - matches our backend
-const GRAPHQL_ENDPOINT = process.env.VITE_GRAPHQL_URL || 'http://localhost:8080/query';
+export const GRAPHQL_ENDPOINT = import.meta.env.VITE_GRAPHQL_URL || 'http://localhost:8080/query';
+
+// Also export as graphqlUri for convenience
+export const graphqlUri = GRAPHQL_ENDPOINT;
 
 // HTTP link for GraphQL
 const httpLink = createHttpLink({

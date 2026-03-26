@@ -1,2 +1,2 @@
-export { apolloClient, graphqlUri } from '../api/graphql/client'
+export { apolloClient, graphqlUri } from '../api/graphql/apollo-client'
 
