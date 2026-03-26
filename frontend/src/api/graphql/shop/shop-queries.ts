@@ -86,9 +86,11 @@ export const SHOP_QUERY = gql`
   }
 `;
 
+// Note: The 'shops' query was removed from backend. Use myShops (owner only) or search alternatives
+// This query now uses myShops for authenticated users
 export const SHOPS_QUERY = gql`
-  query Shops($input: ShopSearchInput) {
-    shops(input: $input) {
+  query Shops($page: Int, $limit: Int) {
+    myShops(page: $page, limit: $limit) {
       success
       message
       data {
@@ -115,10 +117,10 @@ export const SHOPS_QUERY = gql`
   }
 `;
 
-// Public Shop Queries (for normal users browsing)
-export const PUBLIC_SHOPS_QUERY = gql`
-  query Shops($input: ShopSearchInput) {
-    shops(input: $input) {
+// Shop Mutations
+export const CREATE_SHOP_MUTATION = gql`
+  mutation CreateShop($input: CreateShopInput!) {
+    createShop(input: $input) {
       success
       message
       data {
@@ -130,24 +132,112 @@ export const PUBLIC_SHOPS_QUERY = gql`
           lng
         }
         coverPhoto
+        otherPhotos
+        businessHours {
+          openTime
+          closeTime
+          days
+        }
         businessType
-        status
+        paymentMethods {
+          cash
+          gcash
+          paymaya
+          card
+        }
+        delivery {
+          available
+          radius
+          fee
+          minOrder
+        }
+        socialMedia {
+          facebook
+          instagram
+        }
+        verification {
+          isVerified
+          verifiedDate
+          verificationId
+        }
         contactDetails {
           phone
           email
           address
         }
-        verification {
-          isVerified
-        }
+        createdAt
+        updatedAt
+        createdBy
+        status
       }
     }
   }
 `;
 
-// Note: Shop mutations (CreateShop, UpdateShop, DeleteShop) are now in owner-queries.ts
+export const UPDATE_SHOP_MUTATION = gql`
+  mutation UpdateShop($id: ID!, $input: UpdateShopInput!) {
+    updateShop(id: $id, input: $input) {
+      success
+      message
+      data {
+        id
+        name
+        location
+        coordinates {
+          lat
+          lng
+        }
+        coverPhoto
+        otherPhotos
+        businessHours {
+          openTime
+          closeTime
+          days
+        }
+        businessType
+        paymentMethods {
+          cash
+          gcash
+          paymaya
+          card
+        }
+        delivery {
+          available
+          radius
+          fee
+          minOrder
+        }
+        socialMedia {
+          facebook
+          instagram
+        }
+        verification {
+          isVerified
+          verifiedDate
+          verificationId
+        }
+        contactDetails {
+          phone
+          email
+          address
+        }
+        createdAt
+        updatedAt
+        createdBy
+        status
+      }
+    }
+  }
+`;
 
-// Note: Shop mutations (CreateShop, UpdateShop, DeleteShop) are now in owner-queries.ts
+export const DELETE_SHOP_MUTATION = gql`
+  mutation DeleteShop($id: ID!) {
+    deleteShop(id: $id) {
+      success
+      message
+    }
+  }
+`;
 
 // Types for GraphQL
 export interface Coordinates {

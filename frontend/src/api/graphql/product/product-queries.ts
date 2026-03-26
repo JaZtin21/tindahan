@@ -112,7 +112,89 @@ export const PUBLIC_ITEMS_QUERY = gql`
   }
 `;
 
-// Note: Product mutations (CreateItem, UpdateItem, DeleteItem) are now in owner-queries.ts
+// Product Mutations
+export const CREATE_ITEM_MUTATION = gql`
+  mutation CreateItem($input: CreateItemInput!) {
+    createItem(input: $input) {
+      success
+      message
+      data {
+        id
+        name
+        price
+        description
+        category
+        subCategory
+        stock
+        coverPhoto
+        otherPhotos
+        sku
+        barcode
+        weight
+        unit
+        expiryDate
+        supplier
+        brand
+        origin
+        tags
+        isActive
+        discount {
+          percentage
+          validUntil
+        }
+        createdAt
+        updatedAt
+        shopId
+      }
+    }
+  }
+`;
+
+export const UPDATE_ITEM_MUTATION = gql`
+  mutation UpdateItem($id: ID!, $input: UpdateItemInput!) {
+    updateItem(id: $id, input: $input) {
+      success
+      message
+      data {
+        id
+        name
+        price
+        description
+        category
+        subCategory
+        stock
+        coverPhoto
+        otherPhotos
+        sku
+        barcode
+        weight
+        unit
+        expiryDate
+        supplier
+        brand
+        origin
+        tags
+        isActive
+        discount {
+          percentage
+          validUntil
+        }
+        createdAt
+        updatedAt
+        shopId
+      }
+    }
+  }
+`;
+
+export const DELETE_ITEM_MUTATION = gql`
+  mutation DeleteItem($id: ID!) {
+    deleteItem(id: $id) {
+      success
+      message
+    }
+  }
+`;
 
 // Types for GraphQL
 export interface Discount {

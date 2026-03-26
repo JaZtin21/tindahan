@@ -9,7 +9,8 @@ export const HEALTH_QUERY = gql`
 `;
 
 // Re-export shop and item queries for public access
-export { SHOP_QUERY, SHOPS_QUERY } from '../shop/shop-queries';
+// Note: SHOPS_QUERY removed - backend no longer has 'shops' query, use myShops (owner only)
+export { SHOP_QUERY } from '../shop/shop-queries';
 export { ITEM_QUERY, ITEMS_QUERY } from '../product/product-queries';
 
 // Types for GraphQL

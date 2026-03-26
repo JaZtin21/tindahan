@@ -540,18 +540,27 @@ func (r *queryResolver) Shop(ctx context.Context, id string) (*ShopPayload, erro
 	}, nil
 }
 
-// Shops is the resolver for the shops field.
-func (r *queryResolver) Shops(ctx context.Context, input *ShopSearchInput) (*ShopsPayload, error) {
+// MyShops is the resolver for the myShops field.
+func (r *queryResolver) MyShops(ctx context.Context, page *int, limit *int) (*ShopsPayload, error) {
 	pageVal := 1
 	limitVal := 10
-	if input != nil && input.Page != nil {
-		pageVal = *input.Page
+	if page != nil {
+		pageVal = *page
 	}
-	if input != nil && input.Limit != nil {
-		limitVal = *input.Limit
+	if limit != nil {
+		limitVal = *limit
 	}
 
-	result, err := r.ownerResolver.GetOwnerShops(ctx, middleware.GetUserID(ctx), pageVal, limitVal)
+	userID := middleware.GetUserID(ctx)
+	if userID == "" {
+		return &ShopsPayload{
+			Success: false,
+			Message: "Authentication required",
+			Data:    []*Shop{},
+		}, nil
+	}
+
+	result, err := r.ownerResolver.GetOwnerShops(ctx, userID, pageVal, limitVal)
 	if err != nil {
 		return &ShopsPayload{
 			Success: false,
@@ -575,11 +584,6 @@ func (r *queryResolver) Shops(ctx context.Context, input *ShopSearchInput) (*Sho
 		Message: result["message"].(string),
 		Data:    shops,
 	}, nil
-}
-
-// Add missing MyShops method
-func (r *queryResolver) MyShops(ctx context.Context, page *int, limit *int) (*ShopsPayload, error) {
-	return r.MyShops(ctx, page, limit)
 }
 
 // Users is the resolver for the users field.
@@ -651,20 +655,16 @@ type subscriptionResolver struct{ *Resolver }
 	shopResolver    *shop.ShopResolver
 	productResolver *product.ProductResolver
 	ownerResolver   *owner.OwnerResolver
+	jwtSecret       string
 }
-func NewResolver(db *mongo.Database) *Resolver {
+func NewResolver(db *mongo.Database, jwtSecret string) *Resolver {
 	return &Resolver{
-		authResolver:    auth.NewAuthResolver(db),
+		authResolver:    auth.NewAuthResolver(db, jwtSecret),
 		userResolver:    user.NewUserResolver(db),
 		shopResolver:    shop.NewShopResolver(),
 		productResolver: product.NewProductResolver(),
 		ownerResolver:   owner.NewOwnerResolver(db),
+		jwtSecret:       jwtSecret,
 	}
-}
-func (r *queryResolver) _(ctx context.Context) (*bool, error) {
-	return nil, nil
-}
-func (r *subscriptionResolver) _(ctx context.Context) (<-chan *bool, error) {
-	return nil, nil
 }
 */

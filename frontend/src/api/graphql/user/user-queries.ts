@@ -78,10 +78,47 @@ export const UPDATE_USER_STATUS_MUTATION = gql`
   }
 `;
 
+export const CREATE_USER_MUTATION = gql`
+  mutation CreateUser($input: CreateUserInput!) {
+    createUser(input: $input) {
+      success
+      message
+      data {
+        id
+        name
+        email
+        phone
+        role
+        shops
+        createdAt
+        updatedAt
+        isActive
+      }
+    }
+  }
+`;
+
+export const DELETE_USER_MUTATION = gql`
+  mutation DeleteUser($id: ID!) {
+    deleteUser(id: $id) {
+      success
+      message
+    }
+  }
+`;
+
 // Types for GraphQL
 export interface UpdateProfileInput {
   name?: string;
   phone?: string;
+}
+
+export interface CreateUserInput {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+  role: 'CUSTOMER' | 'OWNER' | 'ADMIN';
 }
 
 export interface User {

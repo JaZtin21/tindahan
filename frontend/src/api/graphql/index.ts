@@ -38,32 +38,24 @@ export type {
 
 export type {
   OwnerShop,
-  OwnerItem,
-  ShopAnalytics,
-  ItemAnalytics,
-  BulkUpdateResponse
-export {
-  GET_OWNER_SHOPS_QUERY,
-  CREATE_OWNER_SHOP_MUTATION,
-  UPDATE_OWNER_SHOP_MUTATION,
-  DELETE_OWNER_SHOP_MUTATION,
-  UPDATE_SHOP_STATUS_MUTATION,
-  GET_SHOP_ANALYTICS_QUERY,
-  GET_OWNER_ITEMS_QUERY,
-  CREATE_OWNER_ITEM_MUTATION,
-  UPDATE_OWNER_ITEM_MUTATION,
-  DELETE_OWNER_ITEM_MUTATION,
-  UPDATE_ITEM_STOCK_MUTATION,
-  GET_ITEM_ANALYTICS_QUERY,
-  BULK_UPDATE_ITEMS_MUTATION
+  OwnerItem
 } from './owner/owner-queries';
 
+// Explicit exports from shop-queries (avoid naming conflicts)
 export {
   SHOP_QUERY,
-  SHOPS_QUERY as PUBLIC_SHOPS_QUERY
+  SHOPS_QUERY,
+  CREATE_SHOP_MUTATION,
+  UPDATE_SHOP_MUTATION,
+  DELETE_SHOP_MUTATION
 } from './shop/shop-queries';
 
+// Explicit exports from product-queries
 export {
   ITEM_QUERY,
-  ITEMS_QUERY as PUBLIC_ITEMS_QUERY
+  ITEMS_QUERY,
+  CREATE_ITEM_MUTATION,
+  UPDATE_ITEM_MUTATION,
+  DELETE_ITEM_MUTATION,
+  PUBLIC_ITEMS_QUERY
 } from './product/product-queries';
