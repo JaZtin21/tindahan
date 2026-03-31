@@ -83,6 +83,8 @@ func (r *UserResolver) Users(ctx context.Context, page, limit int) (map[string]i
 			"phone":     user.Phone,
 			"role":      user.Role,
 			"isActive":  user.IsActive,
+			"createdAt": user.CreatedAt,
+			"updatedAt": user.UpdatedAt,
 		}
 	}
 
@@ -152,7 +154,8 @@ func (r *UserResolver) UpdateProfile(ctx context.Context, userId string, firstNa
 			"phone":     user.Phone,
 			"role":      user.Role,
 			"isActive":  user.IsActive,
-			"updatedAt": user.UpdatedAt.Format(time.RFC3339),
+			"createdAt": user.CreatedAt,
+			"updatedAt": user.UpdatedAt,
 		},
 	}, nil
 }
@@ -238,6 +241,8 @@ func (r *UserResolver) CreateUser(ctx context.Context, firstName, lastName, emai
 			"email":     user.Email,
 			"role":      user.Role,
 			"isActive":  user.IsActive,
+			"createdAt": user.CreatedAt,
+			"updatedAt": user.UpdatedAt,
 		},
 	}, nil
 }

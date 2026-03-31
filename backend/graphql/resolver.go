@@ -4,6 +4,7 @@ package graphql
 
 import (
 	"context"
+	"time"
 
 	"tindahan-backend/api/handlers/auth"
 	"tindahan-backend/api/handlers/middleware"
@@ -48,16 +49,22 @@ func (r *mutationResolver) Login(ctx context.Context, input LoginInput) (*AuthPa
 	data := result["data"].(map[string]interface{})
 	userData := data["user"].(map[string]interface{})
 
+	// Parse time fields
+	createdAt, _ := time.Parse(time.RFC3339, userData["createdAt"].(string))
+	updatedAt, _ := time.Parse(time.RFC3339, userData["updatedAt"].(string))
+
 	return &AuthPayload{
 		Success: result["success"].(bool),
 		Message: result["message"].(string),
 		Data: &AuthResponse{
 			User: &User{
-				ID:       userData["id"].(string),
-				Name:     userData["name"].(string),
-				Email:    userData["email"].(string),
-				Role:     UserRole(userData["role"].(string)),
-				IsActive: userData["isActive"].(bool),
+				ID:        userData["id"].(string),
+				Name:      userData["name"].(string),
+				Email:     userData["email"].(string),
+				Role:      UserRole(userData["role"].(string)),
+				IsActive:  userData["isActive"].(bool),
+				CreatedAt: createdAt,
+				UpdatedAt: &updatedAt,
 			},
 			AccessToken:  data["accessToken"].(string),
 			RefreshToken: data["refreshToken"].(string),
@@ -83,16 +90,22 @@ func (r *mutationResolver) Signup(ctx context.Context, input SignupInput) (*Auth
 	data := result["data"].(map[string]interface{})
 	userData := data["user"].(map[string]interface{})
 
+	// Parse time fields
+	createdAt, _ := time.Parse(time.RFC3339, userData["createdAt"].(string))
+	updatedAt, _ := time.Parse(time.RFC3339, userData["updatedAt"].(string))
+
 	return &AuthPayload{
 		Success: result["success"].(bool),
 		Message: result["message"].(string),
 		Data: &AuthResponse{
 			User: &User{
-				ID:       userData["id"].(string),
-				Name:     userData["name"].(string),
-				Email:    userData["email"].(string),
-				Role:     UserRole(userData["role"].(string)),
-				IsActive: userData["isActive"].(bool),
+				ID:        userData["id"].(string),
+				Name:      userData["name"].(string),
+				Email:     userData["email"].(string),
+				Role:      UserRole(userData["role"].(string)),
+				IsActive:  userData["isActive"].(bool),
+				CreatedAt: createdAt,
+				UpdatedAt: &updatedAt,
 			},
 			AccessToken:  data["accessToken"].(string),
 			RefreshToken: data["refreshToken"].(string),

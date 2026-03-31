@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"log"
 	"time"
 
 	"tindahan-backend/domain"
@@ -78,11 +79,13 @@ func (r *AuthResolver) Login(ctx context.Context, email, password string) (map[s
 		"message": "Login successful",
 		"data": map[string]interface{}{
 			"user": map[string]interface{}{
-				"id":       user.ID.Hex(),
-				"name":     user.FirstName + " " + user.LastName,
-				"email":    user.Email,
-				"role":     user.Role,
-				"isActive": user.IsActive,
+				"id":        user.ID.Hex(),
+				"name":      user.FirstName + " " + user.LastName,
+				"email":     user.Email,
+				"role":      user.Role,
+				"isActive":  user.IsActive,
+				"createdAt": user.CreatedAt.Format(time.RFC3339),
+				"updatedAt": user.UpdatedAt.Format(time.RFC3339),
 			},
 			"accessToken":  accessToken,
 			"refreshToken": refreshToken,
@@ -92,9 +95,14 @@ func (r *AuthResolver) Login(ctx context.Context, email, password string) (map[s
 
 // Signup resolves the signup mutation (real DB implementation with bcrypt)
 func (r *AuthResolver) Signup(ctx context.Context, firstName, lastName, email, password, role string) (map[string]interface{}, error) {
+	log.Printf("🔍 SIGNUP START: firstName=%s, lastName=%s, email=%s, role=%s", firstName, lastName, email, role)
+
 	// Check if user already exists
-	existingUser, _ := r.userRepo.GetUserByEmail(ctx, email)
-	if existingUser != nil {
+	existingUser, err := r.userRepo.GetUserByEmail(ctx, email)
+	if err != nil {
+		log.Printf("❌ SIGNUP ERROR checking existing user: %v", err)
+	} else if existingUser != nil {
+		log.Printf("⚠️ SIGNUP: User already exists with email %s", email)
 		return map[string]interface{}{
 			"success": false,
 			"message": "User with this email already exists",
@@ -104,6 +112,7 @@ func (r *AuthResolver) Signup(ctx context.Context, firstName, lastName, email, p
 	// Hash password with bcrypt
 	hashedPassword, err := hashPassword(password)
 	if err != nil {
+		log.Printf("❌ SIGNUP ERROR hashing password: %v", err)
 		return map[string]interface{}{
 			"success": false,
 			"message": "Failed to hash password",
@@ -111,6 +120,7 @@ func (r *AuthResolver) Signup(ctx context.Context, firstName, lastName, email, p
 	}
 
 	// Create new user
+	now := time.Now()
 	user := &domain.User{
 		ID:        primitive.NewObjectID(),
 		FirstName: firstName,
@@ -119,21 +129,27 @@ func (r *AuthResolver) Signup(ctx context.Context, firstName, lastName, email, p
 		Password:  hashedPassword,
 		Role:      role,
 		IsActive:  true,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		CreatedAt: now,
+		UpdatedAt: now,
 	}
+
+	log.Printf("✅ SIGNUP: Created user object - ID=%s, CreatedAt=%v", user.ID.Hex(), user.CreatedAt)
 
 	// Save to database
 	if err := r.userRepo.CreateUser(ctx, user); err != nil {
+		log.Printf("❌ SIGNUP ERROR creating user in DB: %v", err)
 		return map[string]interface{}{
 			"success": false,
 			"message": "Failed to create user: " + err.Error(),
 		}, err
 	}
 
+	log.Printf("✅ SIGNUP: User saved to database successfully")
+
 	// Generate real JWT tokens
 	accessToken, err := tokenutil.GenerateAccessToken(user.ID.Hex(), user.Email, user.Role, r.jwtSecret)
 	if err != nil {
+		log.Printf("❌ SIGNUP ERROR generating access token: %v", err)
 		return map[string]interface{}{
 			"success": false,
 			"message": "Failed to generate access token",
@@ -142,26 +158,34 @@ func (r *AuthResolver) Signup(ctx context.Context, firstName, lastName, email, p
 
 	refreshToken, err := tokenutil.GenerateRefreshToken(user.ID.Hex(), user.Email, user.Role, r.jwtSecret)
 	if err != nil {
+		log.Printf("❌ SIGNUP ERROR generating refresh token: %v", err)
 		return map[string]interface{}{
 			"success": false,
 			"message": "Failed to generate refresh token",
 		}, err
 	}
 
+	// Prepare response data with proper structure
+	responseData := map[string]interface{}{
+		"user": map[string]interface{}{
+			"id":        user.ID.Hex(),
+			"name":      user.FirstName + " " + user.LastName,
+			"email":     user.Email,
+			"role":      user.Role,
+			"isActive":  user.IsActive,
+			"createdAt": user.CreatedAt.Format(time.RFC3339),
+			"updatedAt": user.UpdatedAt.Format(time.RFC3339),
+		},
+		"accessToken":  accessToken,
+		"refreshToken": refreshToken,
+	}
+
+	log.Printf("✅ SIGNUP SUCCESS: Response data prepared - user createdAt=%v", responseData["user"].(map[string]interface{})["createdAt"])
+
 	return map[string]interface{}{
 		"success": true,
 		"message": "Signup successful",
-		"data": map[string]interface{}{
-			"user": map[string]interface{}{
-				"id":       user.ID.Hex(),
-				"name":     user.FirstName + " " + user.LastName,
-				"email":    user.Email,
-				"role":     user.Role,
-				"isActive": user.IsActive,
-			},
-			"accessToken":  accessToken,
-			"refreshToken": refreshToken,
-		},
+		"data":    responseData,
 	}, nil
 }
 

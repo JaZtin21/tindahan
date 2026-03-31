@@ -16,6 +16,12 @@ export function TopNav() {
           <Link to="/owner" className="hover:text-zinc-900 dark:hover:text-zinc-50">
             Owner
           </Link>
+          <Link
+            to="/login"
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+          >
+            Login
+          </Link>
         </nav>
       </div>
     </header>

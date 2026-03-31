@@ -70,7 +70,8 @@ export interface LoginInput {
 }
 
 export interface SignupInput {
-  name: string;
+  firstName: string;
+  lastName: string;
   email: string;
   password: string;
   role?: 'CUSTOMER' | 'OWNER' | 'ADMIN';
