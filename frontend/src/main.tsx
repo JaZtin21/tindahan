@@ -1,10 +1,9 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import { ApolloProvider } from '@apollo/client/react'
 import { Provider } from 'react-redux'
 
 import './style.css'
-import { apolloClient } from './app/apollo'
+import ApolloProviderWithAuth from './api/graphql/apolloProviderWithAuth'
 import { store } from './store'
 import { ThemeProvider } from './theme'
 import { AppNavigator } from './routes/AppNavigator'
@@ -13,9 +12,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <Provider store={store}>
       <ThemeProvider>
-        <ApolloProvider client={apolloClient}>
+        <ApolloProviderWithAuth>
           <AppNavigator />
-        </ApolloProvider>
+        </ApolloProviderWithAuth>
       </ThemeProvider>
     </Provider>
   </React.StrictMode>,
