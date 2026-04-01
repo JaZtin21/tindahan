@@ -30,7 +30,7 @@ func NewResolver(db *mongo.Database, jwtSecret string) *Resolver {
 	return &Resolver{
 		authResolver:    auth.NewAuthResolver(db, jwtSecret),
 		userResolver:    user.NewUserResolver(db),
-		shopResolver:    shop.NewShopResolver(),
+		shopResolver:    shop.NewShopResolver(db),
 		productResolver: product.NewProductResolver(),
 		ownerResolver:   owner.NewOwnerResolver(db),
 		jwtSecret:       jwtSecret,
@@ -674,7 +674,7 @@ func NewResolver(db *mongo.Database, jwtSecret string) *Resolver {
 	return &Resolver{
 		authResolver:    auth.NewAuthResolver(db, jwtSecret),
 		userResolver:    user.NewUserResolver(db),
-		shopResolver:    shop.NewShopResolver(),
+		shopResolver:    shop.NewShopResolver(db),
 		productResolver: product.NewProductResolver(),
 		ownerResolver:   owner.NewOwnerResolver(db),
 		jwtSecret:       jwtSecret,

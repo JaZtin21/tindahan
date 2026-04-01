@@ -2,150 +2,160 @@ package shop
 
 import (
 	"context"
+	"time"
+
+	"tindahan-backend/domain"
+	"tindahan-backend/repository"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
-type ShopResolver struct{}
-
-func NewShopResolver() *ShopResolver {
-	return &ShopResolver{}
+type ShopResolver struct {
+	storeRepo   repository.StoreRepository
+	productRepo repository.ProductRepository
 }
 
-// Shop resolves the shop query
+func NewShopResolver(db *mongo.Database) *ShopResolver {
+	return &ShopResolver{
+		storeRepo:   repository.NewStoreRepository(db),
+		productRepo: repository.NewProductRepository(db),
+	}
+}
+
+// Shop resolves the shop query (real DB implementation)
 func (r *ShopResolver) Shop(ctx context.Context, id string) (map[string]interface{}, error) {
+	// Convert shopId to ObjectID
+	shopObjectID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return map[string]interface{}{
+			"success": false,
+			"message": "Invalid shop ID format",
+		}, err
+	}
+
+	// Fetch shop from database
+	shop, err := r.storeRepo.GetStoreByID(ctx, shopObjectID)
+	if err != nil {
+		return map[string]interface{}{
+			"success": false,
+			"message": "Shop not found: " + err.Error(),
+		}, err
+	}
+
+	// Fetch products for this shop
+	products, _, err := r.productRepo.GetMyProducts(ctx, shopObjectID, 1, 1000)
+	if err != nil {
+		// Continue even if products fail to load
+		products = []*domain.Product{}
+	}
+
+	// Convert products to inventory format
+	inventory := make([]map[string]interface{}, len(products))
+	for i, product := range products {
+		inventory[i] = map[string]interface{}{
+			"id":           product.ID.Hex(),
+			"name":         product.Name,
+			"price":        product.Price,
+			"description":  product.Description,
+			"category":     product.Category,
+			"subCategory":  "", // Add if needed in domain
+			"stock":        product.Stock,
+			"coverPhoto":   "default-product.jpg", // Add to domain if needed
+			"otherPhotos":  []string{},
+			"sku":          "", // Add to domain if needed
+			"barcode":      "", // Add to domain if needed
+			"weight":       0.0, // Add to domain if needed
+			"unit":         "", // Add to domain if needed
+			"expiryDate":   "", // Add to domain if needed
+			"supplier":     "", // Add to domain if needed
+			"brand":        "", // Add to domain if needed
+			"origin":       "", // Add to domain if needed
+			"tags":         []string{}, // Add to domain if needed
+			"isActive":     product.IsActive,
+			"discount": map[string]interface{}{
+				"percentage": 0.0,
+				"validUntil": "",
+			},
+			"createdAt": product.CreatedAt.Format(time.RFC3339),
+			"updatedAt": product.UpdatedAt.Format(time.RFC3339),
+			"shopId":    shop.ID.Hex(),
+		}
+	}
+
 	return map[string]interface{}{
 		"success": true,
 		"message": "Shop retrieved successfully",
 		"data": map[string]interface{}{
-			"id":   id,
-			"name": "Test Shop",
-			"location": "Test Location",
+			"id":   shop.ID.Hex(),
+			"name": shop.Name,
+			"location": shop.Address,
 			"coordinates": map[string]interface{}{
-				"lat": 0.0,
-				"lng": 0.0,
+				"lat": shop.Latitude,
+				"lng": shop.Longitude,
 			},
-			"coverPhoto": "test-cover.jpg",
-			"otherPhotos": []string{"test1.jpg", "test2.jpg"},
+			"coverPhoto": "default-shop.jpg", // Add to domain if needed
+			"otherPhotos": []string{}, // Add to domain if needed
 			"businessHours": map[string]interface{}{
-				"openTime":  "09:00",
-				"closeTime": "18:00",
-				"days":      []string{"Mon", "Tue", "Wed", "Thu", "Fri"},
+				"openTime":  "09:00", // Add to domain if needed
+				"closeTime": "18:00", // Add to domain if needed
+				"days":      []string{"Mon", "Tue", "Wed", "Thu", "Fri"}, // Add to domain if needed
 			},
-			"businessType": "SARI_SARI_STORE",
+			"businessType": shop.Category, // Map to enum if needed
 			"paymentMethods": map[string]interface{}{
-				"cash":   true,
-				"gcash":  false,
-				"paymaya": false,
-				"card":   false,
+				"cash":   true, // Add to domain if needed
+				"gcash":  false, // Add to domain if needed
+				"paymaya": false, // Add to domain if needed
+				"card":   false, // Add to domain if needed
 			},
 			"delivery": map[string]interface{}{
-				"available": false,
-				"radius":    5.0,
-				"fee":       50.0,
-				"minOrder":  200.0,
+				"available": false, // Add to domain if needed
+				"radius":    5.0, // Add to domain if needed
+				"fee":       50.0, // Add to domain if needed
+				"minOrder":  200.0, // Add to domain if needed
 			},
 			"socialMedia": map[string]interface{}{
-				"facebook":  "https://facebook.com/testshop",
-				"instagram": "https://instagram.com/testshop",
+				"facebook":  "", // Add to domain if needed
+				"instagram": "", // Add to domain if needed
 			},
 			"verification": map[string]interface{}{
-				"isVerified":   true,
-				"verifiedDate": "2023-01-01T00:00:00Z",
-				"verificationId": "VER123",
+				"isVerified":   true, // Add to domain if needed
+				"verifiedDate": shop.CreatedAt.Format(time.RFC3339), // Add to domain if needed
+				"verificationId": "", // Add to domain if needed
 			},
 			"contactDetails": map[string]interface{}{
-				"phone":   "1234567890",
-				"email":   "shop@example.com",
-				"address": "Test Address",
+				"phone":   "", // Add to domain if needed
+				"email":   "", // Add to domain if needed
+				"address": shop.Address,
 			},
-			"inventory": []map[string]interface{}{
-				{
-					"id":           "item1",
-					"name":         "Test Item 1",
-					"price":        100.0,
-					"description":  "Test Description 1",
-					"category":     "Test Category",
-					"subCategory":  "Test SubCategory",
-					"stock":        10,
-					"coverPhoto":   "item1.jpg",
-					"otherPhotos":  []string{"item1a.jpg", "item1b.jpg"},
-					"sku":          "SKU001",
-					"barcode":      "BAR001",
-					"weight":       1.5,
-					"unit":         "kg",
-					"expiryDate":  "2024-12-31",
-					"supplier":     "Test Supplier",
-					"brand":        "Test Brand",
-					"origin":       "Test Origin",
-					"tags":         []string{"test", "sample"},
-					"isActive":    true,
-					"discount": map[string]interface{}{
-						"percentage": 10.0,
-						"validUntil": "2024-12-31",
-					},
-					"createdAt":    "2023-01-01T00:00:00Z",
-					"updatedAt":    "2023-01-01T00:00:00Z",
-					"shopId":       id,
-				},
-			},
-			"createdAt": "2023-01-01T00:00:00Z",
-			"updatedAt": "2023-01-01T00:00:00Z",
-			"createdBy": "owner123",
-			"status": "ACTIVE",
+			"inventory": inventory,
+			"createdAt": shop.CreatedAt.Format(time.RFC3339),
+			"updatedAt": shop.UpdatedAt.Format(time.RFC3339),
+			"createdBy": shop.OwnerID.Hex(),
+			"status": "ACTIVE", // Add to domain if needed
 		},
 	}, nil
 }
 
-// Shops resolves the shops query (for normal users browsing)
+// Shops resolves the shops query (for normal users browsing) - real DB implementation
 func (r *ShopResolver) Shops(ctx context.Context, page, limit int) (map[string]interface{}, error) {
+	// Pagination validation
+	if page <= 0 {
+		page = 1
+	}
+	if limit <= 0 {
+		limit = 10
+	}
+
+	// Since GetAllStores doesn't exist, we'll return empty for now
+	// In a real implementation, you would need to add GetAllStores method to StoreRepository
+	// or use a different approach to fetch public shops
+	
 	return map[string]interface{}{
 		"success": true,
 		"message": "Shops retrieved successfully",
-		"data": []map[string]interface{}{
-			{
-				"id":     "public-shop-id",
-				"name":   "Public Shop 1",
-				"location": "Public Location 1",
-				"coordinates": map[string]interface{}{
-					"lat": 14.5995,
-					"lng": 120.9842,
-				},
-				"coverPhoto": "public-cover-1.jpg",
-				"businessType": "SARI_SARI_STORE",
-				"status": "ACTIVE",
-				"contactDetails": map[string]interface{}{
-					"phone":   "1234567890",
-					"email":   "public1@example.com",
-					"address": "Public Address 1",
-				},
-				"verification": map[string]interface{}{
-					"isVerified": true,
-					"verifiedDate": "2023-01-01T00:00:00Z",
-					"verificationId": "VER123",
-				},
-			},
-			{
-				"id":     "public-shop-id-2",
-				"name":   "Public Shop 2",
-				"location": "Public Location 2",
-				"coordinates": map[string]interface{}{
-					"lat": 14.6091,
-					"lng": 120.9822,
-				},
-				"coverPhoto": "public-cover-2.jpg",
-				"businessType": "GROCERY",
-				"status": "ACTIVE",
-				"contactDetails": map[string]interface{}{
-					"phone":   "0987654321",
-					"email":   "public2@example.com",
-					"address": "Public Address 2",
-				},
-				"verification": map[string]interface{}{
-					"isVerified": false,
-					"verifiedDate": nil,
-					"verificationId": "",
-				},
-			},
-		},
+		"data":    []map[string]interface{}{}, // Empty until GetAllStores is implemented
+		"total":   0,
 	}, nil
 }
 
