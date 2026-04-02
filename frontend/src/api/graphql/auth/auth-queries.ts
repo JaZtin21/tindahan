@@ -2,54 +2,6 @@ import { gql } from '@apollo/client';
 
 // Auth GraphQL Queries and Mutations
 
-export const LOGIN_MUTATION = gql`
-  mutation Login($input: LoginInput!) {
-    login(input: $input) {
-      success
-      message
-      data {
-        user {
-          id
-          name
-          email
-          phone
-          role
-          shops
-          createdAt
-          updatedAt
-          isActive
-        }
-        accessToken
-        refreshToken
-      }
-    }
-  }
-`;
-
-export const SIGNUP_MUTATION = gql`
-  mutation Signup($input: SignupInput!) {
-    signup(input: $input) {
-      success
-      message
-      data {
-        user {
-          id
-          name
-          email
-          phone
-          role
-          shops
-          createdAt
-          updatedAt
-          isActive
-        }
-        accessToken
-        refreshToken
-      }
-    }
-  }
-`;
-
 export const REFRESH_TOKEN_MUTATION = gql`
   mutation RefreshToken($input: RefreshTokenInput!) {
     refreshToken(input: $input) {
@@ -63,22 +15,38 @@ export const REFRESH_TOKEN_MUTATION = gql`
   }
 `;
 
+export const GOOGLE_LOGIN_MUTATION = gql`
+  mutation GoogleLogin($input: GoogleLoginInput!) {
+    googleLogin(input: $input) {
+      success
+      message
+      data {
+        user {
+          id
+          name
+          email
+          phone
+          role
+          shops
+          createdAt
+          updatedAt
+          isActive
+        }
+        accessToken
+        refreshToken
+      }
+    }
+  }
+`;
+
 // Types for GraphQL
-export interface LoginInput {
-  email: string;
-  password: string;
-}
-
-export interface SignupInput {
-  firstName: string;
-  lastName: string;
-  email: string;
-  password: string;
-  role?: 'CUSTOMER' | 'OWNER' | 'ADMIN';
-}
-
 export interface RefreshTokenInput {
   refreshToken: string;
+}
+
+export interface GoogleLoginInput {
+  credential: string;
+  role?: 'CUSTOMER' | 'OWNER' | 'ADMIN';
 }
 
 export interface AuthResponse {
@@ -101,4 +69,8 @@ export interface AuthPayload {
   success: boolean;
   message: string;
   data?: AuthResponse;
+}
+
+export interface GoogleLoginResponse {
+  googleLogin: AuthPayload;
 }

@@ -9,6 +9,7 @@ extend type Mutation {
   login(input: LoginInput!): AuthPayload!
   signup(input: SignupInput!): AuthPayload!
   refreshToken(input: RefreshTokenInput!): AuthPayload!
+  googleLogin(input: GoogleLoginInput!): AuthPayload!
 }
 
 type User {
@@ -56,6 +57,11 @@ input SignupInput {
 
 input RefreshTokenInput {
   refreshToken: String!
+}
+
+input GoogleLoginInput {
+  credential: String!
+  role: UserRole
 }
 
 input UpdateProfileInput {

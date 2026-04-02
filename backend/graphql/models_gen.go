@@ -129,6 +129,11 @@ type DiscountInput struct {
 	ValidUntil *time.Time `json:"validUntil,omitempty"`
 }
 
+type GoogleLoginInput struct {
+	Credential string    `json:"credential"`
+	Role       *UserRole `json:"role,omitempty"`
+}
+
 type Item struct {
 	ID          string     `json:"id"`
 	Name        string     `json:"name"`
@@ -253,10 +258,11 @@ type ShopsPayload struct {
 }
 
 type SignupInput struct {
-	Name     string    `json:"name"`
-	Email    string    `json:"email"`
-	Password string    `json:"password"`
-	Role     *UserRole `json:"role,omitempty"`
+	FirstName string    `json:"firstName"`
+	LastName  string    `json:"lastName"`
+	Email     string    `json:"email"`
+	Password  string    `json:"password"`
+	Role      *UserRole `json:"role,omitempty"`
 }
 
 type SocialMedia struct {

@@ -5,7 +5,6 @@ package graphql
 import (
 	"context"
 	"time"
-
 	"tindahan-backend/api/handlers/auth"
 	"tindahan-backend/api/handlers/middleware"
 	"tindahan-backend/api/handlers/owner"
@@ -23,6 +22,7 @@ type Resolver struct {
 	shopResolver    *shop.ShopResolver
 	productResolver *product.ProductResolver
 	ownerResolver   *owner.OwnerResolver
+	db              *mongo.Database
 	jwtSecret       string
 }
 
@@ -33,6 +33,7 @@ func NewResolver(db *mongo.Database, jwtSecret string) *Resolver {
 		shopResolver:    shop.NewShopResolver(db),
 		productResolver: product.NewProductResolver(),
 		ownerResolver:   owner.NewOwnerResolver(db),
+		db:              db,
 		jwtSecret:       jwtSecret,
 	}
 }
@@ -78,8 +79,8 @@ func (r *mutationResolver) Signup(ctx context.Context, input SignupInput) (*Auth
 	if input.Role != nil {
 		role = string(*input.Role)
 	}
-	firstName := input.Name
-	lastName := ""
+	firstName := input.FirstName
+	lastName := input.LastName
 	result, _ := r.authResolver.Signup(ctx, firstName, lastName, input.Email, input.Password, role)
 	if !result["success"].(bool) {
 		return &AuthPayload{
@@ -122,6 +123,47 @@ func (r *mutationResolver) RefreshToken(ctx context.Context, input RefreshTokenI
 		Success: result["success"].(bool),
 		Message: result["message"].(string),
 		Data: &AuthResponse{
+			AccessToken:  data["accessToken"].(string),
+			RefreshToken: data["refreshToken"].(string),
+		},
+	}, nil
+}
+
+// GoogleLogin is the resolver for the googleLogin field.
+func (r *mutationResolver) GoogleLogin(ctx context.Context, input GoogleLoginInput) (*AuthPayload, error) {
+	role := "CUSTOMER"
+	if input.Role != nil {
+		role = string(*input.Role)
+	}
+
+	result, _ := r.authResolver.GoogleLogin(ctx, input.Credential, role)
+	if !result["success"].(bool) {
+		return &AuthPayload{
+			Success: false,
+			Message: result["message"].(string),
+		}, nil
+	}
+
+	data := result["data"].(map[string]interface{})
+	userData := data["user"].(map[string]interface{})
+
+	// Parse time fields
+	createdAt, _ := time.Parse(time.RFC3339, userData["createdAt"].(string))
+	updatedAt, _ := time.Parse(time.RFC3339, userData["updatedAt"].(string))
+
+	return &AuthPayload{
+		Success: result["success"].(bool),
+		Message: result["message"].(string),
+		Data: &AuthResponse{
+			User: &User{
+				ID:        userData["id"].(string),
+				Name:      userData["name"].(string),
+				Email:     userData["email"].(string),
+				Role:      UserRole(userData["role"].(string)),
+				IsActive:  userData["isActive"].(bool),
+				CreatedAt: createdAt,
+				UpdatedAt: &updatedAt,
+			},
 			AccessToken:  data["accessToken"].(string),
 			RefreshToken: data["refreshToken"].(string),
 		},

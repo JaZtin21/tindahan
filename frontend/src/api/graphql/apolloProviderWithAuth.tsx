@@ -1,10 +1,11 @@
-import { ApolloClient, ApolloProvider, InMemoryCache, HttpLink, from } from '@apollo/client';
+import { ApolloClient, InMemoryCache, HttpLink, from } from '@apollo/client';
+import { ApolloProvider } from '@apollo/client/react';
 import { setContext } from '@apollo/client/link/context';
 import { onError } from '@apollo/client/link/error';
-import { useAuth0 } from '@auth0/auth0-react';
-import { useEffect, useMemo, useState, createContext, useContext, useRef } from 'react';
+import { useGoogleLogin } from '@react-oauth/google';
+import { useEffect, useMemo, useState, createContext, useContext, useRef, useCallback } from 'react';
 import { Observable } from '@apollo/client/utilities';
-import { REFRESH_TOKEN_MUTATION, LOGIN_MUTATION } from './auth/auth-queries';
+import { REFRESH_TOKEN_MUTATION, GOOGLE_LOGIN_MUTATION } from './auth/auth-queries';
 import { ME_QUERY } from './user/user-queries';
 
 // GraphQL endpoint
@@ -20,19 +21,13 @@ const authClient = new ApolloClient({
 interface UserInfo {
     id: string;
     email: string;
+    name?: string;
     firstName?: string;
     lastName?: string;
-    aliasName?: string;
-    isVerified?: boolean;
-    isAdmin?: boolean;
-    roleObject?: {
-        role?: string;
-        permissions?: string[];
-        id?: number;
-        userId?: string;
-        createdAt?: string;
-        updatedAt?: string;
-    };
+    phone?: string;
+    role?: 'CUSTOMER' | 'OWNER' | 'ADMIN';
+    isActive?: boolean;
+    shops?: string[];
     [key: string]: any;
 }
 
@@ -46,6 +41,7 @@ interface AuthContextType {
     setUserInfo: (info: UserInfo) => void;
     refreshUserInfo: () => Promise<void>;
     isLoading: boolean;
+    googleLogin: () => void;
 }
 
 // Create the auth context with a more complete type
@@ -60,8 +56,6 @@ export const useAuth = () => {
 };
 
 const ApolloProviderWithAuth = ({ children }: any) => {
-    const isAdminRequest = true;
-    const { getAccessTokenSilently, logout } = useAuth0();
     const [jwt, setJwt] = useState('');
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
@@ -105,7 +99,7 @@ const ApolloProviderWithAuth = ({ children }: any) => {
         console.log('refreshing user info');
         setIsLoading(true);
         try {
-            const { data } = await authClient.query({
+            const { data } = await authClient.query<{ me: { data: UserInfo } }>({
                 query: ME_QUERY,
                 context: {
                     headers: {
@@ -124,97 +118,69 @@ const ApolloProviderWithAuth = ({ children }: any) => {
         }
     };
 
-    const logoutAndClear = async () => {
+    const logoutAndClear = useCallback(() => {
         if (window.location.pathname !== '/login') {
             setIsAuthenticated(false);
             setJwt('');
             setUserInfo(null);
+            localStorage.removeItem('access_token');
             localStorage.removeItem('refresh_token');
-            logout({
-                logoutParams: {
-                    returnTo: window.location.origin + '/login'
-                }
-            });
+            window.location.href = '/login';
         }
-    };
+    }, []);
 
-    useEffect(() => {
-        const authenticate = async () => {
-            const urlParams = new URLSearchParams(window.location.search);
-            const authError = urlParams.get('error');
-            if (authError === 'access_denied') {
-                console.log('Auth0 denied access:', urlParams.get('error_description'));
-                logout({
-                    logoutParams: {
-                        returnTo: window.location.origin + '/login'
-                    }
-                });
-                return;
-            }
-
-            if (window.location.pathname === '/admin-callback' && !authError) {
-                console.log('Admin login successful, redirecting to dashboard');
-                window.location.href = '/';
-            }
-
-            if (isAuthenticated && jwt) {
-                setIsLoading(false);
-                return;
-            }
-
-            if (window.location.pathname === '/login') {
-                setIsLoading(false);
-                return;
-            }
-
-            setIsLoading(true);
+    // Google OAuth implicit flow login
+    const googleLogin = useGoogleLogin({
+        flow: 'implicit',
+        onSuccess: async (tokenResponse) => {
             try {
-                const token = await getAccessTokenSilently();
-
                 const { data: loginData } = await authClient.mutate({
-                    mutation: LOGIN_MUTATION,
+                    mutation: GOOGLE_LOGIN_MUTATION,
                     variables: {
                         input: {
-                            email: '',
-                            password: '',
-                            auth0Token: token,
-                            provider: 'google',
-                            isAdminRequest: isAdminRequest
+                            credential: tokenResponse.access_token,
                         }
                     }
                 });
 
-                const loginResponse = loginData?.login;
+                const loginResponse = loginData?.googleLogin;
                 if (loginResponse?.success && loginResponse?.data) {
                     setUserInfo(loginResponse.data.user);
                     setJwt(loginResponse.data.accessToken);
                     jwtRef.current = loginResponse.data.accessToken;
-                    // Store refresh token
                     if (loginResponse.data.refreshToken) {
                         localStorage.setItem('refresh_token', loginResponse.data.refreshToken);
                     }
+                    localStorage.setItem('access_token', loginResponse.data.accessToken);
                     setIsAuthenticated(true);
+                    window.location.href = '/';
                 } else {
                     throw new Error(loginResponse?.message || 'Login failed');
                 }
             } catch (error: any) {
-                console.error(error);
-
-                if (error.response?.status === 403) {
-                    console.log('Admin access denied:', error.response.data.error);
-                    logoutAndClear();
-                    return;
-                }
-
-                setIsAuthenticated(false);
+                console.error('Login error:', error);
                 logoutAndClear();
-            } finally {
-                setIsLoading(false);
             }
+        },
+        onError: (errorResponse) => {
+            console.error('Google login failed:', errorResponse);
+        },
+    });
+
+    useEffect(() => {
+        const checkAuth = async () => {
+            const storedToken = localStorage.getItem('access_token');
+            if (storedToken) {
+                setJwt(storedToken);
+                jwtRef.current = storedToken;
+                setIsAuthenticated(true);
+                await refreshUserInfo();
+            }
+            setIsLoading(false);
         };
 
-        authenticate();
-    }, [getAccessTokenSilently, isAuthenticated, jwt]);
+        checkAuth();
+    }, []);
 
     const client = useMemo(() => {
         const httpLink = new HttpLink({
@@ -230,7 +196,8 @@ const ApolloProviderWithAuth = ({ children }: any) => {
             };
         });
 
-        const errorLink = onError(({ graphQLErrors, operation, forward }) => {
+        const errorLink = onError((errorHandler: any) => {
+            const { graphQLErrors, operation, forward } = errorHandler;
             let shouldRetry = false;
 
             if (graphQLErrors) {
@@ -293,8 +260,7 @@ const ApolloProviderWithAuth = ({ children }: any) => {
                         return;
                     }
 
-                    // Perform token refresh using GraphQL mutation
-                    authClient.mutate({
+                    authClient.mutate<{ refreshToken: { success: boolean; message: string; data?: { accessToken: string; refreshToken: string } } }>({
                         mutation: REFRESH_TOKEN_MUTATION,
                         variables: {
                             input: { refreshToken }
@@ -310,6 +276,7 @@ const ApolloProviderWithAuth = ({ children }: any) => {
                         const newRefreshToken = refreshResponse.data.refreshToken;
                         
                         localStorage.setItem('refresh_token', newRefreshToken);
+                        localStorage.setItem('access_token', newJwt);
                         
                         setJwt(newJwt);
                         jwtRef.current = newJwt;
@@ -349,7 +316,7 @@ const ApolloProviderWithAuth = ({ children }: any) => {
             link: from([errorLink, authLink, httpLink]),
             cache: new InMemoryCache(),
         });
-    }, []);
+    }, [logoutAndClear]);
 
     const authContextValue: AuthContextType = {
         isAuthenticated,
@@ -359,7 +326,8 @@ const ApolloProviderWithAuth = ({ children }: any) => {
         setUserJwt,
         setUserInfo: updateUserInfo,
         refreshUserInfo,
-        isLoading
+        isLoading,
+        googleLogin: () => googleLogin(),
     };
 
     return (

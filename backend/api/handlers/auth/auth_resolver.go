@@ -2,7 +2,10 @@ package auth
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"log"
+	"net/http"
 	"time"
 
 	"tindahan-backend/domain"
@@ -199,4 +202,172 @@ func (r *AuthResolver) RefreshToken(ctx context.Context, refreshToken string) (m
 			"refreshToken": "refreshed-refresh-token",
 		},
 	}, nil
+}
+
+// GoogleLogin resolves the googleLogin mutation by verifying Google ID token
+func (r *AuthResolver) GoogleLogin(ctx context.Context, credential, role string) (map[string]interface{}, error) {
+	log.Printf("🔍 GOOGLE LOGIN: Starting token verification")
+
+	// Step 1: Verify Google ID Token by calling Google's tokeninfo endpoint
+	googleUserInfo, err := verifyGoogleIDToken(credential)
+	if err != nil {
+		log.Printf("❌ GOOGLE LOGIN: Token verification failed: %v", err)
+		return map[string]interface{}{
+			"success": false,
+			"message": "Invalid Google token: " + err.Error(),
+		}, nil
+	}
+
+	log.Printf("✅ GOOGLE LOGIN: Token verified for email: %s", googleUserInfo.Email)
+
+	// Step 2: Find or create user in database
+	user, err := r.findOrCreateGoogleUser(ctx, googleUserInfo, role)
+	if err != nil {
+		log.Printf("❌ GOOGLE LOGIN: User creation failed: %v", err)
+		return map[string]interface{}{
+			"success": false,
+			"message": "Failed to create/find user: " + err.Error(),
+		}, nil
+	}
+
+	log.Printf("✅ GOOGLE LOGIN: User ready - ID=%s, Email=%s", user.ID.Hex(), user.Email)
+
+	// Step 3: Generate JWT access and refresh tokens
+	accessToken, err := tokenutil.GenerateAccessToken(user.ID.Hex(), user.Email, user.Role, r.jwtSecret)
+	if err != nil {
+		return map[string]interface{}{
+			"success": false,
+			"message": "Failed to generate access token",
+		}, err
+	}
+
+	refreshToken, err := tokenutil.GenerateRefreshToken(user.ID.Hex(), user.Email, user.Role, r.jwtSecret)
+	if err != nil {
+		return map[string]interface{}{
+			"success": false,
+			"message": "Failed to generate refresh token",
+		}, err
+	}
+
+	return map[string]interface{}{
+		"success": true,
+		"message": "Google login successful",
+		"data": map[string]interface{}{
+			"user": map[string]interface{}{
+				"id":        user.ID.Hex(),
+				"name":      user.FirstName + " " + user.LastName,
+				"email":     user.Email,
+				"role":      user.Role,
+				"isActive":  user.IsActive,
+				"createdAt": user.CreatedAt.Format(time.RFC3339),
+				"updatedAt": user.UpdatedAt.Format(time.RFC3339),
+			},
+			"accessToken":  accessToken,
+			"refreshToken": refreshToken,
+		},
+	}, nil
+}
+
+// GoogleUserInfo holds user info from Google's tokeninfo endpoint
+type GoogleUserInfo struct {
+	Email   string `json:"email"`
+	Name    string `json:"name"`
+	Picture string `json:"picture"`
+	Sub     string `json:"sub"` // Google's unique user ID
+}
+
+// verifyGoogleIDToken verifies the Google ID token with Google's API
+func verifyGoogleIDToken(idToken string) (*GoogleUserInfo, error) {
+	url := "https://oauth2.googleapis.com/tokeninfo?id_token=" + idToken
+	
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, errors.New("invalid token - Google API returned " + resp.Status)
+	}
+
+	var userInfo GoogleUserInfo
+	if err := json.NewDecoder(resp.Body).Decode(&userInfo); err != nil {
+		return nil, err
+	}
+
+	if userInfo.Email == "" {
+		return nil, errors.New("no email in Google token")
+	}
+
+	return &userInfo, nil
+}
+
+// findOrCreateGoogleUser finds existing user by email or creates new one from Google data
+func (r *AuthResolver) findOrCreateGoogleUser(ctx context.Context, googleInfo *GoogleUserInfo, role string) (*domain.User, error) {
+	// Try to find existing user
+	existingUser, err := r.userRepo.GetUserByEmail(ctx, googleInfo.Email)
+	if err == nil && existingUser != nil {
+		log.Printf("✅ GOOGLE LOGIN: Existing user found - ID=%s", existingUser.ID.Hex())
+		return existingUser, nil
+	}
+
+	// Create new user from Google data
+	log.Printf("🔍 GOOGLE LOGIN: Creating new user for %s", googleInfo.Email)
+
+	// Parse name into first/last
+	firstName := googleInfo.Name
+	lastName := ""
+	if len(googleInfo.Name) > 0 {
+		// Simple split - in production use a proper name parser
+		parts := splitName(googleInfo.Name)
+		if len(parts) > 0 {
+			firstName = parts[0]
+		}
+		if len(parts) > 1 {
+			lastName = parts[len(parts)-1]
+		}
+	}
+
+	// Default role if not specified
+	if role == "" {
+		role = "CUSTOMER"
+	}
+
+	now := time.Now()
+	user := &domain.User{
+		ID:        primitive.NewObjectID(),
+		FirstName: firstName,
+		LastName:  lastName,
+		Email:     googleInfo.Email,
+		Password:  "", // No password for Google users
+		Role:      role,
+		IsActive:  true,
+		CreatedAt: now,
+		UpdatedAt: now,
+	}
+
+	if err := r.userRepo.CreateUser(ctx, user); err != nil {
+		return nil, err
+	}
+
+	log.Printf("✅ GOOGLE LOGIN: New user created - ID=%s", user.ID.Hex())
+	return user, nil
+}
+
+// splitName splits a full name into parts
+func splitName(name string) []string {
+	var parts []string
+	start := 0
+	for i := 0; i < len(name); i++ {
+		if name[i] == ' ' {
+			if i > start {
+				parts = append(parts, name[start:i])
+			}
+			start = i + 1
+		}
+	}
+	if start < len(name) {
+		parts = append(parts, name[start:])
+	}
+	return parts
 }
