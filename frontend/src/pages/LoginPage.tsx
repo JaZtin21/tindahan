@@ -1,43 +1,36 @@
+import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useMutation } from '@apollo/client/react'
 import { GoogleLogin } from '@react-oauth/google'
-import { GOOGLE_LOGIN_MUTATION } from '../api/graphql/auth/auth-queries'
-import type { GoogleLoginResponse } from '../api/graphql/auth/auth-queries'
-import { TokenStorage } from '../utils/tokenStorage'
+import { useAuth } from '../api/graphql/apolloProviderWithAuth'
 
 export function LoginPage() {
   const navigate = useNavigate()
+  const { handleGoogleCredential, onLoginSuccess, isAuthenticated, isLoading } = useAuth()
 
-  const [googleLogin, { loading }] = useMutation<GoogleLoginResponse>(GOOGLE_LOGIN_MUTATION, {
-    onCompleted: async (data) => {
-      if (data?.googleLogin?.success && data?.googleLogin?.data) {
-        // Refresh token stored in IndexedDB (secure, works on iOS/Safari)
-        await TokenStorage.setRefreshToken(data.googleLogin.data.refreshToken)
-        navigate('/')
-      } else {
-        console.error('Login failed:', data?.googleLogin?.message)
-      }
-    },
-    onError: (error) => {
-      console.error('Login failed:', error)
-    },
-  })
+  // Set up navigation callback when login succeeds
+  useEffect(() => {
+    onLoginSuccess(() => {
+      navigate('/')
+    })
+  }, [navigate, onLoginSuccess])
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated && !isLoading) {
+      navigate('/')
+    }
+  }, [isAuthenticated, isLoading, navigate])
 
   const handleGoogleSuccess = (credentialResponse: { credential?: string }) => {
     if (!credentialResponse.credential) {
       return
     }
-
-    googleLogin({
-      variables: {
-        input: {
-          credential: credentialResponse.credential,
-        },
-      },
-    })
+    // Pass credential to auth context
+    handleGoogleCredential(credentialResponse.credential)
   }
 
   const handleGoogleError = () => {
+    console.error('Google login failed')
   }
 
   return (
@@ -57,12 +50,6 @@ export function LoginPage() {
             onError={handleGoogleError}
           />
         </div>
-
-        {loading && (
-          <p className="mt-4 text-center text-sm text-zinc-500">
-            Logging in...
-          </p>
-        )}
       </div>
     </div>
   )

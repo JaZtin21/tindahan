@@ -43,6 +43,8 @@ interface AuthContextType {
     refreshUserInfo: () => Promise<void>;
     isLoading: boolean;
     googleLogin: () => void;
+    handleGoogleCredential: (credential: string) => Promise<void>;
+    onLoginSuccess: (callback: () => void) => void;
 }
 
 // Create the auth context with a more complete type
@@ -65,6 +67,7 @@ const ApolloProviderWithAuth = ({ children }: any) => {
     const jwtRef = useRef<string>('');
     const isRefreshingRef = useRef(false);
     const hasCheckedAuthRef = useRef(false);
+    const loginSuccessCallbackRef = useRef<(() => void) | null>(null);
     const failedQueueRef = useRef<Array<{
         resolve: (value: string) => void;
         reject: (error: any) => void;
@@ -133,6 +136,49 @@ const ApolloProviderWithAuth = ({ children }: any) => {
         }
     }, []);
 
+    const onLoginSuccess = useCallback((callback: () => void) => {
+        loginSuccessCallbackRef.current = callback;
+    }, []);
+
+    // Handle Google credential from GoogleLogin component
+    const handleGoogleCredential = useCallback(async (credential: string) => {
+        try {
+            const { data: loginData } = await authClient.mutate({
+                mutation: GOOGLE_LOGIN_MUTATION,
+                variables: {
+                    input: {
+                        credential: credential,
+                    }
+                }
+            });
+
+            const loginResponse = loginData?.googleLogin;
+            console.log('[ApolloProvider] Google login response success:', loginResponse?.success);
+            if (loginResponse?.success && loginResponse?.data) {
+                console.log('[ApolloProvider] Setting user info and tokens from Google login...');
+                setUserInfo(loginResponse.data.user);
+                setJwt(loginResponse.data.accessToken);
+                jwtRef.current = loginResponse.data.accessToken;
+                console.log('[ApolloProvider] Access token set in memory (length:', loginResponse.data.accessToken.length + ')');
+                if (loginResponse.data.refreshToken) {
+                    await TokenStorage.setRefreshToken(loginResponse.data.refreshToken);
+                    console.log('[ApolloProvider] Refresh token stored in IndexedDB');
+                }
+                setIsAuthenticated(true);
+                console.log('[ApolloProvider] Auth complete, calling success callback');
+                // Call the navigation callback instead of full page reload
+                if (loginSuccessCallbackRef.current) {
+                    loginSuccessCallbackRef.current();
+                }
+            } else {
+                throw new Error(loginResponse?.message || 'Login failed');
+            }
+        } catch (error: any) {
+            console.error('Login error:', error);
+            logoutAndClear();
+        }
+    }, [logoutAndClear]);
+
     // Google OAuth implicit flow login
     const googleLogin = useGoogleLogin({
         flow: 'implicit',
@@ -160,8 +206,11 @@ const ApolloProviderWithAuth = ({ children }: any) => {
                         console.log('[ApolloProvider] Refresh token stored in IndexedDB');
                     }
                     setIsAuthenticated(true);
-                    console.log('[ApolloProvider] Auth complete, redirecting to home');
-                    window.location.href = '/';
+                    console.log('[ApolloProvider] Auth complete, calling success callback');
+                    // Call the navigation callback instead of full page reload
+                    if (loginSuccessCallbackRef.current) {
+                        loginSuccessCallbackRef.current();
+                    }
                 } else {
                     throw new Error(loginResponse?.message || 'Login failed');
                 }
@@ -406,6 +455,8 @@ const ApolloProviderWithAuth = ({ children }: any) => {
         refreshUserInfo,
         isLoading,
         googleLogin: () => googleLogin(),
+        handleGoogleCredential,
+        onLoginSuccess,
     };
 
     return (
