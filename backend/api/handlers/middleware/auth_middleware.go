@@ -28,14 +28,38 @@ func AuthMiddleware(jwtSecret string) gin.HandlerFunc {
 		// Extract token from "Bearer <token>"
 		parts := strings.SplitN(authHeader, " ", 2)
 		if len(parts) != 2 || strings.ToLower(parts[0]) != "bearer" {
-			c.Next()
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"errors": []gin.H{
+					{
+						"message": "Invalid authorization header format",
+						"extensions": gin.H{
+							"code": "UNAUTHENTICATED",
+						},
+					},
+				},
+			})
+			c.Abort()
 			return
 		}
 
 		tokenString := parts[1]
 		claims, err := tokenutil.ValidateToken(tokenString, jwtSecret)
 		if err != nil {
-			c.Next()
+			errorMsg := "Invalid or expired token"
+			if err.Error() == "token has expired" {
+				errorMsg = "JWT expired"
+			}
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"errors": []gin.H{
+					{
+						"message": errorMsg,
+						"extensions": gin.H{
+							"code": "UNAUTHENTICATED",
+						},
+					},
+				},
+			})
+			c.Abort()
 			return
 		}
 
