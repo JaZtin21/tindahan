@@ -117,6 +117,12 @@ func (r *mutationResolver) Signup(ctx context.Context, input SignupInput) (*Auth
 // RefreshToken is the resolver for the refreshToken field.
 func (r *mutationResolver) RefreshToken(ctx context.Context, input RefreshTokenInput) (*AuthPayload, error) {
 	result, _ := r.authResolver.RefreshToken(ctx, input.RefreshToken)
+	if !result["success"].(bool) {
+		return &AuthPayload{
+			Success: false,
+			Message: result["message"].(string),
+		}, nil
+	}
 	data := result["data"].(map[string]interface{})
 
 	return &AuthPayload{

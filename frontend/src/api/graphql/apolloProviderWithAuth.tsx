@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState, createContext, useContext, useRef, useCal
 import { Observable } from '@apollo/client/utilities';
 import { REFRESH_TOKEN_MUTATION, GOOGLE_LOGIN_MUTATION } from './auth/auth-queries';
 import { ME_QUERY } from './user/user-queries';
+import { TokenStorage } from '../../utils/tokenStorage';
 
 // GraphQL endpoint
 const GRAPHQL_ENDPOINT = import.meta.env.VITE_GRAPHQL_URL || 'http://localhost:8080/query';
@@ -63,6 +64,7 @@ const ApolloProviderWithAuth = ({ children }: any) => {
     
     const jwtRef = useRef<string>('');
     const isRefreshingRef = useRef(false);
+    const hasCheckedAuthRef = useRef(false);
     const failedQueueRef = useRef<Array<{
         resolve: (value: string) => void;
         reject: (error: any) => void;
@@ -118,13 +120,15 @@ const ApolloProviderWithAuth = ({ children }: any) => {
         }
     };
 
-    const logoutAndClear = useCallback(() => {
+    const logoutAndClear = useCallback(async () => {
+        console.log('[ApolloProvider] Logging out and clearing all tokens...');
         if (window.location.pathname !== '/login') {
             setIsAuthenticated(false);
             setJwt('');
+            jwtRef.current = '';
             setUserInfo(null);
-            localStorage.removeItem('access_token');
-            localStorage.removeItem('refresh_token');
+            await TokenStorage.clearRefreshToken();
+            console.log('[ApolloProvider] Tokens cleared, redirecting to login');
             window.location.href = '/login';
         }
     }, []);
@@ -144,15 +148,19 @@ const ApolloProviderWithAuth = ({ children }: any) => {
                 });
 
                 const loginResponse = loginData?.googleLogin;
+                console.log('[ApolloProvider] Google login response success:', loginResponse?.success);
                 if (loginResponse?.success && loginResponse?.data) {
+                    console.log('[ApolloProvider] Setting user info and tokens from Google login...');
                     setUserInfo(loginResponse.data.user);
                     setJwt(loginResponse.data.accessToken);
                     jwtRef.current = loginResponse.data.accessToken;
+                    console.log('[ApolloProvider] Access token set in memory (length:', loginResponse.data.accessToken.length + ')');
                     if (loginResponse.data.refreshToken) {
-                        localStorage.setItem('refresh_token', loginResponse.data.refreshToken);
+                        await TokenStorage.setRefreshToken(loginResponse.data.refreshToken);
+                        console.log('[ApolloProvider] Refresh token stored in IndexedDB');
                     }
-                    localStorage.setItem('access_token', loginResponse.data.accessToken);
                     setIsAuthenticated(true);
+                    console.log('[ApolloProvider] Auth complete, redirecting to home');
                     window.location.href = '/';
                 } else {
                     throw new Error(loginResponse?.message || 'Login failed');
@@ -168,14 +176,58 @@ const ApolloProviderWithAuth = ({ children }: any) => {
     });
 
     useEffect(() => {
+        // On mount: check for refresh token and automatically get new access token
         const checkAuth = async () => {
-            const storedToken = localStorage.getItem('access_token');
-            if (storedToken) {
-                setJwt(storedToken);
-                jwtRef.current = storedToken;
-                setIsAuthenticated(true);
-                await refreshUserInfo();
+            // Prevent double execution (React StrictMode)
+            if (hasCheckedAuthRef.current) {
+                console.log('[ApolloProvider] Auth check already completed, skipping...');
+                return;
             }
+            hasCheckedAuthRef.current = true;
+            
+            console.log('[ApolloProvider] Checking auth on mount...');
+            const refreshToken = await TokenStorage.getRefreshToken();
+            console.log('[ApolloProvider] Refresh token exists:', !!refreshToken);
+            console.log('[ApolloProvider] Current JWT in memory:', !!jwtRef.current);
+            
+            if (refreshToken) {
+                console.log('[ApolloProvider] Attempting to refresh access token...');
+                try {
+                    const refreshResult = await authClient.mutate<{ refreshToken: { success: boolean; message: string; data?: { accessToken: string; refreshToken: string; user: UserInfo } } }>({
+                        mutation: REFRESH_TOKEN_MUTATION,
+                        variables: {
+                            input: { refreshToken }
+                        }
+                    });
+                    
+                    const refreshResponse = refreshResult.data?.refreshToken;
+                    console.log('[ApolloProvider] Refresh response success:', refreshResponse?.success);
+                    
+                    if (refreshResponse?.success && refreshResponse?.data) {
+                        console.log('[ApolloProvider] Token refresh successful, setting new tokens...');
+                        // Store new refresh token
+                        await TokenStorage.setRefreshToken(refreshResponse.data.refreshToken);
+                        console.log('[ApolloProvider] New refresh token stored');
+                        // Set access token in memory
+                        setJwt(refreshResponse.data.accessToken);
+                        jwtRef.current = refreshResponse.data.accessToken;
+                        console.log('[ApolloProvider] Access token set in memory (length:', refreshResponse.data.accessToken.length + ')');
+                        setUserInfo(refreshResponse.data.user);
+                        setIsAuthenticated(true);
+                        console.log('[ApolloProvider] Auth state updated: isAuthenticated = true');
+                    } else {
+                        console.warn('[ApolloProvider] Refresh failed:', refreshResponse?.message);
+                        // Refresh failed, clear tokens
+                        await TokenStorage.clearRefreshToken();
+                    }
+                } catch (error) {
+                    console.error('[ApolloProvider] Auto refresh failed with error:', error);
+                    await TokenStorage.clearRefreshToken();
+                }
+            } else {
+                console.log('[ApolloProvider] No refresh token found, user not authenticated');
+            }
+            console.log('[ApolloProvider] Auth check complete, setting isLoading to false');
             setIsLoading(false);
         };
 
@@ -220,13 +272,13 @@ const ApolloProviderWithAuth = ({ children }: any) => {
                 }
 
                 return new Observable(observer => {
-                    if (isRefreshingRef.current) {
-                        const queuePromise = new Promise<string>((resolve, reject) => {
-                            failedQueueRef.current.push({ resolve, reject });
-                        });
-                        
-                        queuePromise
-                            .then(newToken => {
+                    const handleRefresh = async () => {
+                        if (isRefreshingRef.current) {
+                            try {
+                                const newToken = await new Promise<string>((resolve, reject) => {
+                                    failedQueueRef.current.push({ resolve, reject });
+                                });
+                                
                                 operation.setContext({
                                     headers: {
                                         ...operation.getContext().headers,
@@ -242,72 +294,76 @@ const ApolloProviderWithAuth = ({ children }: any) => {
                                 });
                                 
                                 return () => subscriber.unsubscribe();
-                            })
-                            .catch(error => {
+                            } catch (error) {
                                 observer.error(error);
+                                return;
+                            }
+                        }
+                        
+                        isRefreshingRef.current = true;
+                        
+                        const refreshToken = await TokenStorage.getRefreshToken();
+                        if (!refreshToken) {
+                            isRefreshingRef.current = false;
+                            logoutAndClear();
+                            observer.error(new Error('No refresh token available'));
+                            return;
+                        }
+
+                        try {
+                            console.log('[ApolloProvider] Attempting token refresh during request retry...');
+                            const refreshResult = await authClient.mutate<{ refreshToken: { success: boolean; message: string; data?: { accessToken: string; refreshToken: string } } }>({
+                                mutation: REFRESH_TOKEN_MUTATION,
+                                variables: {
+                                    input: { refreshToken }
+                                }
                             });
-                        
-                        return;
-                    }
-                    
-                    isRefreshingRef.current = true;
-                    
-                    const refreshToken = localStorage.getItem('refresh_token');
-                    if (!refreshToken) {
-                        isRefreshingRef.current = false;
-                        logoutAndClear();
-                        observer.error(new Error('No refresh token available'));
-                        return;
-                    }
+                            
+                            const refreshResponse = refreshResult.data?.refreshToken;
+                            console.log('[ApolloProvider] Token refresh response success:', refreshResponse?.success);
+                            
+                            if (!refreshResponse?.success || !refreshResponse?.data) {
+                                throw new Error(refreshResponse?.message || 'Token refresh failed');
+                            }
+                            
+                            const newJwt = refreshResponse.data.accessToken;
+                            const newRefreshToken = refreshResponse.data.refreshToken;
+                            
+                            await TokenStorage.setRefreshToken(newRefreshToken);
+                            console.log('[ApolloProvider] New refresh token stored after retry');
+                            
+                            setJwt(newJwt);
+                            jwtRef.current = newJwt;
+                            console.log('[ApolloProvider] New access token set in memory (length:', newJwt.length + ')');
+                            
+                            processQueue(null, newJwt);
+                            
+                            operation.setContext({
+                                headers: {
+                                    ...operation.getContext().headers,
+                                    Authorization: `Bearer ${newJwt}`,
+                                },
+                                hasRetried: true
+                            });
 
-                    authClient.mutate<{ refreshToken: { success: boolean; message: string; data?: { accessToken: string; refreshToken: string } } }>({
-                        mutation: REFRESH_TOKEN_MUTATION,
-                        variables: {
-                            input: { refreshToken }
+                            const subscriber = forward(operation).subscribe({
+                                next: observer.next.bind(observer),
+                                error: observer.error.bind(observer),
+                                complete: observer.complete.bind(observer),
+                            });
+
+                            return () => subscriber.unsubscribe();
+                        } catch (error) {
+                            console.error('Token refresh failed:', error);
+                            processQueue(error as Error, null);
+                            logoutAndClear();
+                            observer.error(error);
+                        } finally {
+                            isRefreshingRef.current = false;
                         }
-                    })
-                    .then(refreshResult => {
-                        const refreshResponse = refreshResult.data?.refreshToken;
-                        if (!refreshResponse?.success || !refreshResponse?.data) {
-                            throw new Error(refreshResponse?.message || 'Token refresh failed');
-                        }
-                        
-                        const newJwt = refreshResponse.data.accessToken;
-                        const newRefreshToken = refreshResponse.data.refreshToken;
-                        
-                        localStorage.setItem('refresh_token', newRefreshToken);
-                        localStorage.setItem('access_token', newJwt);
-                        
-                        setJwt(newJwt);
-                        jwtRef.current = newJwt;
-                        
-                        processQueue(null, newJwt);
-                        
-                        operation.setContext({
-                            headers: {
-                                ...operation.getContext().headers,
-                                Authorization: `Bearer ${newJwt}`,
-                            },
-                            hasRetried: true
-                        });
-
-                        const subscriber = forward(operation).subscribe({
-                            next: observer.next.bind(observer),
-                            error: observer.error.bind(observer),
-                            complete: observer.complete.bind(observer),
-                        });
-
-                        return () => subscriber.unsubscribe();
-                    })
-                    .catch(error => {
-                        console.error('Token refresh failed:', error);
-                        processQueue(error, null);
-                        logoutAndClear();
-                        observer.error(error);
-                    })
-                    .finally(() => {
-                        isRefreshingRef.current = false;
-                    });
+                    };
+                    
+                    handleRefresh();
                 });
             }
         });

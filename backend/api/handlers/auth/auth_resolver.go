@@ -194,12 +194,52 @@ func (r *AuthResolver) Signup(ctx context.Context, firstName, lastName, email, p
 
 // RefreshToken resolves the refreshToken mutation
 func (r *AuthResolver) RefreshToken(ctx context.Context, refreshToken string) (map[string]interface{}, error) {
+	log.Printf("🔍 REFRESH TOKEN: Starting token refresh")
+
+	// Verify the refresh token and extract user info
+	claims, err := tokenutil.ValidateToken(refreshToken, r.jwtSecret)
+	if err != nil {
+		log.Printf("❌ REFRESH TOKEN: Invalid refresh token: %v", err)
+		return map[string]interface{}{
+			"success": false,
+			"message": "Invalid refresh token",
+		}, nil
+	}
+
+	userID := claims.UserID
+	email := claims.Email
+	role := claims.Role
+
+	log.Printf("✅ REFRESH TOKEN: Token verified for user %s", email)
+
+	// Generate new access token
+	newAccessToken, err := tokenutil.GenerateAccessToken(userID, email, role, r.jwtSecret)
+	if err != nil {
+		log.Printf("❌ REFRESH TOKEN: Failed to generate access token: %v", err)
+		return map[string]interface{}{
+			"success": false,
+			"message": "Failed to generate access token",
+		}, err
+	}
+
+	// Generate new refresh token (token rotation for security)
+	newRefreshToken, err := tokenutil.GenerateRefreshToken(userID, email, role, r.jwtSecret)
+	if err != nil {
+		log.Printf("❌ REFRESH TOKEN: Failed to generate refresh token: %v", err)
+		return map[string]interface{}{
+			"success": false,
+			"message": "Failed to generate refresh token",
+		}, err
+	}
+
+	log.Printf("✅ REFRESH TOKEN: New tokens generated successfully")
+
 	return map[string]interface{}{
 		"success": true,
 		"message": "Token refreshed successfully",
 		"data": map[string]interface{}{
-			"accessToken":  "refreshed-access-token",
-			"refreshToken": "refreshed-refresh-token",
+			"accessToken":  newAccessToken,
+			"refreshToken": newRefreshToken,
 		},
 	}, nil
 }
