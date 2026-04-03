@@ -217,12 +217,15 @@ const ApolloProviderWithAuth = ({ children }: any) => {
                         console.log('[ApolloProvider] Auth state updated: isAuthenticated = true');
                     } else {
                         console.warn('[ApolloProvider] Refresh failed:', refreshResponse?.message);
-                        // Refresh failed, clear tokens
+                        // Refresh failed, clear tokens from IndexedDB
                         await TokenStorage.clearRefreshToken();
+                        console.log('[ApolloProvider] Cleared invalid refresh token from IndexedDB');
                     }
                 } catch (error) {
                     console.error('[ApolloProvider] Auto refresh failed with error:', error);
+                    // Clear invalid refresh token from IndexedDB on error
                     await TokenStorage.clearRefreshToken();
+                    console.log('[ApolloProvider] Cleared invalid refresh token from IndexedDB after error');
                 }
             } else {
                 console.log('[ApolloProvider] No refresh token found, user not authenticated');
@@ -323,6 +326,8 @@ const ApolloProviderWithAuth = ({ children }: any) => {
                             console.log('[ApolloProvider] Token refresh response success:', refreshResponse?.success);
                             
                             if (!refreshResponse?.success || !refreshResponse?.data) {
+                                console.warn('[ApolloProvider] Refresh response indicated failure, clearing IndexedDB...');
+                                await TokenStorage.clearRefreshToken();
                                 throw new Error(refreshResponse?.message || 'Token refresh failed');
                             }
                             
