@@ -461,15 +461,31 @@ func (r *queryResolver) Me(ctx context.Context) (*UserPayload, error) {
 	}
 	data := result["data"].(map[string]interface{})
 
+	// Parse time fields with defaults if missing
+	createdAt := time.Now()
+	updatedAt := time.Now()
+	if ca, ok := data["createdAt"].(string); ok && ca != "" {
+		if parsed, err := time.Parse(time.RFC3339, ca); err == nil {
+			createdAt = parsed
+		}
+	}
+	if ua, ok := data["updatedAt"].(string); ok && ua != "" {
+		if parsed, err := time.Parse(time.RFC3339, ua); err == nil {
+			updatedAt = parsed
+		}
+	}
+
 	return &UserPayload{
 		Success: result["success"].(bool),
 		Message: result["message"].(string),
 		Data: &User{
-			ID:       data["id"].(string),
-			Name:     data["name"].(string),
-			Email:    data["email"].(string),
-			Role:     UserRole(data["role"].(string)),
-			IsActive: data["isActive"].(bool),
+			ID:        data["id"].(string),
+			Name:      data["name"].(string),
+			Email:     data["email"].(string),
+			Role:      UserRole(data["role"].(string)),
+			IsActive:  data["isActive"].(bool),
+			CreatedAt: createdAt,
+			UpdatedAt: &updatedAt,
 		},
 	}, nil
 }

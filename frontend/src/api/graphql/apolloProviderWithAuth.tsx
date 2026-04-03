@@ -212,9 +212,26 @@ const ApolloProviderWithAuth = ({ children }: any) => {
                         setJwt(refreshResponse.data.accessToken);
                         jwtRef.current = refreshResponse.data.accessToken;
                         console.log('[ApolloProvider] Access token set in memory (length:', refreshResponse.data.accessToken.length + ')');
-                        setUserInfo(refreshResponse.data.user);
                         setIsAuthenticated(true);
                         console.log('[ApolloProvider] Auth state updated: isAuthenticated = true');
+                        // Fetch user info with new token
+                        console.log('[ApolloProvider] Fetching user info...');
+                        try {
+                            const { data } = await authClient.query<{ me: { data: UserInfo } }>({
+                                query: ME_QUERY,
+                                context: {
+                                    headers: {
+                                        Authorization: `Bearer ${refreshResponse.data.accessToken}`
+                                    }
+                                }
+                            });
+                            if (data?.me?.data) {
+                                setUserInfo(data.me.data);
+                                console.log('[ApolloProvider] User info fetched successfully');
+                            }
+                        } catch (userError) {
+                            console.error('[ApolloProvider] Failed to fetch user info:', userError);
+                        }
                     } else {
                         console.warn('[ApolloProvider] Refresh failed:', refreshResponse?.message);
                         // Refresh failed, clear tokens from IndexedDB
