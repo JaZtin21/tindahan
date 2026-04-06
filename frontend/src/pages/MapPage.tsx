@@ -131,7 +131,7 @@ export function MapPage() {
   return (
     <div className="bg-white dark:bg-zinc-900 relative min-h-screen">
       {/* Top Search Bar */}
-      <div className="absolute top-[77px] z-40 px-4 py-4 left-[50%] transform -translate-x-1/2 w-[700px]">
+      <div className="absolute top-[77px] z-40 px-4 py-4 left-[50%] transform -translate-x-1/2 max-w-[700px] w-full">
         {/* First Row: My Location and Manual Location Search */}
         <div className="flex items-center gap-3 mb-3">
           {/* My Location Button */}
