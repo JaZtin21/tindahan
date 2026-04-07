@@ -8,9 +8,11 @@ import (
 	"tindahan-backend/api/handlers/auth"
 	"tindahan-backend/api/handlers/middleware"
 	"tindahan-backend/api/handlers/owner"
+	"tindahan-backend/api/handlers/post"
 	"tindahan-backend/api/handlers/product"
 	"tindahan-backend/api/handlers/shop"
 	"tindahan-backend/api/handlers/user"
+	"tindahan-backend/domain"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -22,20 +24,9 @@ type Resolver struct {
 	shopResolver    *shop.ShopResolver
 	productResolver *product.ProductResolver
 	ownerResolver   *owner.OwnerResolver
+	postResolver    *post.PostResolver
 	db              *mongo.Database
 	jwtSecret       string
-}
-
-func NewResolver(db *mongo.Database, jwtSecret string) *Resolver {
-	return &Resolver{
-		authResolver:    auth.NewAuthResolver(db, jwtSecret),
-		userResolver:    user.NewUserResolver(db),
-		shopResolver:    shop.NewShopResolver(db),
-		productResolver: product.NewProductResolver(),
-		ownerResolver:   owner.NewOwnerResolver(db),
-		db:              db,
-		jwtSecret:       jwtSecret,
-	}
 }
 
 // Login is the resolver for the login field.
@@ -173,6 +164,152 @@ func (r *mutationResolver) GoogleLogin(ctx context.Context, input GoogleLoginInp
 			AccessToken:  data["accessToken"].(string),
 			RefreshToken: data["refreshToken"].(string),
 		},
+	}, nil
+}
+
+// CreatePost is the resolver for the createPost field.
+func (r *mutationResolver) CreatePost(ctx context.Context, input CreatePostInput) (*PostPayload, error) {
+	userID := middleware.GetUserID(ctx)
+	if userID == "" {
+		return &PostPayload{
+			Success: false,
+			Message: "Authentication required",
+		}, nil
+	}
+
+	var location *domain.PostLocation
+	if input.Location != nil {
+		location = &domain.PostLocation{
+			Lat:  input.Location.Lat,
+			Lng:  input.Location.Lng,
+			Name: input.Location.Name,
+		}
+	}
+
+	result, err := r.postResolver.CreatePost(ctx, userID, input.Text, input.Photos, location)
+	if err != nil {
+		return &PostPayload{
+			Success: false,
+			Message: result["message"].(string),
+		}, nil
+	}
+
+	data := result["data"].(map[string]interface{})
+	return &PostPayload{
+		Success: result["success"].(bool),
+		Message: result["message"].(string),
+		Data:    r.formatPostFromMap(data),
+	}, nil
+}
+
+// UpdatePost is the resolver for the updatePost field.
+func (r *mutationResolver) UpdatePost(ctx context.Context, id string, input UpdatePostInput) (*PostPayload, error) {
+	userID := middleware.GetUserID(ctx)
+	if userID == "" {
+		return &PostPayload{
+			Success: false,
+			Message: "Authentication required",
+		}, nil
+	}
+
+	var location *domain.PostLocation
+	if input.Location != nil {
+		location = &domain.PostLocation{
+			Lat:  input.Location.Lat,
+			Lng:  input.Location.Lng,
+			Name: input.Location.Name,
+		}
+	}
+
+	result, err := r.postResolver.UpdatePost(ctx, id, userID, input.Text, input.Photos, location)
+	if err != nil {
+		return &PostPayload{
+			Success: false,
+			Message: result["message"].(string),
+		}, nil
+	}
+
+	data := result["data"].(map[string]interface{})
+	return &PostPayload{
+		Success: result["success"].(bool),
+		Message: result["message"].(string),
+		Data:    r.formatPostFromMap(data),
+	}, nil
+}
+
+// DeletePost is the resolver for the deletePost field.
+func (r *mutationResolver) DeletePost(ctx context.Context, id string) (*DeletePayload, error) {
+	userID := middleware.GetUserID(ctx)
+	if userID == "" {
+		return &DeletePayload{
+			Success: false,
+			Message: "Authentication required",
+		}, nil
+	}
+
+	result, err := r.postResolver.DeletePost(ctx, id, userID)
+	if err != nil {
+		return &DeletePayload{
+			Success: false,
+			Message: result["message"].(string),
+		}, nil
+	}
+
+	return &DeletePayload{
+		Success: result["success"].(bool),
+		Message: result["message"].(string),
+	}, nil
+}
+
+// LikePost is the resolver for the likePost field.
+func (r *mutationResolver) LikePost(ctx context.Context, id string) (*PostPayload, error) {
+	userID := middleware.GetUserID(ctx)
+	if userID == "" {
+		return &PostPayload{
+			Success: false,
+			Message: "Authentication required",
+		}, nil
+	}
+
+	result, err := r.postResolver.LikePost(ctx, id, userID)
+	if err != nil {
+		return &PostPayload{
+			Success: false,
+			Message: result["message"].(string),
+		}, nil
+	}
+
+	data := result["data"].(map[string]interface{})
+	return &PostPayload{
+		Success: result["success"].(bool),
+		Message: result["message"].(string),
+		Data:    r.formatPostFromMap(data),
+	}, nil
+}
+
+// UnlikePost is the resolver for the unlikePost field.
+func (r *mutationResolver) UnlikePost(ctx context.Context, id string) (*PostPayload, error) {
+	userID := middleware.GetUserID(ctx)
+	if userID == "" {
+		return &PostPayload{
+			Success: false,
+			Message: "Authentication required",
+		}, nil
+	}
+
+	result, err := r.postResolver.UnlikePost(ctx, id, userID)
+	if err != nil {
+		return &PostPayload{
+			Success: false,
+			Message: result["message"].(string),
+		}, nil
+	}
+
+	data := result["data"].(map[string]interface{})
+	return &PostPayload{
+		Success: result["success"].(bool),
+		Message: result["message"].(string),
+		Data:    r.formatPostFromMap(data),
 	}, nil
 }
 
@@ -495,6 +632,166 @@ func (r *queryResolver) Health(ctx context.Context) (string, error) {
 	return "GraphQL API is healthy", nil
 }
 
+// Posts is the resolver for the posts field.
+func (r *queryResolver) Posts(ctx context.Context, page *int, limit *int) (*PostsPayload, error) {
+	pageVal := 1
+	limitVal := 10
+	if page != nil {
+		pageVal = *page
+	}
+	if limit != nil {
+		limitVal = *limit
+	}
+
+	userID := middleware.GetUserID(ctx)
+	result, err := r.postResolver.GetPosts(ctx, pageVal, limitVal, userID)
+	if err != nil {
+		return &PostsPayload{
+			Success: false,
+			Message: result["message"].(string),
+			Data:    []*Post{},
+			Total:   0,
+			Page:    pageVal,
+			Limit:   limitVal,
+		}, nil
+	}
+
+	postData := result["data"].([]map[string]interface{})
+	posts := make([]*Post, len(postData))
+	for i, postMap := range postData {
+		posts[i] = r.formatPostFromMap(postMap)
+	}
+
+	total := int(result["total"].(int64))
+
+	return &PostsPayload{
+		Success: result["success"].(bool),
+		Message: result["message"].(string),
+		Data:    posts,
+		Total:   total,
+		Page:    pageVal,
+		Limit:   limitVal,
+	}, nil
+}
+
+// Post is the resolver for the post field.
+func (r *queryResolver) Post(ctx context.Context, id string) (*PostPayload, error) {
+	userID := middleware.GetUserID(ctx)
+	result, err := r.postResolver.GetPost(ctx, id, userID)
+	if err != nil {
+		return &PostPayload{
+			Success: false,
+			Message: result["message"].(string),
+		}, nil
+	}
+
+	data := result["data"].(map[string]interface{})
+	return &PostPayload{
+		Success: result["success"].(bool),
+		Message: result["message"].(string),
+		Data:    r.formatPostFromMap(data),
+	}, nil
+}
+
+// MyPosts is the resolver for the myPosts field.
+func (r *queryResolver) MyPosts(ctx context.Context, page *int, limit *int) (*PostsPayload, error) {
+	pageVal := 1
+	limitVal := 10
+	if page != nil {
+		pageVal = *page
+	}
+	if limit != nil {
+		limitVal = *limit
+	}
+
+	userID := middleware.GetUserID(ctx)
+	if userID == "" {
+		return &PostsPayload{
+			Success: false,
+			Message: "Authentication required",
+			Data:    []*Post{},
+			Total:   0,
+			Page:    pageVal,
+			Limit:   limitVal,
+		}, nil
+	}
+
+	result, err := r.postResolver.GetMyPosts(ctx, userID, pageVal, limitVal)
+	if err != nil {
+		return &PostsPayload{
+			Success: false,
+			Message: result["message"].(string),
+			Data:    []*Post{},
+			Total:   0,
+			Page:    pageVal,
+			Limit:   limitVal,
+		}, nil
+	}
+
+	postData := result["data"].([]map[string]interface{})
+	posts := make([]*Post, len(postData))
+	for i, postMap := range postData {
+		posts[i] = r.formatPostFromMap(postMap)
+	}
+
+	total := int(result["total"].(int64))
+
+	return &PostsPayload{
+		Success: result["success"].(bool),
+		Message: result["message"].(string),
+		Data:    posts,
+		Total:   total,
+		Page:    pageVal,
+		Limit:   limitVal,
+	}, nil
+}
+
+// PostsNearLocation is the resolver for the postsNearLocation field.
+func (r *queryResolver) PostsNearLocation(ctx context.Context, lat float64, lng float64, radius *float64, page *int, limit *int) (*PostsPayload, error) {
+	pageVal := 1
+	limitVal := 10
+	radiusVal := 5000.0 // Default 5km
+	if page != nil {
+		pageVal = *page
+	}
+	if limit != nil {
+		limitVal = *limit
+	}
+	if radius != nil {
+		radiusVal = *radius
+	}
+
+	userID := middleware.GetUserID(ctx)
+	result, err := r.postResolver.GetPostsNearLocation(ctx, lat, lng, radiusVal, pageVal, limitVal, userID)
+	if err != nil {
+		return &PostsPayload{
+			Success: false,
+			Message: result["message"].(string),
+			Data:    []*Post{},
+			Total:   0,
+			Page:    pageVal,
+			Limit:   limitVal,
+		}, nil
+	}
+
+	postData := result["data"].([]map[string]interface{})
+	posts := make([]*Post, len(postData))
+	for i, postMap := range postData {
+		posts[i] = r.formatPostFromMap(postMap)
+	}
+
+	total := int(result["total"].(int64))
+
+	return &PostsPayload{
+		Success: result["success"].(bool),
+		Message: result["message"].(string),
+		Data:    posts,
+		Total:   total,
+		Page:    pageVal,
+		Limit:   limitVal,
+	}, nil
+}
+
 // Item is the resolver for the item field.
 func (r *queryResolver) Item(ctx context.Context, id string) (*ItemPayload, error) {
 	objectID, err := primitive.ObjectIDFromHex(id)
@@ -719,21 +1016,7 @@ type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
 type subscriptionResolver struct{ *Resolver }
 
-// !!! WARNING !!!
-// The code below was going to be deleted when updating resolvers. It has been copied here so you have
-// one last chance to move it out of harms way if you want. There are two reasons this happens:
-//  - When renaming or deleting a resolver the old code will be put in here. You can safely delete
-//    it when you're done.
-//  - You have helper methods in this file. Move them out to keep these resolver files clean.
-/*
-	type Resolver struct {
-	authResolver    *auth.AuthResolver
-	userResolver    *user.UserResolver
-	shopResolver    *shop.ShopResolver
-	productResolver *product.ProductResolver
-	ownerResolver   *owner.OwnerResolver
-	jwtSecret       string
-}
+// NewResolver creates a new resolver with all dependencies
 func NewResolver(db *mongo.Database, jwtSecret string) *Resolver {
 	return &Resolver{
 		authResolver:    auth.NewAuthResolver(db, jwtSecret),
@@ -741,7 +1024,65 @@ func NewResolver(db *mongo.Database, jwtSecret string) *Resolver {
 		shopResolver:    shop.NewShopResolver(db),
 		productResolver: product.NewProductResolver(),
 		ownerResolver:   owner.NewOwnerResolver(db),
+		postResolver:    post.NewPostResolver(db),
+		db:              db,
 		jwtSecret:       jwtSecret,
 	}
 }
-*/
+
+// Helper function to format post data from map
+func (r *Resolver) formatPostFromMap(postMap map[string]interface{}) *Post {
+	authorData := postMap["author"].(map[string]interface{})
+	createdAt, _ := time.Parse(time.RFC3339, postMap["createdAt"].(string))
+	updatedAt, _ := time.Parse(time.RFC3339, postMap["updatedAt"].(string))
+
+	author := &User{
+		ID:       authorData["id"].(string),
+		Name:     authorData["name"].(string),
+		Email:    authorData["email"].(string),
+		Role:     UserRole(authorData["role"].(string)),
+		IsActive: authorData["isActive"].(bool),
+	}
+
+	var location *Location
+	if locData, ok := postMap["location"].(map[string]interface{}); ok && locData != nil {
+		location = &Location{
+			Lat:  locData["lat"].(float64),
+			Lng:  locData["lng"].(float64),
+			Name: locData["name"].(string),
+		}
+	}
+
+	return &Post{
+		ID:           postMap["id"].(string),
+		Text:         postMap["text"].(string),
+		Photos:       toStringSlice(postMap["photos"]),
+		Author:       author,
+		Location:     location,
+		Likes:        int(postMap["likes"].(int)),
+		IsLiked:      postMap["isLiked"].(bool),
+		CommentCount: postMap["commentCount"].(int),
+		CreatedAt:    createdAt,
+		UpdatedAt:    &updatedAt,
+	}
+}
+
+// Helper function to convert interface slice to string slice
+func toStringSlice(data interface{}) []string {
+	if data == nil {
+		return []string{}
+	}
+	if slice, ok := data.([]string); ok {
+		return slice
+	}
+	if slice, ok := data.([]interface{}); ok {
+		result := make([]string, len(slice))
+		for i, v := range slice {
+			if str, ok := v.(string); ok {
+				result[i] = str
+			}
+		}
+		return result
+	}
+	return []string{}
+}

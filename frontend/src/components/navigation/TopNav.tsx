@@ -30,6 +30,11 @@ export function TopNav() {
     navigate('/profile')
   }
 
+  const handleMyStore = () => {
+    setIsDropdownOpen(false)
+    navigate('/owner')
+  }
+
   // Get user initials for avatar fallback
   const getUserInitials = () => {
     if (!userInfo) return '?'
@@ -80,6 +85,14 @@ export function TopNav() {
                   >
                     View Profile
                   </button>
+                  {userInfo.role === 'OWNER' && (
+                    <button
+                      onClick={handleMyStore}
+                      className="w-full text-left px-4 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
+                    >
+                      My Store
+                    </button>
+                  )}
                   <button
                     onClick={handleLogout}
                     className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"

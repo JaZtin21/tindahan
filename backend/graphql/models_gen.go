@@ -34,6 +34,14 @@ type BusinessHoursInput struct {
 	Days      []string `json:"days"`
 }
 
+type Comment struct {
+	ID        string     `json:"id"`
+	Text      string     `json:"text"`
+	Author    *User      `json:"author"`
+	CreatedAt time.Time  `json:"createdAt"`
+	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
+}
+
 type ContactDetails struct {
 	Phone   string `json:"phone"`
 	Email   string `json:"email"`
@@ -76,6 +84,12 @@ type CreateItemInput struct {
 	Tags        []string       `json:"tags"`
 	ShopID      string         `json:"shopId"`
 	Discount    *DiscountInput `json:"discount,omitempty"`
+}
+
+type CreatePostInput struct {
+	Text     string         `json:"text"`
+	Photos   []string       `json:"photos,omitempty"`
+	Location *LocationInput `json:"location,omitempty"`
 }
 
 type CreateShopInput struct {
@@ -172,6 +186,18 @@ type ItemsPayload struct {
 	Data    []*Item `json:"data"`
 }
 
+type Location struct {
+	Lat  float64 `json:"lat"`
+	Lng  float64 `json:"lng"`
+	Name string  `json:"name"`
+}
+
+type LocationInput struct {
+	Lat  float64 `json:"lat"`
+	Lng  float64 `json:"lng"`
+	Name string  `json:"name"`
+}
+
 type LoginInput struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
@@ -192,6 +218,35 @@ type PaymentMethodsInput struct {
 	Gcash   bool `json:"gcash"`
 	Paymaya bool `json:"paymaya"`
 	Card    bool `json:"card"`
+}
+
+type Post struct {
+	ID           string     `json:"id"`
+	Text         string     `json:"text"`
+	Photos       []string   `json:"photos"`
+	Author       *User      `json:"author"`
+	Location     *Location  `json:"location,omitempty"`
+	Likes        int        `json:"likes"`
+	IsLiked      bool       `json:"isLiked"`
+	Comments     []*Comment `json:"comments"`
+	CommentCount int        `json:"commentCount"`
+	CreatedAt    time.Time  `json:"createdAt"`
+	UpdatedAt    *time.Time `json:"updatedAt,omitempty"`
+}
+
+type PostPayload struct {
+	Success bool   `json:"success"`
+	Message string `json:"message"`
+	Data    *Post  `json:"data,omitempty"`
+}
+
+type PostsPayload struct {
+	Success bool    `json:"success"`
+	Message string  `json:"message"`
+	Data    []*Post `json:"data"`
+	Total   int     `json:"total"`
+	Page    int     `json:"page"`
+	Limit   int     `json:"limit"`
 }
 
 type ProductSearchInput struct {
@@ -297,6 +352,12 @@ type UpdateItemInput struct {
 	Origin      *string        `json:"origin,omitempty"`
 	Tags        []string       `json:"tags,omitempty"`
 	Discount    *DiscountInput `json:"discount,omitempty"`
+}
+
+type UpdatePostInput struct {
+	Text     *string        `json:"text,omitempty"`
+	Photos   []string       `json:"photos,omitempty"`
+	Location *LocationInput `json:"location,omitempty"`
 }
 
 type UpdateProfileInput struct {

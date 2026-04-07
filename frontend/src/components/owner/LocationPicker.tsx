@@ -256,7 +256,7 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
       <button
         type="button"
         onClick={() => setShowModal(true)}
-        className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-left"
+        className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-left text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500"
       >
         {getButtonText()}
       </button>
@@ -268,7 +268,7 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
       <div className="bg-white dark:bg-zinc-900 rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh]  overflow-auto" onClick={(e) => e.stopPropagation()}>
         <div className="p-6 border-b border-zinc-200 dark:border-zinc-700">
           <div className="flex justify-between items-center">
-            <h3 className="text-xl font-semibold">Select Shop Location</h3>
+            <h3 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">Select Shop Location</h3>
             <button
               onClick={() => setShowModal(false)}
               className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
@@ -294,7 +294,7 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
           <div className="w-full md:w-80 p-6 md:border-l border-zinc-200 dark:border-zinc-700 pointer-events-auto" onClick={(e) => e.stopPropagation()}>
             <div className="space-y-4">
               <div>
-                <h4 className="font-semibold mb-2">Selected Location</h4>
+                <h4 className="font-semibold mb-2 text-zinc-900 dark:text-zinc-100">Selected Location</h4>
                 <div className="text-sm text-zinc-600 dark:text-zinc-400 space-y-1">
                   <div>Latitude: {selectedLocation.lat.toFixed(6)}</div>
                   <div>Longitude: {selectedLocation.lng.toFixed(6)}</div>
@@ -302,7 +302,7 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
               </div>
 
               <div>
-                <h4 className="font-semibold mb-2">Address</h4>
+                <h4 className="font-semibold mb-2 text-zinc-900 dark:text-zinc-100">Address</h4>
                 <div className="text-sm text-zinc-600 dark:text-zinc-400">
                   {address || 'Click on map to get address'}
                 </div>

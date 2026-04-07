@@ -1,14 +1,26 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import type { RootState } from '../store';
 import { OpenStreetMap, SearchBar, LocationSearchBar } from '../components/Map';
 import { openSideNav } from '../store';
+import { CreatePostModal } from '../components/posts/CreatePostModal';
+import { useCreatePost, usePostsNearLocation } from '../api/graphql/post/usePost';
+
+// Helper to convert File to base64
+const fileToBase64 = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+  });
+};
 
 export function MapPage() {
   const dispatch = useDispatch();
   const [searchQuery, setSearchQuery] = useState('');
   const [mapCenter, setMapCenter] = useState(
-    { lat: 14.5995, lng: 120.9842 } // Manila default - no hardcoded location check
+    { lat: 14.5995, lng: 120.9842 } // Manila default
   );
   const [mapZoom, setMapZoom] = useState(14);
   const [filteredStores, setFilteredStores] = useState([
@@ -18,6 +30,34 @@ export function MapPage() {
   ]);
   const [locationQuery, setLocationQuery] = useState('');
   const [currentLocation, setCurrentLocation] = useState<{ lat: number; lng: number; name?: string } | null>(null);
+  const [isCreatePostModalOpen, setIsCreatePostModalOpen] = useState(false);
+
+  const [createPost, { loading: isCreatingPost }] = useCreatePost();
+
+  // Fetch posts near current map center (5km radius)
+  const { data: postsData } = usePostsNearLocation(mapCenter.lat, mapCenter.lng, 5000, 1, 50);
+
+  // Combine store and post markers for the map
+  const [allMarkers, setAllMarkers] = useState(filteredStores);
+
+  useEffect(() => {
+    const markers = [...filteredStores];
+    
+    // Add post markers if posts exist
+    if (postsData?.postsNearLocation?.data) {
+      const postMarkers = postsData.postsNearLocation.data.map((post: any) => ({
+        lat: post.location?.lat || 0,
+        lng: post.location?.lng || 0,
+        title: post.text?.substring(0, 30) + (post.text?.length > 30 ? '...' : '') || 'Post',
+        type: 'post' as const,
+        post: post
+      })).filter((m: any) => m.lat && m.lng);
+      
+      markers.push(...postMarkers);
+    }
+    
+    setAllMarkers(markers);
+  }, [filteredStores, postsData]);
 
   const handleLocationSelect = (location: { lat: number; lng: number; name: string }) => {
     setMapCenter({ lat: location.lat, lng: location.lng });
@@ -29,26 +69,23 @@ export function MapPage() {
   const handleSearch = (query: string) => {
     setSearchQuery(query);
     console.log('Searching for:', query);
-    // Here you would search your database
-    // For now, just log the query
   };
 
   const handleMapClick = (lat: number, lng: number) => {
     console.log('Map clicked at:', { lat, lng });
-    // Map click functionality removed
   };
 
   // Reverse geocoding function to get address from coordinates
   const reverseGeocode = async (lat: number, lng: number) => {
     try {
       console.log('🔍 Reverse geocoding for:', { lat, lng });
-      
+
       const response = await fetch(
         `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1`
       );
-      
+
       const data = await response.json();
-      
+
       if (data && data.display_name) {
         return data.display_name;
       } else {
@@ -62,11 +99,11 @@ export function MapPage() {
 
   const handleMyLocation = async () => {
     console.log('Getting your location...');
-    
+
     try {
       const position = await new Promise<GeolocationPosition>((resolve, reject) => {
         navigator.geolocation.getCurrentPosition(
-          resolve, 
+          resolve,
           reject,
           {
             enableHighAccuracy: true,
@@ -83,39 +120,34 @@ export function MapPage() {
 
       console.log('ACTUAL User location:', userLocation);
       console.log('GPS Accuracy:', position.coords.accuracy, 'meters');
-      
-      // Check if accuracy is reasonable (less than 1km)
+
       if (position.coords.accuracy > 1000) {
         console.warn('Location accuracy is poor (', position.coords.accuracy, 'meters)');
         alert(`Location accuracy is poor (${position.coords.accuracy.toFixed(0)}m). This is normal on PC. For better accuracy, try on your phone.`);
       }
-      
-      // Update map center to user location and zoom in hard
+
       setMapCenter(userLocation);
-      setMapZoom(20); // Maximum zoom level
-      
-      // Get address from coordinates
+      setMapZoom(20);
+
       const address = await reverseGeocode(userLocation.lat, userLocation.lng);
       setLocationQuery(address);
       setCurrentLocation({ ...userLocation, name: address });
-      
+
       console.log('Map centered and MAX zoomed on your location!');
       console.log('Address found:', address);
-      
     } catch (error) {
       console.error('Error getting location:', error);
-      console.log('Location error details:', error.message);
-      alert(`Failed to get your location: ${error.message}. Please enable location services and try again.`);
+      console.log('Location error details:', (error as Error).message);
+      alert(`Failed to get your location: ${(error as Error).message}. Please enable location services and try again.`);
     }
   };
 
   const handleStoreSelect = (store: { lat: number; lng: number; name: string }) => {
     console.log('Flying to store:', store);
     setMapCenter({ lat: store.lat, lng: store.lng });
-    setMapZoom(20); // MAX zoom for search results
-    setSearchQuery(''); // Clear search after selecting store
-    
-    // Open SideNav with selected location using Redux
+    setMapZoom(20);
+    setSearchQuery('');
+
     dispatch(openSideNav({
       name: store.name,
       lat: store.lat,
@@ -126,6 +158,34 @@ export function MapPage() {
       phone: '+63 XXX XXX XXXX',
       hours: '6:00 AM - 9:00 PM'
     }));
+  };
+
+  // Handle post creation with photo upload
+  const handleCreatePost = async (post: { text: string; photos: File[]; location: { lat: number; lng: number; name: string } }) => {
+    try {
+      // Convert photos to base64
+      const photoPromises = post.photos.map(file => fileToBase64(file));
+      const base64Photos = await Promise.all(photoPromises);
+
+      const result = await createPost({
+        variables: {
+          input: {
+            text: post.text,
+            photos: base64Photos,
+            location: post.location
+          }
+        }
+      });
+
+      if (result.data?.createPost?.success) {
+        alert('Post created successfully!');
+      } else {
+        alert('Failed to create post: ' + result.data?.createPost?.message);
+      }
+    } catch (error) {
+      console.error('Error creating post:', error);
+      alert('Failed to create post. Please try again.');
+    }
   };
 
   return (
@@ -162,6 +222,17 @@ export function MapPage() {
         </div>
       </div>
 
+      {/* Add Post Button - Outside map container */}
+      <button
+        onClick={() => setIsCreatePostModalOpen(true)}
+        className="fixed bottom-4 right-4 z-40 flex items-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-xl transition-colors"
+      >
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+        </svg>
+        <span className="font-medium">Add Post</span>
+      </button>
+
       {/* Main Content */}
       <div className="fixed top-[77px] left-0 right-0 bottom-0 z-[1]">
         {/* Full Screen Map */}
@@ -170,7 +241,7 @@ export function MapPage() {
           zoom={mapZoom}
           onMapClick={handleMapClick}
           onMarkerClick={handleStoreSelect}
-          markers={filteredStores}
+          markers={allMarkers}
           currentLocation={currentLocation}
         />
 
@@ -181,6 +252,15 @@ export function MapPage() {
           </div>
         </div>
       </div>
+
+      {/* Create Post Modal */}
+      <CreatePostModal
+        isOpen={isCreatePostModalOpen}
+        onClose={() => setIsCreatePostModalOpen(false)}
+        onSubmit={handleCreatePost}
+        isSubmitting={isCreatingPost}
+        currentLocation={currentLocation}
+      />
     </div>
   );
 }
