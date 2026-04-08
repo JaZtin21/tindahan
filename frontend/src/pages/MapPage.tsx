@@ -114,11 +114,23 @@ export function MapPage() {
     };
   }, []);
 
-  // Update cached posts when new data arrives
+  // Update cached posts when new data arrives - ACCUMULATE instead of replace
   useEffect(() => {
     const data = postsData as { postsNearLocation?: { data: any[] } } | undefined;
-    if (data?.postsNearLocation?.data && data.postsNearLocation.data.length > 0) {
-      setCachedPosts(data.postsNearLocation.data);
+    const newPosts = data?.postsNearLocation?.data;
+    if (newPosts && newPosts.length > 0) {
+      setCachedPosts(prevPosts => {
+        // Create a map of existing posts by ID for quick lookup
+        const existingPostsMap = new Map(prevPosts.map(p => [p.id, p]));
+        
+        // Add new posts, overwriting if same ID
+        newPosts.forEach((newPost: any) => {
+          existingPostsMap.set(newPost.id, newPost);
+        });
+        
+        // Convert map back to array
+        return Array.from(existingPostsMap.values());
+      });
     }
   }, [postsData]);
   

@@ -149,10 +149,10 @@ export function calculateRadiusFromZoom(zoom: number): number {
     14: 1500,      // ~1.5 km (default)
     15: 800,       // ~800 m
     16: 400,       // ~400 m
-    17: 200,       // ~200 m
-    18: 100,       // ~100 m
-    19: 50,        // ~50 m
-    20: 25,        // ~25 m
+    17: 500,       // ~500 m
+    18: 500,       // ~500 m
+    19: 500,       // ~500 m
+    20: 500,       // ~500 m
   };
 
   // Clamp zoom to available range

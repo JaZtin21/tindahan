@@ -160,88 +160,76 @@ export function OpenStreetMap({ center, zoom, onMapClick, onMarkerClick, onMapMo
               <div style="
                 position: relative;
                 display: flex;
-                flex-direction: column;
-                align-items: flex-start;
-                max-width: 200px;
+                flex-direction: row;
+                align-items: flex-end;
               ">
-                <!-- Conversation Bubble -->
+                <!-- Profile Avatar (bottom LEFT of bubble, like thinker) -->
                 <div style="
-                  background: white;
-                  border-radius: 12px;
-                  padding: 8px 12px;
-                  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-                  border: 1px solid #e0e0e0;
-                  min-width: 140px;
-                  position: relative;
+                  width: 40px;
+                  height: 40px;
+                  border-radius: 50%;
+                  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  color: white;
+                  font-size: 16px;
+                  font-weight: 600;
+                  flex-shrink: 0;
+                  border: 3px solid white;
+                  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+                  margin-right: -10px;
+                  z-index: 2;
+                ">${authorInitial}</div>
+                <!-- Conversation Bubble (to the right of avatar) -->
+                <div style="
+                  display: flex;
+                  flex-direction: column;
+                  align-items: flex-start;
+                  max-width: 180px;
+                  margin-bottom: 10px;
+                  margin-left: 0;
                 ">
-                  <!-- Title -->
                   <div style="
-                    font-weight: 600;
-                    font-size: 12px;
-                    color: #1a1a1a;
-                    margin-bottom: 4px;
-                    line-height: 1.3;
-                  ">${shortTitle}</div>
-                  <!-- Description -->
-                  <div style="
-                    font-size: 11px;
-                    color: #666;
-                    line-height: 1.3;
-                    margin-bottom: 6px;
-                  ">${shortText}</div>
-                  <!-- Author row -->
-                  <div style="
-                    display: flex;
-                    align-items: center;
-                    gap: 6px;
+                    background: white;
+                    border-radius: 12px;
+                    padding: 8px 12px;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+                    border: 1px solid #e0e0e0;
+                    min-width: 120px;
+                    position: relative;
                   ">
-                    <!-- Profile avatar -->
+                    <!-- Title -->
                     <div style="
-                      width: 20px;
-                      height: 20px;
-                      border-radius: 50%;
-                      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                      display: flex;
-                      align-items: center;
-                      justify-content: center;
-                      color: white;
-                      font-size: 10px;
                       font-weight: 600;
-                      flex-shrink: 0;
-                    ">${authorInitial}</div>
+                      font-size: 12px;
+                      color: #1a1a1a;
+                      margin-bottom: 4px;
+                      line-height: 1.3;
+                    ">${shortTitle}</div>
+                    <!-- Description -->
                     <div style="
-                      font-size: 10px;
-                      color: #888;
-                      flex: 1;
-                      overflow: hidden;
-                      text-overflow: ellipsis;
-                      white-space: nowrap;
-                    ">${post.author.name}</div>
-                    <!-- Likes -->
-                    <div style="
-                      font-size: 10px;
-                      color: #e91e63;
-                      display: flex;
-                      align-items: center;
-                      gap: 2px;
-                    ">❤️ ${post.likes}</div>
+                      font-size: 11px;
+                      color: #666;
+                      line-height: 1.3;
+                    ">${shortText}</div>
                   </div>
+                  <!-- Triangle pointer pointing down-left toward avatar -->
+                  <div style="
+                    width: 0;
+                    height: 0;
+                    border-left: 6px solid transparent;
+                    border-right: 6px solid transparent;
+                    border-top: 6px solid white;
+                    margin-left: 16px;
+                    filter: drop-shadow(0 2px 2px rgba(0,0,0,0.1));
+                  "></div>
                 </div>
-                <!-- Triangle pointer -->
-                <div style="
-                  width: 0;
-                  height: 0;
-                  border-left: 8px solid transparent;
-                  border-right: 8px solid transparent;
-                  border-top: 8px solid white;
-                  margin-left: 20px;
-                  filter: drop-shadow(0 2px 2px rgba(0,0,0,0.1));
-                "></div>
               </div>
             `,
-            iconSize: [200, 100],
-            iconAnchor: [20, 0],
-            popupAnchor: [0, 10],
+            iconSize: [240, 80],
+            iconAnchor: [20, 60],
+            popupAnchor: [0, -60],
             className: 'post-bubble-marker'
           });
           
@@ -399,88 +387,76 @@ export function OpenStreetMap({ center, zoom, onMapClick, onMarkerClick, onMapMo
               <div style="
                 position: relative;
                 display: flex;
-                flex-direction: column;
-                align-items: flex-start;
-                max-width: 200px;
+                flex-direction: row;
+                align-items: flex-end;
               ">
-                <!-- Conversation Bubble -->
+                <!-- Profile Avatar (bottom LEFT of bubble, like thinker) -->
                 <div style="
-                  background: white;
-                  border-radius: 12px;
-                  padding: 8px 12px;
-                  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-                  border: 1px solid #e0e0e0;
-                  min-width: 140px;
-                  position: relative;
+                  width: 40px;
+                  height: 40px;
+                  border-radius: 50%;
+                  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  color: white;
+                  font-size: 16px;
+                  font-weight: 600;
+                  flex-shrink: 0;
+                  border: 3px solid white;
+                  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+                  margin-right: -10px;
+                  z-index: 2;
+                ">${authorInitial}</div>
+                <!-- Conversation Bubble (to the right of avatar) -->
+                <div style="
+                  display: flex;
+                  flex-direction: column;
+                  align-items: flex-start;
+                  max-width: 180px;
+                  margin-bottom: 10px;
+                  margin-left: 0;
                 ">
-                  <!-- Title -->
                   <div style="
-                    font-weight: 600;
-                    font-size: 12px;
-                    color: #1a1a1a;
-                    margin-bottom: 4px;
-                    line-height: 1.3;
-                  ">${shortTitle}</div>
-                  <!-- Description -->
-                  <div style="
-                    font-size: 11px;
-                    color: #666;
-                    line-height: 1.3;
-                    margin-bottom: 6px;
-                  ">${shortText}</div>
-                  <!-- Author row -->
-                  <div style="
-                    display: flex;
-                    align-items: center;
-                    gap: 6px;
+                    background: white;
+                    border-radius: 12px;
+                    padding: 8px 12px;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+                    border: 1px solid #e0e0e0;
+                    min-width: 120px;
+                    position: relative;
                   ">
-                    <!-- Profile avatar -->
+                    <!-- Title -->
                     <div style="
-                      width: 20px;
-                      height: 20px;
-                      border-radius: 50%;
-                      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                      display: flex;
-                      align-items: center;
-                      justify-content: center;
-                      color: white;
-                      font-size: 10px;
                       font-weight: 600;
-                      flex-shrink: 0;
-                    ">${authorInitial}</div>
+                      font-size: 12px;
+                      color: #1a1a1a;
+                      margin-bottom: 4px;
+                      line-height: 1.3;
+                    ">${shortTitle}</div>
+                    <!-- Description -->
                     <div style="
-                      font-size: 10px;
-                      color: #888;
-                      flex: 1;
-                      overflow: hidden;
-                      text-overflow: ellipsis;
-                      white-space: nowrap;
-                    ">${post.author.name}</div>
-                    <!-- Likes -->
-                    <div style="
-                      font-size: 10px;
-                      color: #e91e63;
-                      display: flex;
-                      align-items: center;
-                      gap: 2px;
-                    ">❤️ ${post.likes}</div>
+                      font-size: 11px;
+                      color: #666;
+                      line-height: 1.3;
+                    ">${shortText}</div>
                   </div>
+                  <!-- Triangle pointer pointing down-left toward avatar -->
+                  <div style="
+                    width: 0;
+                    height: 0;
+                    border-left: 6px solid transparent;
+                    border-right: 6px solid transparent;
+                    border-top: 6px solid white;
+                    margin-left: 16px;
+                    filter: drop-shadow(0 2px 2px rgba(0,0,0,0.1));
+                  "></div>
                 </div>
-                <!-- Triangle pointer -->
-                <div style="
-                  width: 0;
-                  height: 0;
-                  border-left: 8px solid transparent;
-                  border-right: 8px solid transparent;
-                  border-top: 8px solid white;
-                  margin-left: 20px;
-                  filter: drop-shadow(0 2px 2px rgba(0,0,0,0.1));
-                "></div>
               </div>
             `,
-            iconSize: [200, 100],
-            iconAnchor: [20, 0],
-            popupAnchor: [0, 10],
+            iconSize: [240, 80],
+            iconAnchor: [20, 60],
+            popupAnchor: [0, -60],
             className: 'post-bubble-marker'
           });
           
