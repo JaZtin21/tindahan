@@ -87,8 +87,10 @@ type CreateItemInput struct {
 }
 
 type CreatePostInput struct {
+	Title    string         `json:"title"`
 	Text     string         `json:"text"`
 	Photos   []string       `json:"photos,omitempty"`
+	Types    []string       `json:"types,omitempty"`
 	Location *LocationInput `json:"location,omitempty"`
 }
 
@@ -222,8 +224,10 @@ type PaymentMethodsInput struct {
 
 type Post struct {
 	ID           string     `json:"id"`
+	Title        string     `json:"title"`
 	Text         string     `json:"text"`
 	Photos       []string   `json:"photos"`
+	Types        []string   `json:"types"`
 	Author       *User      `json:"author"`
 	Location     *Location  `json:"location,omitempty"`
 	Likes        int        `json:"likes"`
@@ -355,8 +359,10 @@ type UpdateItemInput struct {
 }
 
 type UpdatePostInput struct {
+	Title    *string        `json:"title,omitempty"`
 	Text     *string        `json:"text,omitempty"`
 	Photos   []string       `json:"photos,omitempty"`
+	Types    []string       `json:"types,omitempty"`
 	Location *LocationInput `json:"location,omitempty"`
 }
 

@@ -9,8 +9,10 @@ export const POSTS_QUERY = gql`
       message
       data {
         id
+        title
         text
         photos
+        types
         author {
           id
           name
@@ -43,8 +45,10 @@ export const POST_QUERY = gql`
       message
       data {
         id
+        title
         text
         photos
+        types
         author {
           id
           name
@@ -84,8 +88,10 @@ export const MY_POSTS_QUERY = gql`
       message
       data {
         id
+        title
         text
         photos
+        types
         author {
           id
           name
@@ -118,8 +124,10 @@ export const POSTS_NEAR_LOCATION_QUERY = gql`
       message
       data {
         id
+        title
         text
         photos
+        types
         author {
           id
           name
@@ -152,8 +160,10 @@ export const CREATE_POST_MUTATION = gql`
       message
       data {
         id
+        title
         text
         photos
+        types
         author {
           id
           name
@@ -181,8 +191,10 @@ export const UPDATE_POST_MUTATION = gql`
       message
       data {
         id
+        title
         text
         photos
+        types
         author {
           id
           name

@@ -48,7 +48,7 @@ export function MapPage() {
       const postMarkers = postsData.postsNearLocation.data.map((post: any) => ({
         lat: post.location?.lat || 0,
         lng: post.location?.lng || 0,
-        title: post.text?.substring(0, 30) + (post.text?.length > 30 ? '...' : '') || 'Post',
+        title: post.title?.substring(0, 30) + (post.title?.length > 30 ? '...' : '') || 'Post',
         type: 'post' as const,
         post: post
       })).filter((m: any) => m.lat && m.lng);
@@ -161,7 +161,7 @@ export function MapPage() {
   };
 
   // Handle post creation with photo upload
-  const handleCreatePost = async (post: { text: string; photos: File[]; location: { lat: number; lng: number; name: string } }) => {
+  const handleCreatePost = async (post: { title: string; text: string; photos: File[]; types: string[]; location: { lat: number; lng: number; name: string } }) => {
     try {
       // Convert photos to base64
       const photoPromises = post.photos.map(file => fileToBase64(file));
@@ -170,8 +170,10 @@ export function MapPage() {
       const result = await createPost({
         variables: {
           input: {
+            title: post.title,
             text: post.text,
             photos: base64Photos,
+            types: post.types,
             location: post.location
           }
         }

@@ -28,8 +28,10 @@ export interface PostAuthor {
 
 export interface Post {
   id: string;
+  title: string;
   text: string;
   photos: string[];
+  types: string[];
   author: PostAuthor;
   location?: PostLocation;
   likes: number;
@@ -40,14 +42,18 @@ export interface Post {
 }
 
 export interface CreatePostInput {
+  title: string;
   text: string;
   photos?: string[];
+  types?: string[];
   location?: PostLocation;
 }
 
 export interface UpdatePostInput {
+  title?: string;
   text?: string;
   photos?: string[];
+  types?: string[];
   location?: PostLocation;
 }
 

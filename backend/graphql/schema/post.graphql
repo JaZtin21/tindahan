@@ -17,8 +17,10 @@ extend type Mutation {
 
 type Post {
   id: ObjectID!
+  title: String!
   text: String!
   photos: [String!]!
+  types: [String!]!
   author: User!
   location: Location
   likes: Int!
@@ -59,14 +61,18 @@ type PostsPayload {
 }
 
 input CreatePostInput {
+  title: String!
   text: String!
   photos: [String!]
+  types: [String!]
   location: LocationInput
 }
 
 input UpdatePostInput {
+  title: String
   text: String
   photos: [String!]
+  types: [String!]
   location: LocationInput
 }
 

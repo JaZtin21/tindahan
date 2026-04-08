@@ -175,6 +175,8 @@ type ComplexityRoot struct {
 		Location     func(childComplexity int) int
 		Photos       func(childComplexity int) int
 		Text         func(childComplexity int) int
+		Title        func(childComplexity int) int
+		Types        func(childComplexity int) int
 		UpdatedAt    func(childComplexity int) int
 	}
 
@@ -992,6 +994,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Post.Text(childComplexity), true
+	case "Post.title":
+		if e.ComplexityRoot.Post.Title == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Post.Title(childComplexity), true
+	case "Post.types":
+		if e.ComplexityRoot.Post.Types == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Post.Types(childComplexity), true
 	case "Post.updatedAt":
 		if e.ComplexityRoot.Post.UpdatedAt == nil {
 			break
@@ -4984,6 +4998,35 @@ func (ec *executionContext) fieldContext_Post_id(_ context.Context, field graphq
 	return fc, nil
 }
 
+func (ec *executionContext) _Post_title(ctx context.Context, field graphql.CollectedField, obj *Post) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Post_title,
+		func(ctx context.Context) (any, error) {
+			return obj.Title, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Post_title(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Post",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Post_text(ctx context.Context, field graphql.CollectedField, obj *Post) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -5030,6 +5073,35 @@ func (ec *executionContext) _Post_photos(ctx context.Context, field graphql.Coll
 }
 
 func (ec *executionContext) fieldContext_Post_photos(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Post",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Post_types(ctx context.Context, field graphql.CollectedField, obj *Post) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Post_types,
+		func(ctx context.Context) (any, error) {
+			return obj.Types, nil
+		},
+		nil,
+		ec.marshalNString2ᚕstringᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Post_types(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Post",
 		Field:      field,
@@ -5398,10 +5470,14 @@ func (ec *executionContext) fieldContext_PostPayload_data(_ context.Context, fie
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_Post_id(ctx, field)
+			case "title":
+				return ec.fieldContext_Post_title(ctx, field)
 			case "text":
 				return ec.fieldContext_Post_text(ctx, field)
 			case "photos":
 				return ec.fieldContext_Post_photos(ctx, field)
+			case "types":
+				return ec.fieldContext_Post_types(ctx, field)
 			case "author":
 				return ec.fieldContext_Post_author(ctx, field)
 			case "location":
@@ -5509,10 +5585,14 @@ func (ec *executionContext) fieldContext_PostsPayload_data(_ context.Context, fi
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_Post_id(ctx, field)
+			case "title":
+				return ec.fieldContext_Post_title(ctx, field)
 			case "text":
 				return ec.fieldContext_Post_text(ctx, field)
 			case "photos":
 				return ec.fieldContext_Post_photos(ctx, field)
+			case "types":
+				return ec.fieldContext_Post_types(ctx, field)
 			case "author":
 				return ec.fieldContext_Post_author(ctx, field)
 			case "location":
@@ -9600,13 +9680,20 @@ func (ec *executionContext) unmarshalInputCreatePostInput(ctx context.Context, o
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"text", "photos", "location"}
+	fieldsInOrder := [...]string{"title", "text", "photos", "types", "location"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
 			continue
 		}
 		switch k {
+		case "title":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("title"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Title = data
 		case "text":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("text"))
 			data, err := ec.unmarshalNString2string(ctx, v)
@@ -9621,6 +9708,13 @@ func (ec *executionContext) unmarshalInputCreatePostInput(ctx context.Context, o
 				return it, err
 			}
 			it.Photos = data
+		case "types":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("types"))
+			data, err := ec.unmarshalOString2ᚕstringᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Types = data
 		case "location":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("location"))
 			data, err := ec.unmarshalOLocationInput2ᚖtindahanᚑbackendᚋgraphqlᚐLocationInput(ctx, v)
@@ -10498,13 +10592,20 @@ func (ec *executionContext) unmarshalInputUpdatePostInput(ctx context.Context, o
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"text", "photos", "location"}
+	fieldsInOrder := [...]string{"title", "text", "photos", "types", "location"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
 			continue
 		}
 		switch k {
+		case "title":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("title"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Title = data
 		case "text":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("text"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
@@ -10519,6 +10620,13 @@ func (ec *executionContext) unmarshalInputUpdatePostInput(ctx context.Context, o
 				return it, err
 			}
 			it.Photos = data
+		case "types":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("types"))
+			data, err := ec.unmarshalOString2ᚕstringᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Types = data
 		case "location":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("location"))
 			data, err := ec.unmarshalOLocationInput2ᚖtindahanᚑbackendᚋgraphqlᚐLocationInput(ctx, v)
@@ -11595,6 +11703,11 @@ func (ec *executionContext) _Post(ctx context.Context, sel ast.SelectionSet, obj
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "title":
+			out.Values[i] = ec._Post_title(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "text":
 			out.Values[i] = ec._Post_text(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -11602,6 +11715,11 @@ func (ec *executionContext) _Post(ctx context.Context, sel ast.SelectionSet, obj
 			}
 		case "photos":
 			out.Values[i] = ec._Post_photos(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "types":
+			out.Values[i] = ec._Post_types(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}

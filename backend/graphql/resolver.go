@@ -186,7 +186,7 @@ func (r *mutationResolver) CreatePost(ctx context.Context, input CreatePostInput
 		}
 	}
 
-	result, err := r.postResolver.CreatePost(ctx, userID, input.Text, input.Photos, location)
+	result, err := r.postResolver.CreatePost(ctx, userID, input.Title, input.Text, input.Photos, input.Types, location)
 	if err != nil {
 		return &PostPayload{
 			Success: false,
@@ -221,7 +221,7 @@ func (r *mutationResolver) UpdatePost(ctx context.Context, id string, input Upda
 		}
 	}
 
-	result, err := r.postResolver.UpdatePost(ctx, id, userID, input.Text, input.Photos, location)
+	result, err := r.postResolver.UpdatePost(ctx, id, userID, input.Title, input.Text, input.Photos, input.Types, location)
 	if err != nil {
 		return &PostPayload{
 			Success: false,
@@ -1055,8 +1055,10 @@ func (r *Resolver) formatPostFromMap(postMap map[string]interface{}) *Post {
 
 	return &Post{
 		ID:           postMap["id"].(string),
+		Title:        postMap["title"].(string),
 		Text:         postMap["text"].(string),
 		Photos:       toStringSlice(postMap["photos"]),
+		Types:        toStringSlice(postMap["types"]),
 		Author:       author,
 		Location:     location,
 		Likes:        int(postMap["likes"].(int)),

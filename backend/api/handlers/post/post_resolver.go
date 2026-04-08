@@ -25,7 +25,7 @@ func NewPostResolver(db *mongo.Database) *PostResolver {
 }
 
 // CreatePost creates a new post
-func (r *PostResolver) CreatePost(ctx context.Context, authorID string, text string, photos []string, location *domain.PostLocation) (map[string]interface{}, error) {
+func (r *PostResolver) CreatePost(ctx context.Context, authorID string, title string, text string, photos []string, types []string, location *domain.PostLocation) (map[string]interface{}, error) {
 	// Convert authorID to ObjectID
 	authorObjectID, err := primitive.ObjectIDFromHex(authorID)
 	if err != nil {
@@ -38,8 +38,10 @@ func (r *PostResolver) CreatePost(ctx context.Context, authorID string, text str
 	// Create post domain object
 	post := &domain.Post{
 		ID:       primitive.NewObjectID(),
+		Title:    title,
 		Text:     text,
 		Photos:   photos,
+		Types:    types,
 		AuthorID: authorObjectID,
 		Location: location,
 	}
@@ -82,8 +84,10 @@ func (r *PostResolver) CreatePost(ctx context.Context, authorID string, text str
 		"message": "Post created successfully",
 		"data": map[string]interface{}{
 			"id":           post.ID.Hex(),
+			"title":        post.Title,
 			"text":         post.Text,
 			"photos":       post.Photos,
+			"types":        post.Types,
 			"author":       authorData,
 			"location":     locationData,
 			"likes":        post.Likes,
@@ -201,7 +205,7 @@ func (r *PostResolver) GetPostsNearLocation(ctx context.Context, lat, lng, radiu
 }
 
 // UpdatePost updates an existing post
-func (r *PostResolver) UpdatePost(ctx context.Context, postID, authorID string, text *string, photos []string, location *domain.PostLocation) (map[string]interface{}, error) {
+func (r *PostResolver) UpdatePost(ctx context.Context, postID, authorID string, title *string, text *string, photos []string, types []string, location *domain.PostLocation) (map[string]interface{}, error) {
 	postObjectID, err := primitive.ObjectIDFromHex(postID)
 	if err != nil {
 		return map[string]interface{}{
@@ -229,11 +233,17 @@ func (r *PostResolver) UpdatePost(ctx context.Context, postID, authorID string, 
 
 	// Build update document
 	updates := bson.M{}
+	if title != nil {
+		updates["title"] = *title
+	}
 	if text != nil {
 		updates["text"] = *text
 	}
 	if photos != nil {
 		updates["photos"] = photos
+	}
+	if types != nil {
+		updates["types"] = types
 	}
 	if location != nil {
 		updates["location"] = location
@@ -429,8 +439,10 @@ func (r *PostResolver) formatPostData(ctx context.Context, post *domain.Post, cu
 
 	return map[string]interface{}{
 		"id":           post.ID.Hex(),
+		"title":        post.Title,
 		"text":         post.Text,
 		"photos":       post.Photos,
+		"types":        post.Types,
 		"author":       authorData,
 		"location":     locationData,
 		"likes":        post.Likes,

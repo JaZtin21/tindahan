@@ -4,7 +4,7 @@ import { LocationPicker } from '../owner/LocationPicker';
 interface CreatePostModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (post: { text: string; photos: File[]; location: { lat: number; lng: number; name: string } }) => void;
+  onSubmit: (post: { title: string; text: string; photos: File[]; types: string[]; location: { lat: number; lng: number; name: string } }) => void;
   isSubmitting?: boolean;
   currentLocation?: { lat: number; lng: number; name?: string } | null;
 }
@@ -22,10 +22,24 @@ const ImageIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
+const POST_TYPES = [
+  'Looking for',
+  'Selling',
+  'Recommendation',
+  'Review',
+  'Question',
+  'Announcement',
+  'Event',
+  'Service',
+  'Other'
+] as const;
+
 export function CreatePostModal({ isOpen, onClose, onSubmit, isSubmitting: externalSubmitting, currentLocation }: CreatePostModalProps) {
+  const [title, setTitle] = useState('');
   const [text, setText] = useState('');
   const [photos, setPhotos] = useState<File[]>([]);
   const [photoPreviews, setPhotoPreviews] = useState<string[]>([]);
+  const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<{ lat: number; lng: number; name: string } | null>(
     currentLocation?.name ? { lat: currentLocation.lat, lng: currentLocation.lng, name: currentLocation.name } : null
@@ -59,7 +73,19 @@ export function CreatePostModal({ isOpen, onClose, onSubmit, isSubmitting: exter
     setPhotoPreviews(prev => prev.filter((_, i) => i !== index));
   };
 
+  const toggleType = (type: string) => {
+    setSelectedTypes(prev =>
+      prev.includes(type)
+        ? prev.filter(t => t !== type)
+        : [...prev, type]
+    );
+  };
+
   const handleSubmit = async () => {
+    if (!title.trim()) {
+      alert('Please enter a title');
+      return;
+    }
     if (!text.trim() && photos.length === 0) return;
     if (!selectedLocation) {
       alert('Please select a location');
@@ -69,15 +95,19 @@ export function CreatePostModal({ isOpen, onClose, onSubmit, isSubmitting: exter
     setIsSubmitting(true);
     try {
       await onSubmit({
+        title: title.trim(),
         text: text.trim(),
         photos,
+        types: selectedTypes,
         location: selectedLocation
       });
       // Reset form
+      setTitle('');
       setText('');
       photoPreviews.forEach(url => URL.revokeObjectURL(url));
       setPhotos([]);
       setPhotoPreviews([]);
+      setSelectedTypes([]);
       setSelectedLocation(null);
       onClose();
     } catch (error) {
@@ -91,7 +121,9 @@ export function CreatePostModal({ isOpen, onClose, onSubmit, isSubmitting: exter
     photoPreviews.forEach(url => URL.revokeObjectURL(url));
     setPhotos([]);
     setPhotoPreviews([]);
+    setTitle('');
     setText('');
+    setSelectedTypes([]);
     setSelectedLocation(null);
     onClose();
   };
@@ -116,13 +148,45 @@ export function CreatePostModal({ isOpen, onClose, onSubmit, isSubmitting: exter
 
         {/* Content */}
         <div className="p-4 overflow-y-auto max-h-[60vh]">
-          {/* Text input */}
+          {/* Title input */}
+          <input
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Post title..."
+            className="w-full p-3 mb-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 font-medium"
+          />
+
+          {/* Text/Description input */}
           <textarea
             value={text}
             onChange={(e) => setText(e.target.value)}
             placeholder="What's on your mind?"
             className="w-full min-h-[120px] p-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500"
           />
+
+          {/* Types selection */}
+          <div className="mt-4">
+            <label className="block text-sm font-medium mb-2 text-zinc-700 dark:text-zinc-300">
+              Type (optional)
+            </label>
+            <div className="flex flex-wrap gap-2">
+              {POST_TYPES.map((type) => (
+                <button
+                  key={type}
+                  type="button"
+                  onClick={() => toggleType(type)}
+                  className={`px-3 py-1.5 text-sm rounded-full transition-colors ${
+                    selectedTypes.includes(type)
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-zinc-100 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-600'
+                  }`}
+                >
+                  {type}
+                </button>
+              ))}
+            </div>
+          </div>
 
           {/* Location Picker - Required Field */}
           <div className="mt-4">
@@ -189,7 +253,7 @@ export function CreatePostModal({ isOpen, onClose, onSubmit, isSubmitting: exter
           </button>
           <button
             onClick={handleSubmit}
-            disabled={(!text.trim() && photos.length === 0) || !selectedLocation || isLoading}
+            disabled={(!title.trim() && !text.trim() && photos.length === 0) || !selectedLocation || isLoading}
             className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-300 dark:disabled:bg-zinc-600 disabled:cursor-not-allowed rounded-lg transition-colors"
           >
             {isLoading ? 'Posting...' : 'Post'}
