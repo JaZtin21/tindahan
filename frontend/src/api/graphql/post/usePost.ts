@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from '@apollo/client/react';
+import { useMutation, useQuery, useLazyQuery } from '@apollo/client/react';
 import {
   POSTS_QUERY,
   POST_QUERY,
@@ -79,11 +79,9 @@ export const useMyPosts = (page?: number, limit?: number) => {
   });
 };
 
-export const usePostsNearLocation = (lat: number, lng: number, radius?: number, page?: number, limit?: number) => {
-  return useQuery(POSTS_NEAR_LOCATION_QUERY, {
-    variables: { lat, lng, radius, page, limit },
-    skip: !lat || !lng,
-    fetchPolicy: 'cache-and-network',
+export const usePostsNearLocation = () => {
+  return useLazyQuery(POSTS_NEAR_LOCATION_QUERY, {
+    fetchPolicy: 'network-only',
   });
 };
 

@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
-import type { RootState } from '../store';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useDispatch } from 'react-redux';
 import { OpenStreetMap, SearchBar, LocationSearchBar } from '../components/Map';
 import { openSideNav } from '../store';
 import { CreatePostModal } from '../components/posts/CreatePostModal';
 import { useCreatePost, usePostsNearLocation } from '../api/graphql/post/usePost';
+import { calculateRadiusFromZoom } from '../utils/maps';
 
 // Helper to convert File to base64
 const fileToBase64 = (file: File): Promise<string> => {
@@ -19,10 +19,19 @@ const fileToBase64 = (file: File): Promise<string> => {
 export function MapPage() {
   const dispatch = useDispatch();
   const [searchQuery, setSearchQuery] = useState('');
-  const [mapCenter, setMapCenter] = useState(
-    { lat: 14.5995, lng: 120.9842 } // Manila default
-  );
+  
+  // State for map center and zoom (updated immediately for smooth UI)
+  const [mapCenter, setMapCenter] = useState({ lat: 14.5995, lng: 120.9842 });
   const [mapZoom, setMapZoom] = useState(14);
+  
+  // Refs for debounce logic
+  const debounceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastFetchCenterRef = useRef<{ lat: number; lng: number } | null>(null);
+  const mapInitializedRef = useRef(false);
+  
+  // Cache for posts - stores fetched posts so they persist when zooming
+  const [cachedPosts, setCachedPosts] = useState<any[]>([]);
+
   const [filteredStores, setFilteredStores] = useState([
     { lat: 14.5995, lng: 120.9842, title: 'Mang Kiko\'s Sari-Sari Store' },
     { lat: 14.6091, lng: 120.9799, title: 'Aling Nena\'s Grocery' },
@@ -34,36 +43,133 @@ export function MapPage() {
 
   const [createPost, { loading: isCreatingPost }] = useCreatePost();
 
-  // Fetch posts near current map center (5km radius)
-  const { data: postsData } = usePostsNearLocation(mapCenter.lat, mapCenter.lng, 5000, 1, 50);
+  // Lazy query for fetching posts - does NOT auto-fetch on mount
+  const [fetchPosts, { data: postsData, loading: postsLoading }] = usePostsNearLocation();
 
+  // Handle map center changes with proper debounce
+  const handleMapCenterChange = useCallback((center: { lat: number; lng: number }, zoom: number) => {
+    // Skip first call from map initialization
+    if (!mapInitializedRef.current) {
+      console.log('[MapPage] Skipping initial map move event');
+      mapInitializedRef.current = true;
+      return;
+    }
+    
+    // Update map center/zoom immediately for smooth UI
+    setMapCenter(center);
+    setMapZoom(zoom);
+    
+    // Clear existing debounce timeout
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current);
+    }
+    
+    // Set new debounce timeout - only fetch after user stops moving
+    debounceTimeoutRef.current = setTimeout(() => {
+      // Only fetch if zoom > 16
+      if (zoom <= 16) {
+        console.log('[MapPage] SKIPPED - zoom <= 16');
+        return;
+      }
+      
+      // Don't fetch if already loading
+      if (postsLoading) {
+        console.log('[MapPage] SKIPPED - already loading');
+        return;
+      }
+      
+      // Check if center actually moved significantly (prevent refetch on pure zoom)
+      const lastCenter = lastFetchCenterRef.current;
+      if (lastCenter) {
+        const latDiff = Math.abs(lastCenter.lat - center.lat);
+        const lngDiff = Math.abs(lastCenter.lng - center.lng);
+        const centerMoved = latDiff > 0.001 || lngDiff > 0.001; // ~100 meters
+        
+        if (!centerMoved) {
+          console.log('[MapPage] SKIPPED - center did not move enough');
+          return;
+        }
+      }
+      
+      console.log('[MapPage] FETCHING - zoom:', zoom, ', center moved');
+      lastFetchCenterRef.current = { lat: center.lat, lng: center.lng };
+      fetchPosts({
+        variables: {
+          lat: center.lat,
+          lng: center.lng,
+          radius: calculateRadiusFromZoom(zoom),
+          page: 1,
+          limit: 50
+        }
+      });
+    }, 800);
+  }, [fetchPosts, postsLoading]);
+  
+  // Cleanup debounce on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Update cached posts when new data arrives
+  useEffect(() => {
+    const data = postsData as { postsNearLocation?: { data: any[] } } | undefined;
+    if (data?.postsNearLocation?.data && data.postsNearLocation.data.length > 0) {
+      setCachedPosts(data.postsNearLocation.data);
+    }
+  }, [postsData]);
+  
   // Combine store and post markers for the map
-  const [allMarkers, setAllMarkers] = useState(filteredStores);
+  const [allMarkers, setAllMarkers] = useState<any[]>([]);
 
   useEffect(() => {
-    const markers = [...filteredStores];
+    // Convert stores to marker format
+    const storeMarkers = filteredStores.map(store => ({
+      lat: store.lat,
+      lng: store.lng,
+      title: store.title,
+      type: 'store' as const,
+    }));
     
-    // Add post markers if posts exist
-    if (postsData?.postsNearLocation?.data) {
-      const postMarkers = postsData.postsNearLocation.data.map((post: any) => ({
+    // Add post markers from cache (only if zoom > 16)
+    let postMarkers: any[] = [];
+    if (mapZoom > 16 && cachedPosts.length > 0) {
+      postMarkers = cachedPosts.map((post: any) => ({
         lat: post.location?.lat || 0,
         lng: post.location?.lng || 0,
         title: post.title?.substring(0, 30) + (post.title?.length > 30 ? '...' : '') || 'Post',
         type: 'post' as const,
         post: post
       })).filter((m: any) => m.lat && m.lng);
-      
-      markers.push(...postMarkers);
     }
     
-    setAllMarkers(markers);
-  }, [filteredStores, postsData]);
+    // Combine stores and posts
+    setAllMarkers([...storeMarkers, ...postMarkers]);
+  }, [filteredStores, cachedPosts, mapZoom]);
 
   const handleLocationSelect = (location: { lat: number; lng: number; name: string }) => {
-    setMapCenter({ lat: location.lat, lng: location.lng });
-    setMapZoom(16);
+    const newCenter = { lat: location.lat, lng: location.lng };
+    setMapCenter(newCenter);
+    setMapZoom(17);
     setLocationQuery(location.name);
     setCurrentLocation({ lat: location.lat, lng: location.lng, name: location.name });
+    lastFetchCenterRef.current = { lat: location.lat, lng: location.lng };
+    
+    // Fetch posts immediately for new location
+    if (!postsLoading) {
+      fetchPosts({
+        variables: {
+          lat: location.lat,
+          lng: location.lng,
+          radius: calculateRadiusFromZoom(17),
+          page: 1,
+          limit: 50
+        }
+      });
+    }
   };
 
   const handleSearch = (query: string) => {
@@ -132,6 +238,20 @@ export function MapPage() {
       const address = await reverseGeocode(userLocation.lat, userLocation.lng);
       setLocationQuery(address);
       setCurrentLocation({ ...userLocation, name: address });
+      lastFetchCenterRef.current = { lat: userLocation.lat, lng: userLocation.lng };
+      
+      // Fetch posts immediately for user location
+      if (!postsLoading) {
+        fetchPosts({
+          variables: {
+            lat: userLocation.lat,
+            lng: userLocation.lng,
+            radius: calculateRadiusFromZoom(20),
+            page: 1,
+            limit: 50
+          }
+        });
+      }
 
       console.log('Map centered and MAX zoomed on your location!');
       console.log('Address found:', address);
@@ -144,9 +264,23 @@ export function MapPage() {
 
   const handleStoreSelect = (store: { lat: number; lng: number; name: string }) => {
     console.log('Flying to store:', store);
-    setMapCenter({ lat: store.lat, lng: store.lng });
+    const newCenter = { lat: store.lat, lng: store.lng };
+    setMapCenter(newCenter);
     setMapZoom(20);
-    setSearchQuery('');
+    lastFetchCenterRef.current = { lat: store.lat, lng: store.lng };
+    
+    // Fetch posts immediately for store location
+    if (!postsLoading) {
+      fetchPosts({
+        variables: {
+          lat: store.lat,
+          lng: store.lng,
+          radius: calculateRadiusFromZoom(20),
+          page: 1,
+          limit: 50
+        }
+      });
+    }
 
     dispatch(openSideNav({
       name: store.name,
@@ -243,6 +377,7 @@ export function MapPage() {
           zoom={mapZoom}
           onMapClick={handleMapClick}
           onMarkerClick={handleStoreSelect}
+          onMapMoveEnd={handleMapCenterChange}
           markers={allMarkers}
           currentLocation={currentLocation}
         />
