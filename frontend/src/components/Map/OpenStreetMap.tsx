@@ -1,35 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
-
-interface PostMarker {
-  lat: number;
-  lng: number;
-  title?: string;
-  type?: 'store' | 'post';
-  post?: {
-    id: string;
-    title: string;
-    text: string;
-    photos: string[];
-    author: {
-      id: string;
-      name: string;
-      email: string;
-    };
-    likes: number;
-    commentCount: number;
-    createdAt: string;
-  };
-}
-
-interface MapProps {
-  center: { lat: number; lng: number };
-  zoom: number;
-  onMapClick?: (lat: number, lng: number) => void;
-  onMarkerClick?: (store: { lat: number; lng: number; name: string }) => void;
-  onMapMoveEnd?: (center: { lat: number; lng: number }, zoom: number) => void;
-  markers?: PostMarker[];
-  currentLocation?: { lat: number; lng: number; name?: string } | null;
-}
+import type { PostMarker, MapProps } from '../../types';
+import {
+  getPostBubbleHtml,
+  getPostPopupHtml,
+  getStoreMarkerHtml,
+  getStorePopupHtml,
+  getCurrentLocationHtml,
+  getCurrentLocationPopupHtml,
+  getMapMarkerStyles,
+} from './mapStyles';
 
 export function OpenStreetMap({ center, zoom, onMapClick, onMarkerClick, onMapMoveEnd, markers = [], currentLocation }: MapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
@@ -46,6 +25,12 @@ export function OpenStreetMap({ center, zoom, onMapClick, onMarkerClick, onMapMo
     link.rel = 'stylesheet';
     link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
     document.head.appendChild(link);
+
+    // Add custom map marker styles
+    const styleEl = document.createElement('style');
+    styleEl.textContent = getMapMarkerStyles();
+    styleEl.id = 'map-marker-styles';
+    document.head.appendChild(styleEl);
 
     // Load Leaflet JS
     const script = document.createElement('script');
@@ -76,37 +61,7 @@ export function OpenStreetMap({ center, zoom, onMapClick, onMarkerClick, onMapMo
         maxZoom: 20,
       }).addTo(map);
 
-      // Apply custom styling
-      const styleSheet = document.createElement('style');
-      styleSheet.textContent = `
-        .leaflet-container {
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        }
-        .leaflet-popup-content-wrapper {
-          border-radius: 8px;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-        }
-        .leaflet-popup-content {
-          font-size: 14px;
-          margin: 12px;
-        }
-        .leaflet-control-zoom {
-          border: none !important;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.15) !important;
-        }
-        .leaflet-control-zoom a {
-          background: white !important;
-          color: #333 !important;
-          border-bottom: 1px solid #ccc !important;
-        }
-        .leaflet-control-zoom a:last-child {
-          border-bottom: none !important;
-        }
-        .leaflet-control-attribution {
-          display: none !important;
-        }
-      `;
-      document.head.appendChild(styleSheet);
+      // Note: Leaflet custom styles are now included in getMapMarkerStyles()
 
       // Create markers layer group
       markersLayerRef.current = L.layerGroup().addTo(map);
@@ -151,142 +106,23 @@ export function OpenStreetMap({ center, zoom, onMapClick, onMarkerClick, onMapMo
         if (isPost && markerData.post) {
           // Create conversation bubble marker for posts
           const post = markerData.post;
-          const authorInitial = post.author.name.charAt(0).toUpperCase();
-          const shortTitle = post.title.length > 25 ? post.title.substring(0, 25) + '...' : post.title;
-          const shortText = post.text.length > 40 ? post.text.substring(0, 40) + '...' : post.text;
-          
+
           const bubbleIcon = L.divIcon({
-            html: `
-              <div style="
-                position: relative;
-                display: flex;
-                flex-direction: row;
-                align-items: flex-end;
-              ">
-                <!-- Profile Avatar (bottom LEFT of bubble, like thinker) -->
-                <div style="
-                  width: 40px;
-                  height: 40px;
-                  border-radius: 50%;
-                  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                  display: flex;
-                  align-items: center;
-                  justify-content: center;
-                  color: white;
-                  font-size: 16px;
-                  font-weight: 600;
-                  flex-shrink: 0;
-                  border: 3px solid white;
-                  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-                  margin-right: -10px;
-                  z-index: 2;
-                ">${authorInitial}</div>
-                <!-- Conversation Bubble (to the right of avatar) -->
-                <div style="
-                  display: flex;
-                  flex-direction: column;
-                  align-items: flex-start;
-                  max-width: 180px;
-                  margin-bottom: 10px;
-                  margin-left: 0;
-                ">
-                  <div style="
-                    background: white;
-                    border-radius: 12px;
-                    padding: 8px 12px;
-                    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-                    border: 1px solid #e0e0e0;
-                    min-width: 120px;
-                    position: relative;
-                  ">
-                    <!-- Title -->
-                    <div style="
-                      font-weight: 600;
-                      font-size: 12px;
-                      color: #1a1a1a;
-                      margin-bottom: 4px;
-                      line-height: 1.3;
-                    ">${shortTitle}</div>
-                    <!-- Description -->
-                    <div style="
-                      font-size: 11px;
-                      color: #666;
-                      line-height: 1.3;
-                    ">${shortText}</div>
-                  </div>
-                  <!-- Triangle pointer pointing down-left toward avatar -->
-                  <div style="
-                    width: 0;
-                    height: 0;
-                    border-left: 6px solid transparent;
-                    border-right: 6px solid transparent;
-                    border-top: 6px solid white;
-                    margin-left: 16px;
-                    filter: drop-shadow(0 2px 2px rgba(0,0,0,0.1));
-                  "></div>
-                </div>
-              </div>
-            `,
+            html: getPostBubbleHtml(post),
             iconSize: [240, 80],
             iconAnchor: [20, 60],
             popupAnchor: [0, -60],
             className: 'post-bubble-marker'
           });
-          
+
           const marker = L.marker([markerData.lat, markerData.lng], { icon: bubbleIcon })
-            .bindPopup(`
-              <div style="min-width: 200px;">
-                <div style="font-weight: 600; font-size: 14px; color: #1a1a1a; margin-bottom: 8px;">
-                  ${post.title}
-                </div>
-                <div style="font-size: 13px; color: #444; line-height: 1.4; margin-bottom: 10px;">
-                  ${post.text}
-                </div>
-                <div style="display: flex; align-items: center; gap: 8px; padding-top: 8px; border-top: 1px solid #eee;">
-                  <div style="
-                    width: 28px;
-                    height: 28px;
-                    border-radius: 50%;
-                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    color: white;
-                    font-size: 12px;
-                    font-weight: 600;
-                  ">${authorInitial}</div>
-                  <div style="flex: 1;">
-                    <div style="font-size: 12px; font-weight: 500; color: #1a1a1a;">${post.author.name}</div>
-                    <div style="font-size: 11px; color: #888;">${post.author.email}</div>
-                  </div>
-                </div>
-                <div style="display: flex; gap: 12px; margin-top: 10px; font-size: 12px; color: #666;">
-                  <span>❤️ ${post.likes} likes</span>
-                  <span>💬 ${post.commentCount} comments</span>
-                </div>
-              </div>
-            `);
+            .bindPopup(getPostPopupHtml(post));
           
           markersLayerRef.current.addLayer(marker);
         } else {
           // Store marker (original style)
           const customIcon = L.divIcon({
-            html: `
-              <div style="
-                background: #4285f4;
-                width: 36px;
-                height: 36px;
-                border-radius: 8px;
-                border: 2px solid white;
-                box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                font-size: 18px;
-              ">
-                🏪
-              </div>
-            `,
+            html: getStoreMarkerHtml(),
             iconSize: [36, 36],
             iconAnchor: [18, 36],
             popupAnchor: [0, -36],
@@ -294,14 +130,7 @@ export function OpenStreetMap({ center, zoom, onMapClick, onMarkerClick, onMapMo
           });
 
           const marker = L.marker([markerData.lat, markerData.lng], { icon: customIcon })
-            .bindPopup(`
-              <div style="font-weight: 600; color: #202124; margin-bottom: 4px;">
-                ${markerData.title || 'Store Location'}
-              </div>
-              <div style="color: #5f6368; font-size: 12px;">
-                📍 ${markerData.lat.toFixed(4)}, ${markerData.lng.toFixed(4)}
-              </div>
-            `)
+            .bindPopup(getStorePopupHtml(markerData.title || 'Store Location', markerData.lat, markerData.lng))
             .on('click', () => {
               if (onMarkerClickHandler && markerData.title) {
                 onMarkerClickHandler({
@@ -334,6 +163,11 @@ export function OpenStreetMap({ center, zoom, onMapClick, onMarkerClick, onMapMo
       }
       if (document.head.contains(script)) {
         document.head.removeChild(script);
+      }
+      // Remove custom marker styles
+      const styleEl = document.getElementById('map-marker-styles');
+      if (styleEl && document.head.contains(styleEl)) {
+        document.head.removeChild(styleEl);
       }
     };
   }, []);
@@ -378,142 +212,23 @@ export function OpenStreetMap({ center, zoom, onMapClick, onMarkerClick, onMapMo
         if (isPost && markerData.post) {
           // Create conversation bubble marker for posts
           const post = markerData.post;
-          const authorInitial = post.author.name.charAt(0).toUpperCase();
-          const shortTitle = post.title.length > 25 ? post.title.substring(0, 25) + '...' : post.title;
-          const shortText = post.text.length > 40 ? post.text.substring(0, 40) + '...' : post.text;
-          
+
           const bubbleIcon = L.divIcon({
-            html: `
-              <div style="
-                position: relative;
-                display: flex;
-                flex-direction: row;
-                align-items: flex-end;
-              ">
-                <!-- Profile Avatar (bottom LEFT of bubble, like thinker) -->
-                <div style="
-                  width: 40px;
-                  height: 40px;
-                  border-radius: 50%;
-                  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                  display: flex;
-                  align-items: center;
-                  justify-content: center;
-                  color: white;
-                  font-size: 16px;
-                  font-weight: 600;
-                  flex-shrink: 0;
-                  border: 3px solid white;
-                  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-                  margin-right: -10px;
-                  z-index: 2;
-                ">${authorInitial}</div>
-                <!-- Conversation Bubble (to the right of avatar) -->
-                <div style="
-                  display: flex;
-                  flex-direction: column;
-                  align-items: flex-start;
-                  max-width: 180px;
-                  margin-bottom: 10px;
-                  margin-left: 0;
-                ">
-                  <div style="
-                    background: white;
-                    border-radius: 12px;
-                    padding: 8px 12px;
-                    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-                    border: 1px solid #e0e0e0;
-                    min-width: 120px;
-                    position: relative;
-                  ">
-                    <!-- Title -->
-                    <div style="
-                      font-weight: 600;
-                      font-size: 12px;
-                      color: #1a1a1a;
-                      margin-bottom: 4px;
-                      line-height: 1.3;
-                    ">${shortTitle}</div>
-                    <!-- Description -->
-                    <div style="
-                      font-size: 11px;
-                      color: #666;
-                      line-height: 1.3;
-                    ">${shortText}</div>
-                  </div>
-                  <!-- Triangle pointer pointing down-left toward avatar -->
-                  <div style="
-                    width: 0;
-                    height: 0;
-                    border-left: 6px solid transparent;
-                    border-right: 6px solid transparent;
-                    border-top: 6px solid white;
-                    margin-left: 16px;
-                    filter: drop-shadow(0 2px 2px rgba(0,0,0,0.1));
-                  "></div>
-                </div>
-              </div>
-            `,
+            html: getPostBubbleHtml(post),
             iconSize: [240, 80],
             iconAnchor: [20, 60],
             popupAnchor: [0, -60],
             className: 'post-bubble-marker'
           });
-          
+
           const marker = L.marker([markerData.lat, markerData.lng], { icon: bubbleIcon })
-            .bindPopup(`
-              <div style="min-width: 200px;">
-                <div style="font-weight: 600; font-size: 14px; color: #1a1a1a; margin-bottom: 8px;">
-                  ${post.title}
-                </div>
-                <div style="font-size: 13px; color: #444; line-height: 1.4; margin-bottom: 10px;">
-                  ${post.text}
-                </div>
-                <div style="display: flex; align-items: center; gap: 8px; padding-top: 8px; border-top: 1px solid #eee;">
-                  <div style="
-                    width: 28px;
-                    height: 28px;
-                    border-radius: 50%;
-                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    color: white;
-                    font-size: 12px;
-                    font-weight: 600;
-                  ">${authorInitial}</div>
-                  <div style="flex: 1;">
-                    <div style="font-size: 12px; font-weight: 500; color: #1a1a1a;">${post.author.name}</div>
-                    <div style="font-size: 11px; color: #888;">${post.author.email}</div>
-                  </div>
-                </div>
-                <div style="display: flex; gap: 12px; margin-top: 10px; font-size: 12px; color: #666;">
-                  <span>❤️ ${post.likes} likes</span>
-                  <span>💬 ${post.commentCount} comments</span>
-                </div>
-              </div>
-            `);
+            .bindPopup(getPostPopupHtml(post));
           
           markersLayerRef.current.addLayer(marker);
         } else {
           // Store marker (original style)
           const customIcon = L.divIcon({
-            html: `
-              <div style="
-                background: #4285f4;
-                width: 36px;
-                height: 36px;
-                border-radius: 8px;
-                border: 2px solid white;
-                box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                font-size: 18px;
-              ">
-                🏪
-              </div>
-            `,
+            html: getStoreMarkerHtml(),
             iconSize: [36, 36],
             iconAnchor: [18, 36],
             popupAnchor: [0, -36],
@@ -521,14 +236,7 @@ export function OpenStreetMap({ center, zoom, onMapClick, onMarkerClick, onMapMo
           });
 
           const marker = L.marker([markerData.lat, markerData.lng], { icon: customIcon })
-            .bindPopup(`
-              <div style="font-weight: 600; color: #202124; margin-bottom: 4px;">
-                ${markerData.title || 'Store Location'}
-              </div>
-              <div style="color: #5f6368; font-size: 12px;">
-                📍 ${markerData.lat.toFixed(4)}, ${markerData.lng.toFixed(4)}
-              </div>
-            `)
+            .bindPopup(getStorePopupHtml(markerData.title || 'Store Location', markerData.lat, markerData.lng))
             .on('click', () => {
               if (onMarkerClick && markerData.title) {
                 onMarkerClick({
@@ -564,30 +272,7 @@ export function OpenStreetMap({ center, zoom, onMapClick, onMarkerClick, onMapMo
     // Add current location marker if available
     if (currentLocation) {
       const currentLocationIcon = L.divIcon({
-        html: `
-          <div style="
-            background: #ea4335;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            border: 3px solid white;
-            box-shadow: 0 2px 12px rgba(234, 67, 53, 0.4);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 20px;
-            animation: pulse 2s infinite;
-          ">
-            🎯
-          </div>
-          <style>
-            @keyframes pulse {
-              0% { transform: scale(1); opacity: 1; }
-              50% { transform: scale(1.1); opacity: 0.8; }
-              100% { transform: scale(1); opacity: 1; }
-            }
-          </style>
-        `,
+        html: getCurrentLocationHtml(),
         iconSize: [40, 40],
         iconAnchor: [20, 40],
         popupAnchor: [0, -40],
@@ -596,17 +281,7 @@ export function OpenStreetMap({ center, zoom, onMapClick, onMarkerClick, onMapMo
 
       const marker = L.marker([currentLocation.lat, currentLocation.lng], { icon: currentLocationIcon })
         .addTo(map)
-        .bindPopup(`
-          <div style="font-weight: 600; color: #202124; margin-bottom: 4px;">
-            🎯 Your Current Location
-          </div>
-          <div style="color: #5f6368; font-size: 12px; margin-bottom: 4px;">
-            ${currentLocation.name || 'Current Location'}
-          </div>
-          <div style="color: #5f6368; font-size: 12px;">
-            📍 ${currentLocation.lat.toFixed(4)}, ${currentLocation.lng.toFixed(4)}
-          </div>
-        `);
+        .bindPopup(getCurrentLocationPopupHtml(currentLocation.lat, currentLocation.lng, currentLocation.name));
 
       currentLocationMarkerRef.current = marker;
     }
