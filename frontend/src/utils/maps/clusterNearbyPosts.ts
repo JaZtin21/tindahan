@@ -8,6 +8,7 @@ interface ClusteredPost extends Post {
   clustered?: boolean;
   originalLat?: number;
   originalLng?: number;
+  mirrored?: boolean;
 }
 
 /**
@@ -72,13 +73,15 @@ export function clusterNearbyPosts(
       );
 
       cluster.forEach((post, idx) => {
+        const col = idx % 2; // 0 = left, 1 = right
         result.push({
           ...post,
           lat: gridPositions[idx].lat,
           lng: gridPositions[idx].lng,
           originalLat: post.lat,
           originalLng: post.lng,
-          clustered: true
+          clustered: true,
+          mirrored: col === 1 // Right column gets mirrored layout
         });
       });
     }

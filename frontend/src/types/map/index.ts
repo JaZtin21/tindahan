@@ -21,6 +21,7 @@ export interface PostMarker {
   title?: string;
   type?: 'store' | 'post';
   post?: Post;
+  mirrored?: boolean;
 }
 
 export interface MapProps {

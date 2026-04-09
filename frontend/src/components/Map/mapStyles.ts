@@ -212,6 +212,21 @@ export function getMapMarkerStyles(): string {
       z-index: 2;
     }
 
+    /* Mirrored layout for right column in clusters */
+    .post-marker-wrapper.mirrored {
+      align-items: flex-end;
+    }
+
+    .post-bubble-pointer-new.mirrored {
+      margin-left: 0;
+      margin-right: 16px;
+    }
+
+    .post-bubble-avatar-new.mirrored {
+      margin-left: 0;
+      margin-right: 8px;
+    }
+
     /* Post popup styles */
     .post-popup {
       min-width: 200px;

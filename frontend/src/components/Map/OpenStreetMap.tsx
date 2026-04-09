@@ -109,7 +109,7 @@ export function OpenStreetMap({ center, zoom, onMapClick, onMarkerClick, onMapMo
           // Create conversation bubble marker for posts
           const post = markerData.post;
 
-          const bubbleIcon = getPostIcon(L, post);
+          const bubbleIcon = getPostIcon(L, post, markerData.mirrored);
 
           const marker = L.marker([markerData.lat, markerData.lng], { icon: bubbleIcon })
             .bindPopup(getPostPopupHtml(post));
@@ -209,7 +209,7 @@ export function OpenStreetMap({ center, zoom, onMapClick, onMarkerClick, onMapMo
           // Create conversation bubble marker for posts
           const post = markerData.post;
 
-          const bubbleIcon = getPostIcon(L, post);
+          const bubbleIcon = getPostIcon(L, post, markerData.mirrored);
 
           const marker = L.marker([markerData.lat, markerData.lng], { icon: bubbleIcon })
             .bindPopup(getPostPopupHtml(post));
