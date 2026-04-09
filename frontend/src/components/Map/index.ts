@@ -6,6 +6,10 @@ export { LocationSearchBar } from './LocationSearchBar';
 export {
   getPostBubbleHtml,
   getPostPopupHtml,
+  getPostIcon,
+  createPostMarker,
+} from './PostMarker';
+export {
   getStoreMarkerHtml,
   getStorePopupHtml,
   getCurrentLocationHtml,

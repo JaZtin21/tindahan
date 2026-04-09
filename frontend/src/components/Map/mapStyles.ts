@@ -1,61 +1,6 @@
 // Map marker HTML generators for Leaflet divIcon
 // Extracted from OpenStreetMap.tsx to keep component clean
 
-import type { Post } from '../../types';
-
-/**
- * Generate HTML for post bubble marker
- * Avatar on bottom left, bubble to the right (like thinking bubble)
- */
-export function getPostBubbleHtml(post: Post): string {
-  const authorInitial = post.author.name.charAt(0).toUpperCase();
-  const shortTitle = post.title.length > 25 ? post.title.substring(0, 25) + '...' : post.title;
-  const shortText = post.text.length > 40 ? post.text.substring(0, 40) + '...' : post.text;
-
-  return `
-    <div class="post-bubble-container">
-      <!-- Profile Avatar (bottom LEFT of bubble, like thinker) -->
-      <div class="post-bubble-avatar">${authorInitial}</div>
-      <!-- Conversation Bubble (to the right of avatar) -->
-      <div class="post-bubble-content">
-        <div class="post-bubble-box">
-          <!-- Title -->
-          <div class="post-bubble-title">${shortTitle}</div>
-          <!-- Description -->
-          <div class="post-bubble-text">${shortText}</div>
-        </div>
-        <!-- Triangle pointer pointing down-left toward avatar -->
-        <div class="post-bubble-pointer"></div>
-      </div>
-    </div>
-  `;
-}
-
-/**
- * Generate HTML for post popup
- */
-export function getPostPopupHtml(post: Post): string {
-  const authorInitial = post.author.name.charAt(0).toUpperCase();
-
-  return `
-    <div class="post-popup">
-      <div class="post-popup-title">${post.title}</div>
-      <div class="post-popup-text">${post.text}</div>
-      <div class="post-popup-author">
-        <div class="post-popup-avatar">${authorInitial}</div>
-        <div class="post-popup-author-info">
-          <div class="post-popup-author-name">${post.author.name}</div>
-          <div class="post-popup-author-email">${post.author.email}</div>
-        </div>
-      </div>
-      <div class="post-popup-stats">
-        <span>❤️ ${post.likes} likes</span>
-        <span>💬 ${post.commentCount} comments</span>
-      </div>
-    </div>
-  `;
-}
-
 /**
  * Generate HTML for store marker
  */
@@ -163,6 +108,99 @@ export function getMapMarkerStyles(): string {
       border-top: 6px solid white;
       margin-left: 16px;
       filter: drop-shadow(0 2px 2px rgba(0,0,0,0.1));
+    }
+
+    /* New post bubble marker styles (redesigned) */
+    .post-marker-wrapper {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      width: 200px;
+    }
+
+    .post-bubble-new {
+      background: white;
+      border-radius: 16px;
+      padding: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      border: 1px solid #e0e0e0;
+      width: 180px;
+      position: relative;
+      margin-bottom: 8px;
+    }
+
+    .post-bubble-description {
+      font-size: 13px;
+      color: #333;
+      line-height: 1.4;
+      margin-bottom: 10px;
+      font-weight: 500;
+    }
+
+    .post-bubble-photos {
+      margin-bottom: 4px;
+    }
+
+    .photo-grid {
+      display: flex;
+      gap: 6px;
+      height: 80px;
+    }
+
+    .photo-col {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      flex: 1;
+    }
+
+    .photo-placeholder {
+      background: #e0e0e0;
+      border-radius: 8px;
+      flex: 1;
+    }
+
+    .photo-large {
+      flex: 1.2;
+      min-width: 60px;
+    }
+
+    .photo-small {
+      flex: 1;
+      min-height: 35px;
+    }
+
+    .post-bubble-pointer-new {
+      width: 0;
+      height: 0;
+      border-left: 8px solid transparent;
+      border-right: 8px solid transparent;
+      border-top: 8px solid white;
+      margin-left: 16px;
+      margin-top: -10px;
+      margin-bottom: -6px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .post-bubble-avatar-new {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #e57373 0%, #c62828 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 18px;
+      font-weight: 600;
+      border: 3px solid white;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      flex-shrink: 0;
+      margin-top: 7px;
+      margin-left: 3px;
+      z-index: 2;
     }
 
     /* Post popup styles */

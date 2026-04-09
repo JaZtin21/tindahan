@@ -1,14 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
 import type { PostMarker, MapProps } from '../../types';
 import {
-  getPostBubbleHtml,
-  getPostPopupHtml,
   getStoreMarkerHtml,
   getStorePopupHtml,
   getCurrentLocationHtml,
   getCurrentLocationPopupHtml,
   getMapMarkerStyles,
 } from './mapStyles';
+import {
+  getPostBubbleHtml,
+  getPostPopupHtml,
+} from './PostMarker';
 
 export function OpenStreetMap({ center, zoom, onMapClick, onMarkerClick, onMapMoveEnd, markers = [], currentLocation }: MapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
