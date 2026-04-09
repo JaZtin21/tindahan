@@ -111,6 +111,15 @@ export function getMapMarkerStyles(): string {
     }
 
     /* New post bubble marker styles (redesigned) */
+    .post-bubble-marker {
+      background: transparent !important;
+      border: none !important;
+    }
+
+    .post-bubble-marker > div {
+      overflow: visible !important;
+    }
+
     .post-marker-wrapper {
       position: relative;
       display: flex;

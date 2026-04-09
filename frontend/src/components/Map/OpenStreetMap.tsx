@@ -8,7 +8,7 @@ import {
   getMapMarkerStyles,
 } from './mapStyles';
 import {
-  getPostBubbleHtml,
+  getPostIcon,
   getPostPopupHtml,
 } from './PostMarker';
 
@@ -109,13 +109,7 @@ export function OpenStreetMap({ center, zoom, onMapClick, onMarkerClick, onMapMo
           // Create conversation bubble marker for posts
           const post = markerData.post;
 
-          const bubbleIcon = L.divIcon({
-            html: getPostBubbleHtml(post),
-            iconSize: [240, 80],
-            iconAnchor: [20, 60],
-            popupAnchor: [0, -60],
-            className: 'post-bubble-marker'
-          });
+          const bubbleIcon = getPostIcon(L, post);
 
           const marker = L.marker([markerData.lat, markerData.lng], { icon: bubbleIcon })
             .bindPopup(getPostPopupHtml(post));
@@ -215,13 +209,7 @@ export function OpenStreetMap({ center, zoom, onMapClick, onMarkerClick, onMapMo
           // Create conversation bubble marker for posts
           const post = markerData.post;
 
-          const bubbleIcon = L.divIcon({
-            html: getPostBubbleHtml(post),
-            iconSize: [240, 80],
-            iconAnchor: [20, 60],
-            popupAnchor: [0, -60],
-            className: 'post-bubble-marker'
-          });
+          const bubbleIcon = getPostIcon(L, post);
 
           const marker = L.marker([markerData.lat, markerData.lng], { icon: bubbleIcon })
             .bindPopup(getPostPopupHtml(post));

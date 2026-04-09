@@ -67,9 +67,9 @@ export function getPostPopupHtml(post: Post): string {
 export function getPostIcon(L: any, post: Post) {
   return L.divIcon({
     html: getPostBubbleHtml(post),
-    iconSize: [200, 160],
-    iconAnchor: [30, 150],
-    popupAnchor: [0, -150],
+    iconSize: [200, 189],
+    iconAnchor: [25, 182],
+    popupAnchor: [0, -182],
     className: 'post-bubble-marker'
   });
 }
