@@ -7,8 +7,8 @@ extend type Query {
 
 extend type Mutation {
   createShop(input: CreateShopInput!): ShopPayload!
-  updateShop(id: ObjectID!, input: UpdateShopInput!): ShopPayload!
-  deleteShop(id: ObjectID!): DeletePayload!
+  updateShop(id: ID!, input: UpdateShopInput!): ShopPayload!
+  deleteShop(id: ID!): DeletePayload!
 }
 
 type Shop {

@@ -43,16 +43,47 @@ func (r *OwnerResolver) GetOwnerShops(ctx context.Context, ownerId string, page,
 		}, err
 	}
 
-	// Convert to response format
+	// Convert to response format with all fields
 	data := make([]map[string]interface{}, len(stores))
 	for i, store := range stores {
+		status := store.Status
+		if status == "" {
+			status = "ACTIVE"
+		}
+		businessType := store.BusinessType
+		if businessType == "" {
+			businessType = "SARI_SARI_STORE"
+		}
+
+		// Ensure verification always has a value
+		verification := store.Verification
+		if !verification.IsVerified && verification.VerifiedDate == "" && verification.VerificationID == "" {
+			verification = domain.Verification{
+				IsVerified: false,
+			}
+		}
+
 		data[i] = map[string]interface{}{
-			"id":        store.ID.Hex(),
-			"name":      store.Name,
-			"location":  store.Address,
-			"status":    "ACTIVE",
-			"createdAt": store.CreatedAt.Format(time.RFC3339),
-			"createdBy": store.OwnerID.Hex(),
+			"id":       store.ID.Hex(),
+			"name":     store.Name,
+			"location": store.Address,
+			"coordinates": map[string]float64{
+				"lat": store.Latitude,
+				"lng": store.Longitude,
+			},
+			"coverPhoto":     store.CoverPhoto,
+			"otherPhotos":    store.OtherPhotos,
+			"businessHours":  store.BusinessHours,
+			"businessType":   businessType,
+			"paymentMethods": store.PaymentMethods,
+			"delivery":       store.Delivery,
+			"socialMedia":    store.SocialMedia,
+			"verification":   verification,
+			"contactDetails": store.ContactDetails,
+			"status":         status,
+			"createdAt":      store.CreatedAt.Format(time.RFC3339),
+			"updatedAt":      store.UpdatedAt.Format(time.RFC3339),
+			"createdBy":      store.OwnerID.Hex(),
 		}
 	}
 
@@ -64,8 +95,23 @@ func (r *OwnerResolver) GetOwnerShops(ctx context.Context, ownerId string, page,
 	}, nil
 }
 
+// CreateShopInput represents all fields for creating a shop
+type CreateShopInput struct {
+	Name           string
+	Location       string
+	Coordinates    struct{ Lat, Lng float64 }
+	CoverPhoto     string
+	OtherPhotos    []string
+	BusinessHours  domain.BusinessHours
+	BusinessType   string
+	PaymentMethods domain.PaymentMethods
+	Delivery       domain.DeliveryOptions
+	SocialMedia    domain.SocialMedia
+	ContactDetails domain.ContactDetails
+}
+
 // CreateShop creates a new shop for the owner (real DB implementation)
-func (r *OwnerResolver) CreateShop(ctx context.Context, ownerId string, name, location string) (map[string]interface{}, error) {
+func (r *OwnerResolver) CreateShop(ctx context.Context, ownerId string, input CreateShopInput) (map[string]interface{}, error) {
 	// Convert ownerId to ObjectID
 	ownerObjectID, err := primitive.ObjectIDFromHex(ownerId)
 	if err != nil {
@@ -75,21 +121,33 @@ func (r *OwnerResolver) CreateShop(ctx context.Context, ownerId string, name, lo
 		}, err
 	}
 
-	// Create store domain object
+	now := time.Now()
+
+	// Create store domain object with all fields
 	store := &domain.Store{
 		ID:          primitive.NewObjectID(),
-		Name:        name,
-		Address:     location,
+		Name:        input.Name,
+		Address:     input.Location,
 		Description: "",
 		City:        "",
-		Latitude:    0.0,
-		Longitude:   0.0,
+		Latitude:    input.Coordinates.Lat,
+		Longitude:   input.Coordinates.Lng,
 		OwnerID:     ownerObjectID,
 		Category:    "",
 		Rating:      0.0,
 		IsActive:    true,
-		CreatedAt:   time.Now(),
-		UpdatedAt:   time.Now(),
+		CreatedAt:   now,
+		UpdatedAt:   now,
+		// Additional fields from input
+		CoverPhoto:     input.CoverPhoto,
+		OtherPhotos:    input.OtherPhotos,
+		BusinessHours:  input.BusinessHours,
+		BusinessType:   input.BusinessType,
+		PaymentMethods: input.PaymentMethods,
+		Delivery:       input.Delivery,
+		SocialMedia:    input.SocialMedia,
+		ContactDetails: input.ContactDetails,
+		Status:         "ACTIVE",
 	}
 
 	// Save to database
@@ -100,16 +158,35 @@ func (r *OwnerResolver) CreateShop(ctx context.Context, ownerId string, name, lo
 		}, err
 	}
 
+	// Ensure verification always has a value (required by GraphQL schema)
+	verification := store.Verification
+	if !verification.IsVerified && verification.VerifiedDate == "" && verification.VerificationID == "" {
+		verification = domain.Verification{
+			IsVerified: false,
+		}
+	}
+
 	return map[string]interface{}{
 		"success": true,
 		"message": "Shop created successfully",
 		"data": map[string]interface{}{
-			"id":        store.ID.Hex(),
-			"name":      store.Name,
-			"location":  store.Address,
-			"status":    "ACTIVE",
-			"createdAt": store.CreatedAt.Format(time.RFC3339),
-			"createdBy": ownerId,
+			"id":             store.ID.Hex(),
+			"name":           store.Name,
+			"location":       store.Address,
+			"coordinates":    map[string]float64{"lat": store.Latitude, "lng": store.Longitude},
+			"coverPhoto":     store.CoverPhoto,
+			"otherPhotos":    store.OtherPhotos,
+			"businessHours":  store.BusinessHours,
+			"businessType":   store.BusinessType,
+			"paymentMethods": store.PaymentMethods,
+			"delivery":       store.Delivery,
+			"socialMedia":    store.SocialMedia,
+			"verification":   verification,
+			"contactDetails": store.ContactDetails,
+			"status":         store.Status,
+			"createdAt":      store.CreatedAt.Format(time.RFC3339),
+			"updatedAt":      store.UpdatedAt.Format(time.RFC3339),
+			"createdBy":      ownerId,
 		},
 	}, nil
 }
@@ -295,14 +372,14 @@ func (r *OwnerResolver) CreateItem(ctx context.Context, ownerId, shopId string, 
 
 	// Create product domain object
 	product := &domain.Product{
-		ID:          primitive.NewObjectID(),
-		Name:        name,
-		Price:       price,
-		Stock:       stock,
-		StoreID:     shopObjectID,
-		IsActive:    true,
-		CreatedAt:   time.Now(),
-		UpdatedAt:   time.Now(),
+		ID:        primitive.NewObjectID(),
+		Name:      name,
+		Price:     price,
+		Stock:     stock,
+		StoreID:   shopObjectID,
+		IsActive:  true,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
 	}
 
 	// Save to database
@@ -443,20 +520,20 @@ func (r *OwnerResolver) GetShopAnalytics(ctx context.Context, shopId, ownerId st
 		"success": true,
 		"message": "Shop analytics retrieved successfully",
 		"data": map[string]interface{}{
-			"shopId":     shopId,
-			"totalViews": 150,
+			"shopId":      shopId,
+			"totalViews":  150,
 			"totalOrders": 45,
-			"revenue":    12500.50,
+			"revenue":     12500.50,
 			"topItems": []map[string]interface{}{
 				{
-					"id":     "item1",
-					"name":   "Top Item 1",
-					"sales":  25,
+					"id":    "item1",
+					"name":  "Top Item 1",
+					"sales": 25,
 				},
 				{
-					"id":     "item2", 
-					"name":   "Top Item 2",
-					"sales":  20,
+					"id":    "item2",
+					"name":  "Top Item 2",
+					"sales": 20,
 				},
 			},
 		},

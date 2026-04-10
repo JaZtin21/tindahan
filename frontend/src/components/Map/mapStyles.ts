@@ -233,12 +233,38 @@ export function getMapMarkerStyles(): string {
       border: none !important;
     }
 
+    .post-cluster-marker > div {
+      overflow: visible !important;
+    }
+
+    /* Prevent marker from scaling during zoom */
+    .leaflet-marker-icon.post-cluster-marker {
+      transform: none !important;
+      transition: none !important;
+    }
+
     .post-cluster-container {
       background: white;
       border-radius: 16px;
       padding: 12px;
       box-shadow: 0 4px 16px rgba(0,0,0,0.2);
       border: 1px solid #e0e0e0;
+    }
+
+    .post-cluster-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .post-cluster-pointer {
+      width: 0;
+      height: 0;
+      border-left: 12px solid transparent;
+      border-right: 12px solid transparent;
+      border-top: 12px solid white;
+      filter: drop-shadow(0 2px 2px rgba(0,0,0,0.1));
+      margin-top: -1px;
     }
 
     .post-cluster-grid {

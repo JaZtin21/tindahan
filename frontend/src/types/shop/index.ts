@@ -1,3 +1,5 @@
+import type { Item } from '../item';
+
 export interface BusinessHours {
   openTime: string;
   closeTime: string;
@@ -37,7 +39,7 @@ export interface Shop {
   coverPhoto: string;
   otherPhotos: string[];
   businessHours: BusinessHours;
-  businessType: 'Sari-Sari Store' | 'Grocery' | 'Convenience Store' | 'Mini-Mart';
+  businessType: 'SARI_SARI_STORE' | 'GROCERY' | 'CONVENIENCE_STORE' | 'MINI_MART' | 'Sari-Sari Store' | 'Grocery' | 'Convenience Store' | 'Mini-Mart';
   paymentMethods: PaymentMethods;
   delivery: DeliveryOptions;
   socialMedia: SocialMedia;
@@ -47,9 +49,9 @@ export interface Shop {
     email: string;
     address: string;
   };
-  inventory: string[]; // Array of item IDs
+  inventory: Item[];
   createdAt: string;
   updatedAt?: string;
   createdBy?: string;
-  status: 'active' | 'inactive' | 'suspended';
+  status: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED' | 'active' | 'inactive' | 'suspended';
 }

@@ -138,10 +138,14 @@ export function getPostClusterHtml(cluster: PostCluster): string {
   }).join('');
 
   return `
-    <div class="post-cluster-container">
-      <div class="post-cluster-grid">
-        ${postCards}
+    <div class="post-cluster-wrapper">
+      <div class="post-cluster-container">
+        <div class="post-cluster-grid">
+          ${postCards}
+        </div>
       </div>
+      <!-- Bubble pointer pointing down to the center location -->
+      <div class="post-cluster-pointer"></div>
     </div>
   `;
 }
@@ -158,13 +162,15 @@ export function getPostClusterIcon(L: any, cluster: PostCluster) {
   const totalWidth = Math.min(cluster.posts.length, cols) * (cardWidth + cardGap) + padding * 2;
   const rows = Math.ceil(cluster.posts.length / cols);
   const cardHeight = 120;
-  const totalHeight = rows * (cardHeight + cardGap) + padding * 2;
+  const containerHeight = rows * (cardHeight + cardGap) + padding * 2;
+  const pointerHeight = 12; // Triangle pointer height
+  const totalHeight = containerHeight + pointerHeight;
 
   return L.divIcon({
     html: getPostClusterHtml(cluster),
     iconSize: [totalWidth, totalHeight],
-    iconAnchor: [totalWidth / 2, totalHeight / 2],
-    popupAnchor: [0, -totalHeight / 2],
+    iconAnchor: [totalWidth / 2, totalHeight], // Anchor at bottom center (where pointer touches map)
+    popupAnchor: [0, -containerHeight],
     className: 'post-cluster-marker'
   });
 }

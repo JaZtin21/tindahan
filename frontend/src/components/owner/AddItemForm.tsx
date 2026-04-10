@@ -22,9 +22,14 @@ export function AddItemForm({ onAddItem }: AddItemFormProps) {
         price: parseFloat(newItem.price),
         description: newItem.description,
         category: newItem.category,
-        stock: parseInt(newItem.stock)
+        stock: parseInt(newItem.stock),
+        // Required fields with defaults
+        coverPhoto: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=400',
+        otherPhotos: [],
+        tags: [],
+        isActive: true
       };
-      
+
       onAddItem(item);
       
       // Reset form

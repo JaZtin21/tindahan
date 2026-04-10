@@ -8,13 +8,15 @@ interface ShopFormProps {
   onCancel: () => void;
 }
 
+const DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=400';
+
 export function ShopForm({ shop, onSaveShop, onCancel }: ShopFormProps) {
   const [formData, setFormData] = useState({
     name: shop?.name || '',
-    phone: shop?.contactDetails.phone || '',
-    email: shop?.contactDetails.email || '',
-    address: shop?.contactDetails.address || '',
-    storefrontImage: shop?.storefrontImage || 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=400',
+    phone: shop?.contactDetails?.phone || '',
+    email: shop?.contactDetails?.email || '',
+    address: shop?.contactDetails?.address || '',
+    coverPhoto: shop?.coverPhoto || DEFAULT_IMAGE,
     coordinates: shop?.coordinates || { lat: 14.5995, lng: 120.9842 }
   });
 
@@ -29,25 +31,53 @@ export function ShopForm({ shop, onSaveShop, onCancel }: ShopFormProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.name) {
       alert('Please fill in shop name');
       return;
     }
 
+    if (!formData.address) {
+      alert('Please select a location');
+      return;
+    }
+
+    // Build complete Shop object with all required fields for API
     const shopData: Shop = {
       id: shop?.id || Date.now().toString(),
       name: formData.name,
       location: formData.address,
       coordinates: formData.coordinates,
-      storefrontImage: formData.storefrontImage || 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=400',
+      coverPhoto: formData.coverPhoto || DEFAULT_IMAGE,
+      otherPhotos: shop?.otherPhotos || [],
       contactDetails: {
         phone: formData.phone,
         email: formData.email,
         address: formData.address
       },
+      // Default values for required API fields
+      businessHours: shop?.businessHours || {
+        openTime: '08:00',
+        closeTime: '20:00',
+        days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+      },
+      businessType: shop?.businessType || 'SARI_SARI_STORE',
+      paymentMethods: shop?.paymentMethods || {
+        cash: true,
+        gcash: false,
+        paymaya: false,
+        card: false
+      },
+      delivery: shop?.delivery || {
+        available: false
+      },
+      socialMedia: shop?.socialMedia || {},
+      verification: shop?.verification || {
+        isVerified: false
+      },
+      status: shop?.status || 'ACTIVE',
       inventory: shop?.inventory || [],
-      createdAt: shop?.createdAt || new Date().toISOString().split('T')[0]
+      createdAt: shop?.createdAt || new Date().toISOString()
     };
 
     onSaveShop(shopData);
@@ -124,11 +154,11 @@ export function ShopForm({ shop, onSaveShop, onCancel }: ShopFormProps) {
 
           <div className="grid grid-cols-1 gap-4">
             <div className="md:col-span-1">
-              <label className="block text-sm font-medium mb-2">Storefront Image URL</label>
+              <label className="block text-sm font-medium mb-2">Cover Photo URL</label>
               <input
                 type="url"
-                value={formData.storefrontImage}
-                onChange={(e) => setFormData({...formData, storefrontImage: e.target.value})}
+                value={formData.coverPhoto}
+                onChange={(e) => setFormData({...formData, coverPhoto: e.target.value})}
                 className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                 placeholder="https://example.com/image.jpg"
               />
@@ -141,16 +171,16 @@ export function ShopForm({ shop, onSaveShop, onCancel }: ShopFormProps) {
             </p>
           </div>
 
-          {formData.storefrontImage && (
+          {formData.coverPhoto && (
             <div>
               <label className="block text-sm font-medium mb-2">Image Preview</label>
               <div className="aspect-video rounded-lg overflow-hidden border border-zinc-200 dark:border-zinc-700">
-                <img 
-                  src={formData.storefrontImage} 
-                  alt="Storefront preview"
+                <img
+                  src={formData.coverPhoto}
+                  alt="Cover preview"
                   className="w-full h-full object-cover"
                   onError={(e) => {
-                    e.currentTarget.src = 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=400';
+                    e.currentTarget.src = DEFAULT_IMAGE;
                   }}
                 />
               </div>
