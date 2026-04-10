@@ -166,6 +166,9 @@ export function getPostClusterIcon(L: any, cluster: PostCluster) {
   const pointerHeight = 12; // Triangle pointer height
   const totalHeight = containerHeight + pointerHeight;
 
+  console.log('[PostClusterMarker] Cluster:', cluster.posts.length, 'posts');
+  console.log('[PostClusterMarker] iconSize:', [totalWidth, totalHeight], 'iconAnchor:', [totalWidth / 2, totalHeight]);
+
   return L.divIcon({
     html: getPostClusterHtml(cluster),
     iconSize: [totalWidth, totalHeight],
@@ -180,5 +183,9 @@ export function getPostClusterIcon(L: any, cluster: PostCluster) {
  */
 export function createPostClusterMarker(L: any, cluster: PostCluster) {
   const icon = getPostClusterIcon(L, cluster);
-  return L.marker([cluster.centerLat, cluster.centerLng], { icon });
+  return L.marker([cluster.centerLat, cluster.centerLng], { 
+    icon,
+    draggable: false,
+    interactive: true
+  });
 }

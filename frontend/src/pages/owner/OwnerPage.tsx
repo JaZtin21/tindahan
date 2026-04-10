@@ -3,6 +3,7 @@ import { useQuery, useMutation } from '@apollo/client/react';
 import { ShopCard, AddItemForm, InventoryTable, Tabs, Inquiries, ShopForm } from '../../components/owner';
 import { GET_OWNER_SHOPS_QUERY } from '../../api/graphql/owner/owner-queries';
 import { CREATE_SHOP_MUTATION, UPDATE_SHOP_MUTATION, DELETE_SHOP_MUTATION } from '../../api/graphql/shop/shop-queries';
+import { useAuth } from '../../api/graphql/apolloProviderWithAuth';
 import type { Shop, Item, ActiveTab } from '../../types/owner';
 import type { OwnerShop } from '../../api/graphql/owner/owner-queries';
 
@@ -67,11 +68,13 @@ function shopToUpdateInput(shop: Shop) {
 export function OwnerPage() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('shops');
   const [selectedShop, setSelectedShop] = useState<Shop | null>(null);
+  const { isLoading: authLoading, isAuthenticated } = useAuth();
 
-  // GraphQL queries and mutations
+  // GraphQL queries and mutations - wait for auth to be ready
   const { data: shopsData, loading: shopsLoading, error: shopsError, refetch: refetchShops } = useQuery(GET_OWNER_SHOPS_QUERY, {
     variables: { page: 1, limit: 50 },
     fetchPolicy: 'network-only',
+    skip: authLoading || !isAuthenticated, // Skip query until auth is ready
   });
 
   const [createShop] = useMutation(CREATE_SHOP_MUTATION);
@@ -128,8 +131,10 @@ export function OwnerPage() {
         });
 
         if (result.data?.createShop?.success) {
-          await refetchShops();
           const newShop = convertOwnerShopToShop(result.data.createShop.data);
+          // Add new shop to local state immediately for instant UI update
+          // Then refetch to sync with server
+          await refetchShops();
           setSelectedShop(newShop);
           setActiveTab('add-item');
         } else {
@@ -154,10 +159,12 @@ export function OwnerPage() {
 
       if (result.data?.deleteShop?.success) {
         await refetchShops();
+        // Clear selected shop if it was deleted
         if (selectedShop?.id === shopId) {
           setSelectedShop(null);
-          setActiveTab('shops');
         }
+        // Always go back to shops list after delete
+        setActiveTab('shops');
       } else {
         alert(result.data?.deleteShop?.message || 'Failed to delete shop');
       }
@@ -185,7 +192,10 @@ export function OwnerPage() {
         {isShopView && (
           <div className="mb-6">
             <button
-              onClick={() => setSelectedShop(null)}
+              onClick={() => {
+                setSelectedShop(null);
+                setActiveTab('shops');
+              }}
               className="text-emerald-600 hover:text-emerald-700 font-medium"
             >
               ← Back to My Shops
@@ -211,11 +221,13 @@ export function OwnerPage() {
           </div>
         )}
 
-        {/* Loading State */}
-        {shopsLoading && (
+        {/* Loading State - Show auth loading or shops loading */}
+        {(authLoading || shopsLoading) && (
           <div className="flex items-center justify-center py-12">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500"></div>
-            <span className="ml-3 text-zinc-600 dark:text-zinc-400">Loading shops...</span>
+            <span className="ml-3 text-zinc-600 dark:text-zinc-400">
+              {authLoading ? 'Authenticating...' : 'Loading shops...'}
+            </span>
           </div>
         )}
 

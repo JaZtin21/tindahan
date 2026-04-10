@@ -255,6 +255,7 @@ export function getMapMarkerStyles(): string {
       display: flex;
       flex-direction: column;
       align-items: center;
+      position: relative;
     }
 
     .post-cluster-pointer {
