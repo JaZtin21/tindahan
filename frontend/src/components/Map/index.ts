@@ -10,6 +10,12 @@ export {
   createPostMarker,
 } from './PostMarker';
 export {
+  clusterPostsByProximity,
+  getPostClusterHtml,
+  getPostClusterIcon,
+  createPostClusterMarker,
+} from './PostClusterMarker';
+export {
   getStoreMarkerHtml,
   getStorePopupHtml,
   getCurrentLocationHtml,

@@ -17,13 +17,13 @@ interface ClusteredPost extends Post {
  * 
  * @param posts - Array of posts with lat/lng
  * @param threshold - Distance threshold in meters (default 50m)
- * @param gridSpacing - Spacing between grid items in meters (default 60m)
+ * @param gridSpacing - Spacing between grid items in meters (default 120m)
  * @returns Posts with adjusted positions for clustered items
  */
 export function clusterNearbyPosts(
   posts: Post[],
   threshold: number = 50,
-  gridSpacing: number = 60
+  gridSpacing: number = 120
 ): Post[] {
   if (posts.length <= 1) return posts;
 

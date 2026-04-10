@@ -227,6 +227,88 @@ export function getMapMarkerStyles(): string {
       margin-right: 8px;
     }
 
+    /* Post cluster marker styles */
+    .post-cluster-marker {
+      background: transparent !important;
+      border: none !important;
+    }
+
+    .post-cluster-container {
+      background: white;
+      border-radius: 16px;
+      padding: 12px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+      border: 1px solid #e0e0e0;
+    }
+
+    .post-cluster-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 140px);
+      gap: 8px;
+    }
+
+    .cluster-post-card {
+      background: #f8f9fa;
+      border-radius: 12px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .cluster-post-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .cluster-post-avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #e57373 0%, #c62828 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 12px;
+      font-weight: 600;
+      border: 2px solid white;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+    }
+
+    .cluster-post-name {
+      font-size: 11px;
+      font-weight: 600;
+      color: #333;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .cluster-post-text {
+      font-size: 10px;
+      color: #666;
+      line-height: 1.3;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .cluster-post-photos {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px;
+      margin-top: 4px;
+    }
+
+    .cluster-photo-placeholder {
+      background: #e0e0e0;
+      border-radius: 6px;
+      height: 40px;
+    }
+
     /* Post popup styles */
     .post-popup {
       min-width: 200px;
