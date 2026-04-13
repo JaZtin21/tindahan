@@ -63,23 +63,29 @@ export function getPostPopupHtml(post: Post): string {
 
 /**
  * Get Leaflet divIcon configuration for post marker
+ * @param animate - If true, adds 'animate-in' class for pop animation
  */
-export function getPostIcon(L: any, post: Post) {
+export function getPostIcon(L: any, post: Post, animate: boolean = false) {
+  const className = animate 
+    ? 'post-bubble-marker animate-in' 
+    : 'post-bubble-marker';
+  
   return L.divIcon({
     html: getPostBubbleHtml(post),
     iconSize: [200, 189],
     iconAnchor: [25, 182],
     popupAnchor: [0, -182],
-    className: 'post-bubble-marker'
+    className: className
   });
 }
 
 /**
  * Create a Leaflet marker for a post
  * This is the main function to create a post marker on the map
+ * @param animate - If true, adds pop-in animation
  */
-export function createPostMarker(L: any, post: Post, lat: number, lng: number) {
-  const icon = getPostIcon(L, post);
+export function createPostMarker(L: any, post: Post, lat: number, lng: number, animate: boolean = false) {
+  const icon = getPostIcon(L, post, animate);
   return L.marker([lat, lng], { icon })
     .bindPopup(getPostPopupHtml(post));
 }

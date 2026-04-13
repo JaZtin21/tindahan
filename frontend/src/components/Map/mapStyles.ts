@@ -212,6 +212,45 @@ export function getMapMarkerStyles(): string {
       z-index: 2;
     }
 
+    /* Post rotation animation - pop in/out effect */
+    @keyframes post-pop-in {
+      0% {
+        opacity: 0;
+        transform: scale(0.5) translateY(20px);
+      }
+      60% {
+        opacity: 1;
+        transform: scale(1.05) translateY(-5px);
+      }
+      100% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+      }
+    }
+
+    @keyframes post-pop-out {
+      0% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+      }
+      40% {
+        opacity: 1;
+        transform: scale(1.05) translateY(-5px);
+      }
+      100% {
+        opacity: 0;
+        transform: scale(0.5) translateY(20px);
+      }
+    }
+
+    .post-bubble-marker.animate-in .post-marker-wrapper {
+      animation: post-pop-in 0.3s ease-out forwards;
+    }
+
+    .post-bubble-marker.animate-out .post-marker-wrapper {
+      animation: post-pop-out 0.3s ease-in forwards;
+    }
+
     /* Post popup styles */
     .post-popup {
       min-width: 200px;

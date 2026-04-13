@@ -17,6 +17,10 @@ export function OpenStreetMap({ center, zoom, onMapClick, onMarkerClick, onMapMo
   const mapInstanceRef = useRef<any>(null);
   const currentLocationMarkerRef = useRef<any>(null);
   const markersLayerRef = useRef<any>(null);
+  // Track existing markers by ID to enable diffing instead of clearLayers
+  const existingMarkersRef = useRef<Map<string, any>>(new Map());
+  // Track which post IDs have been animated to prevent double animation during zoom
+  const animatedPostsRef = useRef<Set<string>>(new Set());
   const [mapLoaded, setMapLoaded] = useState(false);
 
   useEffect(() => {
@@ -109,7 +113,7 @@ export function OpenStreetMap({ center, zoom, onMapClick, onMarkerClick, onMapMo
           // Create conversation bubble marker for posts
           const post = markerData.post;
 
-          const bubbleIcon = getPostIcon(L, post);
+          const bubbleIcon = getPostIcon(L, post, markerData.isRotating);
 
           const marker = L.marker([markerData.lat, markerData.lng], { icon: bubbleIcon })
             .bindPopup(getPostPopupHtml(post));
@@ -195,49 +199,90 @@ export function OpenStreetMap({ center, zoom, onMapClick, onMarkerClick, onMapMo
     
     const L = (window as any).L;
     
-    // Helper function to render markers (defined inside effect scope)
+    // Helper function to render markers with diffing (no clearLayers!)
     function updateMarkers(markersData: PostMarker[]) {
       if (!markersLayerRef.current) return;
       
-      // Clear existing markers
-      markersLayerRef.current.clearLayers();
+      const newMarkerIds = new Set<string>();
       
       markersData.forEach(markerData => {
+        // Generate unique ID for each marker
+        const markerId = markerData.type === 'post' && markerData.post
+          ? `post-${markerData.post.id}`
+          : `store-${markerData.lat}-${markerData.lng}`;
+        
+        newMarkerIds.add(markerId);
+        
+        const existingMarker = existingMarkersRef.current.get(markerId);
         const isPost = markerData.type === 'post';
         
         if (isPost && markerData.post) {
-          // Create conversation bubble marker for posts
           const post = markerData.post;
-
-          const bubbleIcon = getPostIcon(L, post);
-
-          const marker = L.marker([markerData.lat, markerData.lng], { icon: bubbleIcon })
-            .bindPopup(getPostPopupHtml(post));
           
-          markersLayerRef.current.addLayer(marker);
+          if (existingMarker) {
+            // Update existing post marker (check if needs animation refresh)
+            const currentIcon = existingMarker.getElement();
+            // Only animate if isRotating is true AND we haven't animated this post yet
+            const shouldAnimate = markerData.isRotating && !animatedPostsRef.current.has(post.id);
+            
+            if (shouldAnimate && currentIcon) {
+              // Re-apply animation class by recreating icon
+              existingMarker.setIcon(getPostIcon(L, post, true));
+              // Mark this post as animated so we don't animate again
+              animatedPostsRef.current.add(post.id);
+            }
+            // Update position if moved
+            const currentLatLng = existingMarker.getLatLng();
+            if (currentLatLng.lat !== markerData.lat || currentLatLng.lng !== markerData.lng) {
+              existingMarker.setLatLng([markerData.lat, markerData.lng]);
+            }
+          } else {
+            // Create new post marker
+            const shouldAnimate = markerData.isRotating && !animatedPostsRef.current.has(post.id);
+            const bubbleIcon = getPostIcon(L, post, shouldAnimate);
+            const marker = L.marker([markerData.lat, markerData.lng], { icon: bubbleIcon })
+              .bindPopup(getPostPopupHtml(post));
+            
+            markersLayerRef.current.addLayer(marker);
+            existingMarkersRef.current.set(markerId, marker);
+            if (shouldAnimate) {
+              animatedPostsRef.current.add(post.id);
+            }
+          }
         } else {
-          // Store marker (original style)
-          const customIcon = L.divIcon({
-            html: getStoreMarkerHtml(),
-            iconSize: [36, 36],
-            iconAnchor: [18, 36],
-            popupAnchor: [0, -36],
-            className: 'custom-store-marker'
-          });
-
-          const marker = L.marker([markerData.lat, markerData.lng], { icon: customIcon })
-            .bindPopup(getStorePopupHtml(markerData.title || 'Store Location', markerData.lat, markerData.lng))
-            .on('click', () => {
-              if (onMarkerClick && markerData.title) {
-                onMarkerClick({
-                  lat: markerData.lat,
-                  lng: markerData.lng,
-                  name: markerData.title
-                });
-              }
+          // Store marker
+          if (!existingMarker) {
+            const customIcon = L.divIcon({
+              html: getStoreMarkerHtml(),
+              iconSize: [36, 36],
+              iconAnchor: [18, 36],
+              popupAnchor: [0, -36],
+              className: 'custom-store-marker'
             });
-          
-          markersLayerRef.current.addLayer(marker);
+
+            const marker = L.marker([markerData.lat, markerData.lng], { icon: customIcon })
+              .bindPopup(getStorePopupHtml(markerData.title || 'Store Location', markerData.lat, markerData.lng))
+              .on('click', () => {
+                if (onMarkerClick && markerData.title) {
+                  onMarkerClick({
+                    lat: markerData.lat,
+                    lng: markerData.lng,
+                    name: markerData.title
+                  });
+                }
+              });
+            
+            markersLayerRef.current.addLayer(marker);
+            existingMarkersRef.current.set(markerId, marker);
+          }
+        }
+      });
+      
+      // Remove markers that are no longer in the data
+      existingMarkersRef.current.forEach((marker, id) => {
+        if (!newMarkerIds.has(id)) {
+          markersLayerRef.current.removeLayer(marker);
+          existingMarkersRef.current.delete(id);
         }
       });
     }

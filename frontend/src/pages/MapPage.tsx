@@ -4,7 +4,7 @@ import { OpenStreetMap, SearchBar, LocationSearchBar } from '../components/Map';
 import { openSideNav } from '../store';
 import { CreatePostModal } from '../components/posts/CreatePostModal';
 import { useCreatePost, usePostsNearLocation } from '../api/graphql/post/usePost';
-import { calculateRadiusFromZoom, clusterNearbyPosts } from '../utils/maps';
+import { calculateRadiusFromZoom, groupNearbyPosts } from '../utils/maps';
 
 // Helper to convert File to base64
 const fileToBase64 = (file: File): Promise<string> => {
@@ -31,6 +31,17 @@ export function MapPage() {
   
   // Cache for posts - stores fetched posts so they persist when zooming
   const [cachedPosts, setCachedPosts] = useState<any[]>([]);
+  
+  // Post cluster rotation state - tracks which post is visible in each cluster
+  const [clusterRotations, setClusterRotations] = useState<Map<string, number>>(new Map());
+  const [groupedPostClusters, setGroupedPostClusters] = useState<any[]>([]);
+  // Ref to track last rendered indices - used to detect actual rotations vs zoom re-renders
+  const lastRenderedIndicesRef = useRef<Map<string, number>>(new Map());
+  
+  // CONFIGURABLE: Rotation timing settings (in milliseconds)
+  const POST_DISPLAY_DURATION = 3000; // How long each post stays visible
+  const GAP_BETWEEN_POSTS = 500; // Gap between posts disappearing and next appearing
+  const TRANSITION_DURATION = 300; // Animation duration for pop in/out
 
   const [filteredStores, setFilteredStores] = useState([
     { lat: 14.5995, lng: 120.9842, title: 'Mang Kiko\'s Sari-Sari Store' },
@@ -137,6 +148,66 @@ export function MapPage() {
   // Combine store and post markers for the map
   const [allMarkers, setAllMarkers] = useState<any[]>([]);
 
+  // Group posts into clusters ONLY when posts change (NOT on zoom)
+  useEffect(() => {
+    if (cachedPosts.length === 0) {
+      setGroupedPostClusters([]);
+      return;
+    }
+    
+    // Create raw post markers
+    const rawPostMarkers = cachedPosts.map((post: any) => ({
+      lat: post.location?.lat || 0,
+      lng: post.location?.lng || 0,
+      title: post.title?.substring(0, 30) + (post.title?.length > 30 ? '...' : '') || 'Post',
+      type: 'post' as const,
+      post: post,
+      id: post.id
+    })).filter((m: any) => m.lat && m.lng);
+    
+    // Group nearby posts (15m threshold for same building/clustering)
+    const clusters = groupNearbyPosts(rawPostMarkers, 15);
+    setGroupedPostClusters(clusters);
+    
+    // Initialize rotation indices for new clusters only
+    setClusterRotations(prev => {
+      const next = new Map(prev);
+      clusters.forEach((cluster: any) => {
+        if (!next.has(cluster.id)) {
+          next.set(cluster.id, 0);
+        }
+      });
+      // Remove old clusters
+      const clusterIds = new Set(clusters.map((c: any) => c.id));
+      for (const id of next.keys()) {
+        if (!clusterIds.has(id)) {
+          next.delete(id);
+        }
+      }
+      return next;
+    });
+  }, [cachedPosts]); // <-- NO mapZoom dependency!
+
+  // Rotation effect - cycles through posts in each cluster
+  useEffect(() => {
+    if (groupedPostClusters.length === 0) return;
+    
+    const interval = setInterval(() => {
+      setClusterRotations(prev => {
+        const next = new Map(prev);
+        groupedPostClusters.forEach((cluster: any) => {
+          const currentIndex = next.get(cluster.id) || 0;
+          const nextIndex = (currentIndex + 1) % cluster.posts.length;
+          next.set(cluster.id, nextIndex);
+        });
+        return next;
+      });
+    }, POST_DISPLAY_DURATION + GAP_BETWEEN_POSTS);
+    
+    return () => clearInterval(interval);
+  }, [groupedPostClusters]);
+
+  // Combine all markers for display (ONLY builds visible markers, no clustering here)
   useEffect(() => {
     // Convert stores to marker format
     const storeMarkers = filteredStores.map(store => ({
@@ -146,30 +217,56 @@ export function MapPage() {
       type: 'store' as const,
     }));
     
-    // Add post markers from cache (only if zoom > 16)
-    let postMarkers: any[] = [];
-    if (mapZoom > 16 && cachedPosts.length > 0) {
-      // First create the raw post markers
-      const rawPostMarkers = cachedPosts.map((post: any) => ({
-        lat: post.location?.lat || 0,
-        lng: post.location?.lng || 0,
-        title: post.title?.substring(0, 30) + (post.title?.length > 30 ? '...' : '') || 'Post',
-        type: 'post' as const,
-        post: post
-      })).filter((m: any) => m.lat && m.lng);
-      
-      // Cluster nearby posts to prevent overlapping (50m threshold, 0m spacing)
-      const clusteredMarkers = clusterNearbyPosts(rawPostMarkers, 50, 0);
-      postMarkers = clusteredMarkers.map((marker: any) => ({
-        ...marker,
-        title: marker.post.title?.substring(0, 30) + (marker.post.title?.length > 30 ? '...' : '') || 'Post',
-        type: 'post' as const,
-      }));
+    // Only show posts when zoom > 16
+    let visiblePostMarkers: any[] = [];
+    // Track which indices we're rendering this cycle (for ref update after)
+    const currentRenderIndices = new Map<string, number>();
+    
+    if (mapZoom > 16) {
+      groupedPostClusters.forEach((cluster: any) => {
+        const currentIndex = clusterRotations.get(cluster.id) || 0;
+        const currentPost = cluster.posts[currentIndex];
+        
+        if (currentPost) {
+          // Check if this index was rendered in previous cycle (from ref)
+          const lastRenderedIndex = lastRenderedIndicesRef.current.get(cluster.id);
+          // Only animate if: multiple posts in cluster AND we have a previous render AND index changed
+          const shouldAnimate = cluster.posts.length > 1 && 
+                                lastRenderedIndex !== undefined && 
+                                lastRenderedIndex !== currentIndex;
+          
+          // Track what we're rendering now (for next render comparison)
+          currentRenderIndices.set(cluster.id, currentIndex);
+          
+          visiblePostMarkers.push({
+            lat: currentPost.lat,
+            lng: currentPost.lng,
+            title: currentPost.post?.title?.substring(0, 30) + (currentPost.post?.title?.length > 30 ? '...' : '') || 'Post',
+            type: 'post' as const,
+            post: currentPost.post,
+            clusterId: cluster.id,
+            isRotating: shouldAnimate,
+            rotationIndex: currentIndex,
+            totalInCluster: cluster.posts.length
+          });
+        }
+      });
     }
     
-    // Combine stores and posts
-    setAllMarkers([...storeMarkers, ...postMarkers]);
-  }, [filteredStores, cachedPosts, mapZoom]);
+    // Batch update the ref AFTER building all markers (not during)
+    currentRenderIndices.forEach((index, clusterId) => {
+      lastRenderedIndicesRef.current.set(clusterId, index);
+    });
+    // Clean up old cluster IDs from ref
+    for (const clusterId of lastRenderedIndicesRef.current.keys()) {
+      if (!currentRenderIndices.has(clusterId)) {
+        lastRenderedIndicesRef.current.delete(clusterId);
+      }
+    }
+    
+    // Combine stores and visible posts
+    setAllMarkers([...storeMarkers, ...visiblePostMarkers]);
+  }, [filteredStores, groupedPostClusters, clusterRotations, mapZoom]);
 
   const handleLocationSelect = (location: { lat: number; lng: number; name: string }) => {
     const newCenter = { lat: location.lat, lng: location.lng };

@@ -1,71 +1,9 @@
 import { useState } from 'react';
-import { useQuery, useMutation } from '@apollo/client/react';
 import { ShopCard, AddItemForm, InventoryTable, Tabs, Inquiries, ShopForm } from '../../components/owner';
 import { Modal } from '../../components';
-import { GET_OWNER_SHOPS_QUERY } from '../../api/graphql/owner/owner-queries';
-import { CREATE_SHOP_MUTATION, UPDATE_SHOP_MUTATION, DELETE_SHOP_MUTATION } from '../../api/graphql/shop/shop-queries';
+import { useItemManagement, useShopManagement } from '../../hooks';
 import { useAuth } from '../../api/graphql/apolloProviderWithAuth';
-import type { Shop, Item, ActiveTab } from '../../types/owner';
-import type { OwnerShop } from '../../api/graphql/owner/owner-queries';
-
-// Convert OwnerShop from API to local Shop type
-function convertOwnerShopToShop(ownerShop: OwnerShop): Shop {
-  return {
-    id: ownerShop.id,
-    name: ownerShop.name,
-    location: ownerShop.location,
-    coordinates: ownerShop.coordinates,
-    coverPhoto: ownerShop.coverPhoto,
-    otherPhotos: ownerShop.otherPhotos,
-    businessHours: ownerShop.businessHours,
-    businessType: ownerShop.businessType,
-    paymentMethods: ownerShop.paymentMethods,
-    delivery: ownerShop.delivery,
-    socialMedia: ownerShop.socialMedia,
-    verification: ownerShop.verification,
-    contactDetails: ownerShop.contactDetails,
-    inventory: [], // Will be fetched separately if needed
-    createdAt: ownerShop.createdAt,
-    updatedAt: ownerShop.updatedAt,
-    createdBy: ownerShop.createdBy,
-    status: ownerShop.status,
-  };
-}
-
-// Convert local Shop to CreateShopInput for API
-function shopToCreateInput(shop: Shop) {
-  return {
-    name: shop.name,
-    location: shop.location,
-    coordinates: shop.coordinates,
-    coverPhoto: shop.coverPhoto,
-    otherPhotos: shop.otherPhotos,
-    businessHours: shop.businessHours,
-    businessType: shop.businessType,
-    paymentMethods: shop.paymentMethods,
-    delivery: shop.delivery,
-    socialMedia: shop.socialMedia,
-    contactDetails: shop.contactDetails,
-  };
-}
-
-// Convert local Shop to UpdateShopInput for API
-function shopToUpdateInput(shop: Shop) {
-  return {
-    name: shop.name,
-    location: shop.location,
-    coordinates: shop.coordinates,
-    coverPhoto: shop.coverPhoto,
-    otherPhotos: shop.otherPhotos,
-    businessHours: shop.businessHours,
-    businessType: shop.businessType,
-    paymentMethods: shop.paymentMethods,
-    delivery: shop.delivery,
-    socialMedia: shop.socialMedia,
-    contactDetails: shop.contactDetails,
-    status: shop.status,
-  };
-}
+import type { Shop, ActiveTab } from '../../types/owner';
 
 interface ModalState {
   isOpen: boolean;
@@ -87,169 +25,117 @@ export function OwnerPage() {
   });
   const [shopToDelete, setShopToDelete] = useState<string | null>(null);
 
-  // GraphQL queries and mutations - wait for auth to be ready
-  const { data: shopsData, loading: shopsLoading, error: shopsError, refetch: refetchShops } = useQuery(GET_OWNER_SHOPS_QUERY, {
-    variables: { page: 1, limit: 50 },
-    fetchPolicy: 'network-only',
-    skip: authLoading || !isAuthenticated, // Skip query until auth is ready
+  // Modal helpers
+  const showSuccess = (title: string, message: string) => {
+    setModal({ isOpen: true, type: 'success', title, message });
+  };
+
+  const showError = (title: string, message: string) => {
+    setModal({ isOpen: true, type: 'error', title, message });
+  };
+
+  const showConfirm = (title: string, message: string, onConfirm: () => void) => {
+    setModal({ isOpen: true, type: 'info', title, message, onConfirm, showCancel: true });
+  };
+
+  // Use custom hooks for data management
+  const { shops, shopsLoading, shopsError, createShop, updateShop, deleteShop, refreshShops } = useShopManagement({
+    isAuthenticated,
+    authLoading,
+    onSuccess: showSuccess,
+    onError: showError,
   });
 
-  const [createShop] = useMutation(CREATE_SHOP_MUTATION);
-  const [updateShop] = useMutation(UPDATE_SHOP_MUTATION);
-  const [deleteShop] = useMutation(DELETE_SHOP_MUTATION);
+  const { items, handleAddItem, handleEditItem, handleDeleteItem } = useItemManagement({
+    selectedShop,
+    isAuthenticated,
+    onSuccess: showSuccess,
+    onError: showError,
+  });
 
-  // Convert API shops to local format
-  const shops: Shop[] = shopsData?.myShops?.data?.map((shop: OwnerShop) => convertOwnerShopToShop(shop)) || [];
+  // Update selected shop with items from API
+  if (selectedShop && items.length > 0) {
+    const shopItems = items.filter((item) => item.shopId === selectedShop.id);
+    selectedShop.inventory = shopItems.map((item) => ({
+      id: item.id,
+      name: item.name,
+      price: item.price,
+      description: item.description,
+      category: item.category,
+      stock: item.stock,
+      coverPhoto: item.coverPhoto,
+      otherPhotos: item.otherPhotos,
+      tags: item.tags,
+      isActive: item.isActive,
+    }));
+  }
 
   const handleManageShop = (shopId: string) => {
-    const shop = shops.find(s => s.id === shopId);
+    const shop = shops.find((s) => s.id === shopId);
     if (shop) {
       setSelectedShop(shop);
       setActiveTab('add-item');
     }
   };
 
-  const handleAddItem = (item: Item) => {
-    // TODO: Implement with CREATE_ITEM_MUTATION when ready
-    console.log('Add item:', item);
-  };
-
-  const handleEditItem = (shopId: string, itemId: string) => {
-    console.log('Edit item:', shopId, itemId);
-  };
-
-  const handleDeleteItem = (shopId: string, itemId: string) => {
-    console.log('Delete item:', shopId, itemId);
-  };
-
   const handleSaveShop = async (shopData: Shop) => {
-    try {
-      if (selectedShop) {
-        // Update existing shop
-        const result = await updateShop({
-          variables: {
-            id: shopData.id,
-            input: shopToUpdateInput(shopData),
-          },
-        });
-
-        if (result.data?.updateShop?.success) {
-          await refetchShops();
-          setSelectedShop(shopData);
-          setModal({
-            isOpen: true,
-            type: 'success',
-            title: 'Shop Updated!',
-            message: 'Your shop has been updated successfully.',
-          });
-        } else {
-          setModal({
-            isOpen: true,
-            type: 'error',
-            title: 'Update Failed',
-            message: result.data?.updateShop?.message || 'Failed to update shop. Please try again.',
-          });
-        }
-      } else {
-        // Create new shop
-        const result = await createShop({
-          variables: {
-            input: shopToCreateInput(shopData),
-          },
-        });
-
-        if (result.data?.createShop?.success) {
-          const newShop = convertOwnerShopToShop(result.data.createShop.data);
-          await refetchShops();
+    if (selectedShop) {
+      const result = await updateShop(shopData);
+      if (result.success) {
+        setSelectedShop(shopData);
+      }
+    } else {
+      const result = await createShop(shopData);
+      if (result.success) {
+        // Find the newly created shop
+        await refreshShops();
+        const newShop = shops.find((s) => s.name === shopData.name);
+        if (newShop) {
           setSelectedShop(newShop);
           setActiveTab('add-item');
-          setModal({
-            isOpen: true,
-            type: 'success',
-            title: 'Shop Created!',
-            message: 'Your new shop has been created successfully.',
-          });
-        } else {
-          setModal({
-            isOpen: true,
-            type: 'error',
-            title: 'Creation Failed',
-            message: result.data?.createShop?.message || 'Failed to create shop. Please try again.',
-          });
         }
       }
-    } catch (error) {
-      console.error('Error saving shop:', error);
-      setModal({
-        isOpen: true,
-        type: 'error',
-        title: 'Error',
-        message: 'An error occurred while saving the shop. Please try again.',
-      });
     }
   };
 
-  const handleDeleteShop = (shopId: string) => {
+  const handleDeleteShopClick = (shopId: string) => {
     setShopToDelete(shopId);
-    const shop = shops.find(s => s.id === shopId);
-    setModal({
-      isOpen: true,
-      type: 'info',
-      title: 'Delete Shop?',
-      message: `Are you sure you want to delete "${shop?.name || 'this shop'}"? This action cannot be undone.`,
-      onConfirm: () => confirmDeleteShop(shopId),
-      showCancel: true,
-    });
+    const shop = shops.find((s) => s.id === shopId);
+    showConfirm(
+      'Delete Shop?',
+      `Are you sure you want to delete "${shop?.name || 'this shop'}"? This action cannot be undone.`,
+      () => confirmDeleteShop(shopId)
+    );
   };
 
   const confirmDeleteShop = async (shopId: string) => {
-    setModal(prev => ({ ...prev, isOpen: false }));
-    
-    try {
-      const result = await deleteShop({
-        variables: { id: shopId },
-      });
-
-      if (result.data?.deleteShop?.success) {
-        await refetchShops();
-        if (selectedShop?.id === shopId) {
-          setSelectedShop(null);
-        }
-        setActiveTab('shops');
-        setShopToDelete(null);
-        setModal({
-          isOpen: true,
-          type: 'success',
-          title: 'Shop Deleted',
-          message: 'The shop has been deleted successfully.',
-        });
-      } else {
-        setShopToDelete(null);
-        setModal({
-          isOpen: true,
-          type: 'error',
-          title: 'Delete Failed',
-          message: result.data?.deleteShop?.message || 'Failed to delete shop. Please try again.',
-        });
+    setModal((prev) => ({ ...prev, isOpen: false }));
+    const result = await deleteShop(shopId);
+    if (result.success) {
+      if (selectedShop?.id === shopId) {
+        setSelectedShop(null);
       }
-    } catch (error) {
-      console.error('Error deleting shop:', error);
+      setActiveTab('shops');
       setShopToDelete(null);
-      setModal({
-        isOpen: true,
-        type: 'error',
-        title: 'Error',
-        message: 'An error occurred while deleting the shop. Please try again.',
-      });
     }
   };
 
+  const handleDeleteItemClick = (shopId: string, itemId: string) => {
+    const item = selectedShop?.inventory?.find((i) => i.id === itemId);
+    showConfirm(
+      'Delete Item?',
+      `Are you sure you want to delete "${item?.name || 'this item'}"? This action cannot be undone.`,
+      () => confirmDeleteItem(itemId)
+    );
+  };
+
+  const confirmDeleteItem = async (itemId: string) => {
+    setModal((prev) => ({ ...prev, isOpen: false }));
+    await handleDeleteItem(selectedShop?.id || '', itemId);
+  };
+
   const handleCancelShopForm = () => {
-    if (selectedShop) {
-      setActiveTab('add-item');
-    } else {
-      setActiveTab('shops');
-    }
+    setActiveTab(selectedShop ? 'add-item' : 'shops');
   };
 
   const isShopView = selectedShop !== null;
@@ -283,7 +169,7 @@ export function OwnerPage() {
               Error loading shops: {shopsError.message}
             </p>
             <button
-              onClick={() => refetchShops()}
+              onClick={() => refreshShops()}
               className="mt-2 text-sm text-red-600 dark:text-red-400 underline"
             >
               Retry
@@ -322,7 +208,7 @@ export function OwnerPage() {
                     key={shop.id}
                     shop={shop}
                     onManageShop={handleManageShop}
-                    onDeleteShop={handleDeleteShop}
+                    onDeleteShop={handleDeleteShopClick}
                   />
                 ))}
               </div>
@@ -346,7 +232,7 @@ export function OwnerPage() {
           <InventoryTable
             shops={[selectedShop]}
             onEditItem={handleEditItem}
-            onDeleteItem={handleDeleteItem}
+            onDeleteItem={handleDeleteItemClick}
           />
         )}
 
