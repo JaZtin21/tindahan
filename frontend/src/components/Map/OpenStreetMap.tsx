@@ -17,10 +17,11 @@ export function OpenStreetMap({ center, zoom, onMapClick, onMarkerClick, onMapMo
   const mapInstanceRef = useRef<any>(null);
   const currentLocationMarkerRef = useRef<any>(null);
   const markersLayerRef = useRef<any>(null);
-  // Track existing markers by ID to enable diffing instead of clearLayers
+  // Track existing markers by ID
   const existingMarkersRef = useRef<Map<string, any>>(new Map());
-  // Track which post IDs have been animated to prevent double animation during zoom
-  const animatedPostsRef = useRef<Set<string>>(new Set());
+  // Track what (postId, rotationIndex) was last shown in each marker
+  // Key: markerId, Value: "postId-rotationIndex"
+  const lastContentRef = useRef<Map<string, string>>(new Map());
   const [mapLoaded, setMapLoaded] = useState(false);
 
   useEffect(() => {
@@ -113,7 +114,7 @@ export function OpenStreetMap({ center, zoom, onMapClick, onMarkerClick, onMapMo
           // Create conversation bubble marker for posts
           const post = markerData.post;
 
-          const bubbleIcon = getPostIcon(L, post, markerData.isRotating);
+          const bubbleIcon = getPostIcon(L, post, false);
 
           const marker = L.marker([markerData.lat, markerData.lng], { icon: bubbleIcon })
             .bindPopup(getPostPopupHtml(post));
@@ -199,7 +200,7 @@ export function OpenStreetMap({ center, zoom, onMapClick, onMarkerClick, onMapMo
     
     const L = (window as any).L;
     
-    // Helper function to render markers with diffing (no clearLayers!)
+    // Helper function to render markers with diffing
     function updateMarkers(markersData: PostMarker[]) {
       if (!markersLayerRef.current) return;
       
@@ -218,35 +219,31 @@ export function OpenStreetMap({ center, zoom, onMapClick, onMarkerClick, onMapMo
         
         if (isPost && markerData.post) {
           const post = markerData.post;
+          // Create content key: "postId-rotationIndex" to detect rotation
+          const contentKey = `${post.id}-${markerData.rotationIndex ?? 0}`;
+          const lastContent = lastContentRef.current.get(markerId);
+          // Animate if: new marker OR content changed (rotation)
+          const shouldAnimate = !existingMarker || contentKey !== lastContent;
           
-          if (existingMarker) {
-            // Update existing post marker (check if needs animation refresh)
-            const currentIcon = existingMarker.getElement();
-            // Only animate if isRotating is true AND we haven't animated this post yet
-            const shouldAnimate = markerData.isRotating && !animatedPostsRef.current.has(post.id);
-            
-            if (shouldAnimate && currentIcon) {
-              // Re-apply animation class by recreating icon
-              existingMarker.setIcon(getPostIcon(L, post, true));
-              // Mark this post as animated so we don't animate again
-              animatedPostsRef.current.add(post.id);
-            }
-            // Update position if moved
-            const currentLatLng = existingMarker.getLatLng();
-            if (currentLatLng.lat !== markerData.lat || currentLatLng.lng !== markerData.lng) {
-              existingMarker.setLatLng([markerData.lat, markerData.lng]);
-            }
-          } else {
+          if (existingMarker && contentKey !== lastContent) {
+            // Content changed - recreate icon with animation
+            existingMarker.setIcon(getPostIcon(L, post, true));
+            lastContentRef.current.set(markerId, contentKey);
+          } else if (!existingMarker) {
             // Create new post marker
-            const shouldAnimate = markerData.isRotating && !animatedPostsRef.current.has(post.id);
             const bubbleIcon = getPostIcon(L, post, shouldAnimate);
             const marker = L.marker([markerData.lat, markerData.lng], { icon: bubbleIcon })
               .bindPopup(getPostPopupHtml(post));
             
             markersLayerRef.current.addLayer(marker);
             existingMarkersRef.current.set(markerId, marker);
-            if (shouldAnimate) {
-              animatedPostsRef.current.add(post.id);
+            lastContentRef.current.set(markerId, contentKey);
+          }
+          // Update position if moved (no animation)
+          if (existingMarker) {
+            const currentLatLng = existingMarker.getLatLng();
+            if (currentLatLng.lat !== markerData.lat || currentLatLng.lng !== markerData.lng) {
+              existingMarker.setLatLng([markerData.lat, markerData.lng]);
             }
           }
         } else {
@@ -283,6 +280,7 @@ export function OpenStreetMap({ center, zoom, onMapClick, onMarkerClick, onMapMo
         if (!newMarkerIds.has(id)) {
           markersLayerRef.current.removeLayer(marker);
           existingMarkersRef.current.delete(id);
+          lastContentRef.current.delete(id);
         }
       });
     }

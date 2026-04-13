@@ -22,7 +22,6 @@ export interface PostMarker {
   type?: 'store' | 'post';
   post?: Post;
   // Rotation/clustering properties for posts
-  isRotating?: boolean;
   rotationIndex?: number;
   totalInCluster?: number;
   clusterId?: string;

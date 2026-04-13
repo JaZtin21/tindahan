@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ShopCard, AddItemForm, InventoryTable, Tabs, Inquiries, ShopForm } from '../../components/owner';
 import { Modal } from '../../components';
 import { useItemManagement, useShopManagement } from '../../hooks';
@@ -24,6 +24,8 @@ export function OwnerPage() {
     message: '',
   });
   const [shopToDelete, setShopToDelete] = useState<string | null>(null);
+  // Track shop with inventory data separately to avoid mutating state
+  const [shopWithInventory, setShopWithInventory] = useState<Shop | null>(null);
 
   // Modal helpers
   const showSuccess = (title: string, message: string) => {
@@ -53,22 +55,37 @@ export function OwnerPage() {
     onError: showError,
   });
 
-  // Update selected shop with items from API
-  if (selectedShop && items.length > 0) {
-    const shopItems = items.filter((item) => item.shopId === selectedShop.id);
-    selectedShop.inventory = shopItems.map((item) => ({
-      id: item.id,
-      name: item.name,
-      price: item.price,
-      description: item.description,
-      category: item.category,
-      stock: item.stock,
-      coverPhoto: item.coverPhoto,
-      otherPhotos: item.otherPhotos,
-      tags: item.tags,
-      isActive: item.isActive,
-    }));
-  }
+  // Debug logging
+  useEffect(() => {
+    console.log('DEBUG - selectedShop:', selectedShop?.id, selectedShop?.name);
+    console.log('DEBUG - items count:', items.length);
+    console.log('DEBUG - items:', items.map(i => ({ id: i.id, name: i.name, shopId: i.shopId })));
+  }, [selectedShop, items]);
+
+  // Update shopWithInventory when selectedShop or items change
+  useEffect(() => {
+    if (selectedShop) {
+      const shopItems = items.filter((item) => item.shopId === selectedShop.id);
+      console.log('DEBUG - filtered shopItems:', shopItems.length, 'for shop', selectedShop.id);
+      setShopWithInventory({
+        ...selectedShop,
+        inventory: shopItems.map((item) => ({
+          id: item.id,
+          name: item.name,
+          price: item.price,
+          description: item.description,
+          category: item.category,
+          stock: item.stock,
+          coverPhoto: item.coverPhoto,
+          otherPhotos: item.otherPhotos,
+          tags: item.tags,
+          isActive: item.isActive,
+        })),
+      });
+    } else {
+      setShopWithInventory(null);
+    }
+  }, [selectedShop, items]);
 
   const handleManageShop = (shopId: string) => {
     const shop = shops.find((s) => s.id === shopId);
@@ -228,21 +245,21 @@ export function OwnerPage() {
           <AddItemForm onAddItem={handleAddItem} />
         )}
 
-        {isShopView && activeTab === 'inventory' && selectedShop && (
+        {isShopView && activeTab === 'inventory' && shopWithInventory && (
           <InventoryTable
-            shops={[selectedShop]}
+            shops={[shopWithInventory]}
             onEditItem={handleEditItem}
             onDeleteItem={handleDeleteItemClick}
           />
         )}
 
-        {isShopView && activeTab === 'inquiries' && selectedShop && (
-          <Inquiries shop={selectedShop} />
+        {isShopView && activeTab === 'inquiries' && shopWithInventory && (
+          <Inquiries shop={shopWithInventory} />
         )}
 
         {isShopView && activeTab === 'edit-shop' && selectedShop && (
           <ShopForm
-            shop={selectedShop}
+            shop={shopWithInventory || selectedShop}
             onSaveShop={handleSaveShop}
             onCancel={handleCancelShopForm}
           />

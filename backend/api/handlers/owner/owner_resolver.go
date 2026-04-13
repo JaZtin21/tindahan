@@ -423,7 +423,7 @@ func (r *OwnerResolver) GetStoreByID(ctx context.Context, id primitive.ObjectID)
 }
 
 // CreateItem creates a new item for the owner (real DB implementation)
-func (r *OwnerResolver) CreateItem(ctx context.Context, ownerId, shopId string, name string, price float64, stock int) (map[string]interface{}, error) {
+func (r *OwnerResolver) CreateItem(ctx context.Context, ownerId, shopId string, name string, price float64, stock int, description, category string) (map[string]interface{}, error) {
 	// Convert shopId string to ObjectID
 	shopObjectID, err := primitive.ObjectIDFromHex(shopId)
 	if err != nil {
@@ -435,14 +435,16 @@ func (r *OwnerResolver) CreateItem(ctx context.Context, ownerId, shopId string, 
 
 	// Create product domain object
 	product := &domain.Product{
-		ID:        primitive.NewObjectID(),
-		Name:      name,
-		Price:     price,
-		Stock:     stock,
-		StoreID:   shopObjectID,
-		IsActive:  true,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		ID:          primitive.NewObjectID(),
+		Name:        name,
+		Description: description,
+		Category:    category,
+		Price:       price,
+		Stock:       stock,
+		StoreID:     shopObjectID,
+		IsActive:    true,
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
 	}
 
 	// Save to database
@@ -457,14 +459,16 @@ func (r *OwnerResolver) CreateItem(ctx context.Context, ownerId, shopId string, 
 		"success": true,
 		"message": "Item created successfully",
 		"data": map[string]interface{}{
-			"id":        product.ID.Hex(),
-			"name":      product.Name,
-			"price":     product.Price,
-			"stock":     product.Stock,
-			"isActive":  product.IsActive,
-			"shopId":    shopId,
-			"createdAt": product.CreatedAt.Format(time.RFC3339),
-			"updatedAt": product.UpdatedAt.Format(time.RFC3339),
+			"id":          product.ID.Hex(),
+			"name":        product.Name,
+			"description": product.Description,
+			"category":    product.Category,
+			"price":       product.Price,
+			"stock":       product.Stock,
+			"isActive":    product.IsActive,
+			"shopId":      shopId,
+			"createdAt":   product.CreatedAt.Format(time.RFC3339),
+			"updatedAt":   product.UpdatedAt.Format(time.RFC3339),
 		},
 	}, nil
 }

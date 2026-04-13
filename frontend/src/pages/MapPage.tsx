@@ -35,8 +35,6 @@ export function MapPage() {
   // Post cluster rotation state - tracks which post is visible in each cluster
   const [clusterRotations, setClusterRotations] = useState<Map<string, number>>(new Map());
   const [groupedPostClusters, setGroupedPostClusters] = useState<any[]>([]);
-  // Ref to track last rendered indices - used to detect actual rotations vs zoom re-renders
-  const lastRenderedIndicesRef = useRef<Map<string, number>>(new Map());
   
   // CONFIGURABLE: Rotation timing settings (in milliseconds)
   const POST_DISPLAY_DURATION = 3000; // How long each post stays visible
@@ -219,8 +217,6 @@ export function MapPage() {
     
     // Only show posts when zoom > 16
     let visiblePostMarkers: any[] = [];
-    // Track which indices we're rendering this cycle (for ref update after)
-    const currentRenderIndices = new Map<string, number>();
     
     if (mapZoom > 16) {
       groupedPostClusters.forEach((cluster: any) => {
@@ -228,16 +224,6 @@ export function MapPage() {
         const currentPost = cluster.posts[currentIndex];
         
         if (currentPost) {
-          // Check if this index was rendered in previous cycle (from ref)
-          const lastRenderedIndex = lastRenderedIndicesRef.current.get(cluster.id);
-          // Only animate if: multiple posts in cluster AND we have a previous render AND index changed
-          const shouldAnimate = cluster.posts.length > 1 && 
-                                lastRenderedIndex !== undefined && 
-                                lastRenderedIndex !== currentIndex;
-          
-          // Track what we're rendering now (for next render comparison)
-          currentRenderIndices.set(cluster.id, currentIndex);
-          
           visiblePostMarkers.push({
             lat: currentPost.lat,
             lng: currentPost.lng,
@@ -245,23 +231,11 @@ export function MapPage() {
             type: 'post' as const,
             post: currentPost.post,
             clusterId: cluster.id,
-            isRotating: shouldAnimate,
             rotationIndex: currentIndex,
             totalInCluster: cluster.posts.length
           });
         }
       });
-    }
-    
-    // Batch update the ref AFTER building all markers (not during)
-    currentRenderIndices.forEach((index, clusterId) => {
-      lastRenderedIndicesRef.current.set(clusterId, index);
-    });
-    // Clean up old cluster IDs from ref
-    for (const clusterId of lastRenderedIndicesRef.current.keys()) {
-      if (!currentRenderIndices.has(clusterId)) {
-        lastRenderedIndicesRef.current.delete(clusterId);
-      }
     }
     
     // Combine stores and visible posts

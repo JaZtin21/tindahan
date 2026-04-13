@@ -322,7 +322,7 @@ func (r *mutationResolver) CreateItem(ctx context.Context, input CreateItemInput
 			Message: "Authentication required",
 		}, nil
 	}
-	result, err := r.ownerResolver.CreateItem(ctx, userID, input.ShopID, input.Name, input.Price, input.Stock)
+	result, err := r.ownerResolver.CreateItem(ctx, userID, input.ShopID, input.Name, input.Price, input.Stock, input.Description, input.Category)
 	if err != nil {
 		return &ItemPayload{
 			Success: false,
@@ -336,11 +336,13 @@ func (r *mutationResolver) CreateItem(ctx context.Context, input CreateItemInput
 		Success: result["success"].(bool),
 		Message: result["message"].(string),
 		Data: &Item{
-			ID:       data["id"].(string),
-			Name:     data["name"].(string),
-			Price:    data["price"].(float64),
-			Stock:    data["stock"].(int),
-			IsActive: data["isActive"].(bool),
+			ID:          data["id"].(string),
+			Name:        data["name"].(string),
+			Description: data["description"].(string),
+			Category:    data["category"].(string),
+			Price:       data["price"].(float64),
+			Stock:       data["stock"].(int),
+			IsActive:    data["isActive"].(bool),
 		},
 	}, nil
 }
@@ -1234,12 +1236,29 @@ func (r *queryResolver) MyItems(ctx context.Context, page *int, limit *int) (*It
 	data := result["data"].([]map[string]interface{})
 	items := make([]*Item, len(data))
 	for i, itemMap := range data {
+		// Handle stock type (could be int or float64 from JSON/map)
+		var stock int
+		switch v := itemMap["stock"].(type) {
+		case int:
+			stock = v
+		case int32:
+			stock = int(v)
+		case int64:
+			stock = int(v)
+		case float64:
+			stock = int(v)
+		default:
+			stock = 0
+		}
 		items[i] = &Item{
-			ID:       itemMap["id"].(string),
-			Name:     itemMap["name"].(string),
-			Price:    itemMap["price"].(float64),
-			Stock:    int(itemMap["stock"].(float64)),
-			IsActive: itemMap["isActive"].(bool),
+			ID:          itemMap["id"].(string),
+			Name:        itemMap["name"].(string),
+			Description: itemMap["description"].(string),
+			Category:    itemMap["category"].(string),
+			Price:       itemMap["price"].(float64),
+			Stock:       stock,
+			IsActive:    itemMap["isActive"].(bool),
+			ShopID:      itemMap["shopId"].(string),
 		}
 	}
 
