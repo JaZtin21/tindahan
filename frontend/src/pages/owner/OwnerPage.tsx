@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation } from '@apollo/client/react';
 import { ShopCard, AddItemForm, InventoryTable, Tabs, Inquiries, ShopForm } from '../../components/owner';
+import { Modal } from '../../components';
 import { GET_OWNER_SHOPS_QUERY } from '../../api/graphql/owner/owner-queries';
 import { CREATE_SHOP_MUTATION, UPDATE_SHOP_MUTATION, DELETE_SHOP_MUTATION } from '../../api/graphql/shop/shop-queries';
 import { useAuth } from '../../api/graphql/apolloProviderWithAuth';
@@ -66,10 +67,25 @@ function shopToUpdateInput(shop: Shop) {
   };
 }
 
+interface ModalState {
+  isOpen: boolean;
+  type: 'success' | 'error' | 'info';
+  title?: string;
+  message: string;
+  onConfirm?: () => void;
+  showCancel?: boolean;
+}
+
 export function OwnerPage() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('shops');
   const [selectedShop, setSelectedShop] = useState<Shop | null>(null);
   const { isLoading: authLoading, isAuthenticated } = useAuth();
+  const [modal, setModal] = useState<ModalState>({
+    isOpen: false,
+    type: 'success',
+    message: '',
+  });
+  const [shopToDelete, setShopToDelete] = useState<string | null>(null);
 
   // GraphQL queries and mutations - wait for auth to be ready
   const { data: shopsData, loading: shopsLoading, error: shopsError, refetch: refetchShops } = useQuery(GET_OWNER_SHOPS_QUERY, {
@@ -120,8 +136,19 @@ export function OwnerPage() {
         if (result.data?.updateShop?.success) {
           await refetchShops();
           setSelectedShop(shopData);
+          setModal({
+            isOpen: true,
+            type: 'success',
+            title: 'Shop Updated!',
+            message: 'Your shop has been updated successfully.',
+          });
         } else {
-          alert(result.data?.updateShop?.message || 'Failed to update shop');
+          setModal({
+            isOpen: true,
+            type: 'error',
+            title: 'Update Failed',
+            message: result.data?.updateShop?.message || 'Failed to update shop. Please try again.',
+          });
         }
       } else {
         // Create new shop
@@ -133,26 +160,51 @@ export function OwnerPage() {
 
         if (result.data?.createShop?.success) {
           const newShop = convertOwnerShopToShop(result.data.createShop.data);
-          // Add new shop to local state immediately for instant UI update
-          // Then refetch to sync with server
           await refetchShops();
           setSelectedShop(newShop);
           setActiveTab('add-item');
+          setModal({
+            isOpen: true,
+            type: 'success',
+            title: 'Shop Created!',
+            message: 'Your new shop has been created successfully.',
+          });
         } else {
-          alert(result.data?.createShop?.message || 'Failed to create shop');
+          setModal({
+            isOpen: true,
+            type: 'error',
+            title: 'Creation Failed',
+            message: result.data?.createShop?.message || 'Failed to create shop. Please try again.',
+          });
         }
       }
     } catch (error) {
       console.error('Error saving shop:', error);
-      alert('An error occurred while saving the shop. Please try again.');
+      setModal({
+        isOpen: true,
+        type: 'error',
+        title: 'Error',
+        message: 'An error occurred while saving the shop. Please try again.',
+      });
     }
   };
 
-  const handleDeleteShop = async (shopId: string) => {
-    if (!confirm('Are you sure you want to delete this shop?')) {
-      return;
-    }
+  const handleDeleteShop = (shopId: string) => {
+    setShopToDelete(shopId);
+    const shop = shops.find(s => s.id === shopId);
+    setModal({
+      isOpen: true,
+      type: 'info',
+      title: 'Delete Shop?',
+      message: `Are you sure you want to delete "${shop?.name || 'this shop'}"? This action cannot be undone.`,
+      onConfirm: () => confirmDeleteShop(shopId),
+      showCancel: true,
+    });
+  };
 
+  const confirmDeleteShop = async (shopId: string) => {
+    setModal(prev => ({ ...prev, isOpen: false }));
+    
     try {
       const result = await deleteShop({
         variables: { id: shopId },
@@ -160,18 +212,35 @@ export function OwnerPage() {
 
       if (result.data?.deleteShop?.success) {
         await refetchShops();
-        // Clear selected shop if it was deleted
         if (selectedShop?.id === shopId) {
           setSelectedShop(null);
         }
-        // Always go back to shops list after delete
         setActiveTab('shops');
+        setShopToDelete(null);
+        setModal({
+          isOpen: true,
+          type: 'success',
+          title: 'Shop Deleted',
+          message: 'The shop has been deleted successfully.',
+        });
       } else {
-        alert(result.data?.deleteShop?.message || 'Failed to delete shop');
+        setShopToDelete(null);
+        setModal({
+          isOpen: true,
+          type: 'error',
+          title: 'Delete Failed',
+          message: result.data?.deleteShop?.message || 'Failed to delete shop. Please try again.',
+        });
       }
     } catch (error) {
       console.error('Error deleting shop:', error);
-      alert('An error occurred while deleting the shop. Please try again.');
+      setShopToDelete(null);
+      setModal({
+        isOpen: true,
+        type: 'error',
+        title: 'Error',
+        message: 'An error occurred while deleting the shop. Please try again.',
+      });
     }
   };
 
@@ -293,6 +362,20 @@ export function OwnerPage() {
           />
         )}
       </div>
+
+      {/* Modal */}
+      <Modal
+        isOpen={modal.isOpen}
+        onClose={() => {
+          setModal(prev => ({ ...prev, isOpen: false }));
+          setShopToDelete(null);
+        }}
+        type={modal.type}
+        title={modal.title}
+        message={modal.message}
+        onConfirm={modal.onConfirm}
+        showCancel={modal.showCancel}
+      />
     </div>
   );
 }
