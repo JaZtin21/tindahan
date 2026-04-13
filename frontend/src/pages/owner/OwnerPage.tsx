@@ -62,6 +62,7 @@ function shopToUpdateInput(shop: Shop) {
     delivery: shop.delivery,
     socialMedia: shop.socialMedia,
     contactDetails: shop.contactDetails,
+    status: shop.status,
   };
 }
 

@@ -615,7 +615,89 @@ func (r *mutationResolver) UpdateShop(ctx context.Context, id string, input Upda
 			Message: "Authentication required",
 		}, nil
 	}
-	result, err := r.ownerResolver.UpdateShop(ctx, id, userID, *input.Name, *input.Location)
+
+	// Build full update input
+	shopInput := owner.UpdateShopInput{}
+	if input.Name != nil {
+		shopInput.Name = *input.Name
+	}
+	if input.Location != nil {
+		shopInput.Location = *input.Location
+	}
+	if input.CoverPhoto != nil {
+		shopInput.CoverPhoto = *input.CoverPhoto
+	}
+	if input.OtherPhotos != nil {
+		shopInput.OtherPhotos = input.OtherPhotos
+	}
+	if input.BusinessType != nil {
+		shopInput.BusinessType = string(*input.BusinessType)
+	}
+	if input.Status != nil {
+		shopInput.Status = string(*input.Status)
+	}
+
+	// Handle coordinates
+	if input.Coordinates != nil {
+		shopInput.Coordinates.Lat = input.Coordinates.Lat
+		shopInput.Coordinates.Lng = input.Coordinates.Lng
+	}
+
+	// Handle business hours
+	if input.BusinessHours != nil {
+		shopInput.BusinessHours = domain.BusinessHours{
+			OpenTime:  input.BusinessHours.OpenTime,
+			CloseTime: input.BusinessHours.CloseTime,
+			Days:      input.BusinessHours.Days,
+		}
+	}
+
+	// Handle payment methods
+	if input.PaymentMethods != nil {
+		shopInput.PaymentMethods = domain.PaymentMethods{
+			Cash:    input.PaymentMethods.Cash,
+			GCash:   input.PaymentMethods.Gcash,
+			Paymaya: input.PaymentMethods.Paymaya,
+			Card:    input.PaymentMethods.Card,
+		}
+	}
+
+	// Handle delivery options
+	if input.Delivery != nil {
+		shopInput.Delivery = domain.DeliveryOptions{
+			Available: input.Delivery.Available,
+		}
+		if input.Delivery.Radius != nil {
+			shopInput.Delivery.Radius = *input.Delivery.Radius
+		}
+		if input.Delivery.Fee != nil {
+			shopInput.Delivery.Fee = *input.Delivery.Fee
+		}
+		if input.Delivery.MinOrder != nil {
+			shopInput.Delivery.MinOrder = *input.Delivery.MinOrder
+		}
+	}
+
+	// Handle social media
+	if input.SocialMedia != nil {
+		if input.SocialMedia.Facebook != nil {
+			shopInput.SocialMedia.Facebook = *input.SocialMedia.Facebook
+		}
+		if input.SocialMedia.Instagram != nil {
+			shopInput.SocialMedia.Instagram = *input.SocialMedia.Instagram
+		}
+	}
+
+	// Handle contact details
+	if input.ContactDetails != nil {
+		shopInput.ContactDetails = domain.ContactDetails{
+			Phone:   input.ContactDetails.Phone,
+			Email:   input.ContactDetails.Email,
+			Address: input.ContactDetails.Address,
+		}
+	}
+
+	result, err := r.ownerResolver.UpdateShop(ctx, id, userID, shopInput)
 	if err != nil {
 		return &ShopPayload{
 			Success: false,
@@ -624,14 +706,120 @@ func (r *mutationResolver) UpdateShop(ctx context.Context, id string, input Upda
 	}
 	data := result["data"].(map[string]interface{})
 
+	// Parse createdAt time
+	createdAt, _ := time.Parse(time.RFC3339, data["createdAt"].(string))
+
+	// Build full Shop response
+	shop := &Shop{
+		ID:        data["id"].(string),
+		Name:      data["name"].(string),
+		Location:  data["location"].(string),
+		CreatedAt: createdAt,
+		Status:    ShopStatus(data["status"].(string)),
+	}
+
+	// Add coordinates
+	if coords, ok := data["coordinates"].(map[string]float64); ok {
+		shop.Coordinates = &Coordinates{
+			Lat: coords["lat"],
+			Lng: coords["lng"],
+		}
+	}
+
+	// Add cover photo
+	if coverPhoto, ok := data["coverPhoto"].(string); ok {
+		shop.CoverPhoto = coverPhoto
+	}
+
+	// Add other photos
+	if otherPhotos, ok := data["otherPhotos"].([]string); ok {
+		shop.OtherPhotos = otherPhotos
+	}
+
+	// Add business hours
+	if bh, ok := data["businessHours"].(domain.BusinessHours); ok {
+		shop.BusinessHours = &BusinessHours{
+			OpenTime:  bh.OpenTime,
+			CloseTime: bh.CloseTime,
+			Days:      bh.Days,
+		}
+	}
+
+	// Add business type
+	if bt, ok := data["businessType"].(string); ok {
+		shop.BusinessType = BusinessType(bt)
+	}
+
+	// Add payment methods
+	if pm, ok := data["paymentMethods"].(domain.PaymentMethods); ok {
+		shop.PaymentMethods = &PaymentMethods{
+			Cash:    pm.Cash,
+			Gcash:   pm.GCash,
+			Paymaya: pm.Paymaya,
+			Card:    pm.Card,
+		}
+	}
+
+	// Add delivery options
+	if d, ok := data["delivery"].(domain.DeliveryOptions); ok {
+		shop.Delivery = &DeliveryOptions{
+			Available: d.Available,
+		}
+		if d.Radius > 0 {
+			shop.Delivery.Radius = &d.Radius
+		}
+		if d.Fee > 0 {
+			shop.Delivery.Fee = &d.Fee
+		}
+		if d.MinOrder > 0 {
+			shop.Delivery.MinOrder = &d.MinOrder
+		}
+	}
+
+	// Add social media
+	if sm, ok := data["socialMedia"].(domain.SocialMedia); ok {
+		shop.SocialMedia = &SocialMedia{}
+		if sm.Facebook != "" {
+			shop.SocialMedia.Facebook = &sm.Facebook
+		}
+		if sm.Instagram != "" {
+			shop.SocialMedia.Instagram = &sm.Instagram
+		}
+	}
+
+	// Add contact details
+	if cd, ok := data["contactDetails"].(domain.ContactDetails); ok {
+		shop.ContactDetails = &ContactDetails{
+			Phone:   cd.Phone,
+			Email:   cd.Email,
+			Address: cd.Address,
+		}
+	}
+
+	// Add verification - REQUIRED field, must always be set
+	if v, ok := data["verification"].(domain.Verification); ok {
+		shop.Verification = &Verification{
+			IsVerified: v.IsVerified,
+		}
+		if v.VerifiedDate != "" {
+			if verifiedTime, err := time.Parse(time.RFC3339, v.VerifiedDate); err == nil {
+				shop.Verification.VerifiedDate = &verifiedTime
+			}
+		}
+		if v.VerificationID != "" {
+			shop.Verification.VerificationID = &v.VerificationID
+		}
+	} else {
+		// Always set a default verification to avoid null
+		shop.Verification = &Verification{
+			IsVerified: false,
+		}
+	}
+
 	return &ShopPayload{
 		Success: result["success"].(bool),
 		Message: result["message"].(string),
-		Data: &Shop{
-			ID:     data["id"].(string),
-			Name:   data["name"].(string),
-			Status: ShopStatus(data["status"].(string)),
-		},
+		Data:    shop,
 	}, nil
 }
 

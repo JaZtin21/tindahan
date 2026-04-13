@@ -36,7 +36,7 @@ func (r *storeRepository) CreateStore(ctx context.Context, store *domain.Store) 
 	store.UpdatedAt = time.Now()
 	store.IsActive = true
 	store.Rating = 0.0
-	
+
 	_, err := r.collection.InsertOne(ctx, store)
 	return err
 }
@@ -52,7 +52,7 @@ func (r *storeRepository) GetStoreByID(ctx context.Context, storeID primitive.Ob
 
 func (r *storeRepository) UpdateStore(ctx context.Context, storeID primitive.ObjectID, updates *domain.UpdateStoreRequest) error {
 	updateDoc := bson.M{}
-	
+
 	if updates.Name != nil {
 		updateDoc["name"] = *updates.Name
 	}
@@ -77,9 +77,36 @@ func (r *storeRepository) UpdateStore(ctx context.Context, storeID primitive.Obj
 	if updates.IsActive != nil {
 		updateDoc["is_active"] = *updates.IsActive
 	}
-	
+	if updates.CoverPhoto != nil {
+		updateDoc["cover_photo"] = *updates.CoverPhoto
+	}
+	if updates.OtherPhotos != nil {
+		updateDoc["other_photos"] = *updates.OtherPhotos
+	}
+	if updates.BusinessHours != nil {
+		updateDoc["business_hours"] = *updates.BusinessHours
+	}
+	if updates.BusinessType != nil {
+		updateDoc["business_type"] = *updates.BusinessType
+	}
+	if updates.PaymentMethods != nil {
+		updateDoc["payment_methods"] = *updates.PaymentMethods
+	}
+	if updates.Delivery != nil {
+		updateDoc["delivery"] = *updates.Delivery
+	}
+	if updates.SocialMedia != nil {
+		updateDoc["social_media"] = *updates.SocialMedia
+	}
+	if updates.ContactDetails != nil {
+		updateDoc["contact_details"] = *updates.ContactDetails
+	}
+	if updates.Status != nil {
+		updateDoc["status"] = *updates.Status
+	}
+
 	updateDoc["updated_at"] = time.Now()
-	
+
 	_, err := r.collection.UpdateOne(
 		ctx,
 		bson.M{"_id": storeID},
@@ -95,7 +122,7 @@ func (r *storeRepository) DeleteStore(ctx context.Context, storeID primitive.Obj
 
 func (r *storeRepository) SearchStores(ctx context.Context, req *domain.StoreSearchRequest) ([]*domain.Store, int64, error) {
 	filter := bson.M{"is_active": true}
-	
+
 	// Text search
 	if req.Query != "" {
 		filter["$or"] = []bson.M{
@@ -104,17 +131,17 @@ func (r *storeRepository) SearchStores(ctx context.Context, req *domain.StoreSea
 			{"category": bson.M{"$regex": req.Query, "$options": "i"}},
 		}
 	}
-	
+
 	// Category filter
 	if req.Category != "" {
 		filter["category"] = req.Category
 	}
-	
+
 	// City filter
 	if req.City != "" {
 		filter["city"] = req.City
 	}
-	
+
 	// Location-based search
 	if req.Lat != 0 && req.Lng != 0 && req.Radius > 0 {
 		filter["location"] = bson.M{
@@ -127,7 +154,7 @@ func (r *storeRepository) SearchStores(ctx context.Context, req *domain.StoreSea
 			},
 		}
 	}
-	
+
 	// Pagination
 	if req.Page <= 0 {
 		req.Page = 1
@@ -135,9 +162,9 @@ func (r *storeRepository) SearchStores(ctx context.Context, req *domain.StoreSea
 	if req.Limit <= 0 {
 		req.Limit = 10
 	}
-	
+
 	skip := (req.Page - 1) * req.Limit
-	
+
 	cursor, err := r.collection.Find(
 		ctx,
 		filter,
@@ -172,9 +199,9 @@ func (r *storeRepository) GetMyStores(ctx context.Context, ownerID primitive.Obj
 	if limit <= 0 {
 		limit = 10
 	}
-	
+
 	skip := (page - 1) * limit
-	
+
 	cursor, err := r.collection.Find(
 		ctx,
 		bson.M{"owner_id": ownerID},

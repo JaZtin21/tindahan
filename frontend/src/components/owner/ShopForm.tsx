@@ -145,6 +145,7 @@ export function ShopForm({ shop, onSaveShop, onCancel }: ShopFormProps) {
               <LocationPicker
                 onLocationSelect={handleLocationSelect}
                 initialLocation={formData.coordinates}
+                initialAddress={formData.address}
               />
               <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-2">
                 Click button to select location on map

@@ -8,7 +8,6 @@ interface ClusteredPost extends Post {
   clustered?: boolean;
   originalLat?: number;
   originalLng?: number;
-  mirrored?: boolean;
 }
 
 /**
@@ -17,13 +16,13 @@ interface ClusteredPost extends Post {
  * 
  * @param posts - Array of posts with lat/lng
  * @param threshold - Distance threshold in meters (default 50m)
- * @param gridSpacing - Spacing between grid items in meters (default 120m)
+ * @param gridSpacing - Spacing between grid items in meters (default 60m)
  * @returns Posts with adjusted positions for clustered items
  */
 export function clusterNearbyPosts(
   posts: Post[],
   threshold: number = 50,
-  gridSpacing: number = 120
+  gridSpacing: number = 60
 ): Post[] {
   if (posts.length <= 1) return posts;
 
@@ -73,15 +72,13 @@ export function clusterNearbyPosts(
       );
 
       cluster.forEach((post, idx) => {
-        const col = idx % 2; // 0 = left, 1 = right
         result.push({
           ...post,
           lat: gridPositions[idx].lat,
           lng: gridPositions[idx].lng,
           originalLat: post.lat,
           originalLng: post.lng,
-          clustered: true,
-          mirrored: col === 1 // Right column gets mirrored layout
+          clustered: true
         });
       });
     }

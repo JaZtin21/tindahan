@@ -3,12 +3,13 @@ import { useState, useEffect, useRef } from 'react';
 interface LocationPickerProps {
   onLocationSelect: (coordinates: { lat: number; lng: number }, address: string) => void;
   initialLocation?: { lat: number; lng: number };
+  initialAddress?: string;
 }
 
-export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5995, lng: 120.9842 } }: LocationPickerProps) {
+export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5995, lng: 120.9842 }, initialAddress = '' }: LocationPickerProps) {
   const [selectedLocation, setSelectedLocation] = useState(initialLocation);
   const [showModal, setShowModal] = useState(false);
-  const [address, setAddress] = useState('');
+  const [address, setAddress] = useState(initialAddress);
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const L = (window as any).L;

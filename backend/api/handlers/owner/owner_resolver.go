@@ -191,8 +191,24 @@ func (r *OwnerResolver) CreateShop(ctx context.Context, ownerId string, input Cr
 	}, nil
 }
 
-// UpdateShop updates an existing shop (real DB implementation)
-func (r *OwnerResolver) UpdateShop(ctx context.Context, shopId, ownerId string, name, location string) (map[string]interface{}, error) {
+// UpdateShopInput contains all fields for updating a shop
+type UpdateShopInput struct {
+	Name           string
+	Location       string
+	Coordinates    struct{ Lat, Lng float64 }
+	CoverPhoto     string
+	OtherPhotos    []string
+	BusinessHours  domain.BusinessHours
+	BusinessType   string
+	PaymentMethods domain.PaymentMethods
+	Delivery       domain.DeliveryOptions
+	SocialMedia    domain.SocialMedia
+	ContactDetails domain.ContactDetails
+	Status         string
+}
+
+// UpdateShop updates an existing shop with all fields (real DB implementation)
+func (r *OwnerResolver) UpdateShop(ctx context.Context, shopId, ownerId string, input UpdateShopInput) (map[string]interface{}, error) {
 	// Convert shopId to ObjectID
 	shopObjectID, err := primitive.ObjectIDFromHex(shopId)
 	if err != nil {
@@ -202,11 +218,38 @@ func (r *OwnerResolver) UpdateShop(ctx context.Context, shopId, ownerId string, 
 		}, err
 	}
 
-	// Build update request
-	updates := &domain.UpdateStoreRequest{
-		Name:    &name,
-		Address: &location,
+	// Build update request with all fields
+	updates := &domain.UpdateStoreRequest{}
+
+	if input.Name != "" {
+		updates.Name = &input.Name
 	}
+	if input.Location != "" {
+		updates.Address = &input.Location
+	}
+	if input.CoverPhoto != "" {
+		updates.CoverPhoto = &input.CoverPhoto
+	}
+	if len(input.OtherPhotos) > 0 {
+		updates.OtherPhotos = &input.OtherPhotos
+	}
+	if input.BusinessType != "" {
+		updates.BusinessType = &input.BusinessType
+	}
+	if input.Status != "" {
+		updates.Status = &input.Status
+	}
+
+	// Always update coordinates if provided (Lat/Lng can be 0,0)
+	updates.Latitude = &input.Coordinates.Lat
+	updates.Longitude = &input.Coordinates.Lng
+
+	// Update nested structs (always include them if they have data)
+	updates.BusinessHours = &input.BusinessHours
+	updates.PaymentMethods = &input.PaymentMethods
+	updates.Delivery = &input.Delivery
+	updates.SocialMedia = &input.SocialMedia
+	updates.ContactDetails = &input.ContactDetails
 
 	// Update in database
 	if err := r.storeRepo.UpdateStore(ctx, shopObjectID, updates); err != nil {
@@ -224,21 +267,41 @@ func (r *OwnerResolver) UpdateShop(ctx context.Context, shopId, ownerId string, 
 			"message": "Shop updated but failed to fetch updated data",
 			"data": map[string]interface{}{
 				"id":       shopId,
-				"name":     name,
-				"location": location,
+				"name":     input.Name,
+				"location": input.Location,
 			},
 		}, nil
+	}
+
+	// Ensure verification always has a value (required by GraphQL schema)
+	verification := store.Verification
+	if !verification.IsVerified && verification.VerifiedDate == "" && verification.VerificationID == "" {
+		verification = domain.Verification{
+			IsVerified: false,
+		}
 	}
 
 	return map[string]interface{}{
 		"success": true,
 		"message": "Shop updated successfully",
 		"data": map[string]interface{}{
-			"id":        store.ID.Hex(),
-			"name":      store.Name,
-			"location":  store.Address,
-			"status":    "ACTIVE",
-			"updatedAt": store.UpdatedAt.Format(time.RFC3339),
+			"id":             store.ID.Hex(),
+			"name":           store.Name,
+			"location":       store.Address,
+			"coordinates":    map[string]float64{"lat": store.Latitude, "lng": store.Longitude},
+			"coverPhoto":     store.CoverPhoto,
+			"otherPhotos":    store.OtherPhotos,
+			"businessHours":  store.BusinessHours,
+			"businessType":   store.BusinessType,
+			"paymentMethods": store.PaymentMethods,
+			"delivery":       store.Delivery,
+			"socialMedia":    store.SocialMedia,
+			"verification":   verification,
+			"contactDetails": store.ContactDetails,
+			"status":         store.Status,
+			"createdAt":      store.CreatedAt.Format(time.RFC3339),
+			"updatedAt":      store.UpdatedAt.Format(time.RFC3339),
+			"createdBy":      ownerId,
 		},
 	}, nil
 }

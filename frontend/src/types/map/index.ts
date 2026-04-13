@@ -19,14 +19,8 @@ export interface PostMarker {
   lat: number;
   lng: number;
   title?: string;
-  type?: 'store' | 'post' | 'postCluster';
+  type?: 'store' | 'post';
   post?: Post;
-  mirrored?: boolean;
-  cluster?: {
-    posts: Post[];
-    centerLat: number;
-    centerLng: number;
-  };
 }
 
 export interface MapProps {

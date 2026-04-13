@@ -383,6 +383,7 @@ type UpdateShopInput struct {
 	Delivery       *DeliveryOptionsInput `json:"delivery,omitempty"`
 	SocialMedia    *SocialMediaInput     `json:"socialMedia,omitempty"`
 	ContactDetails *ContactDetailsInput  `json:"contactDetails,omitempty"`
+	Status         *ShopStatus           `json:"status,omitempty"`
 }
 
 type User struct {

@@ -4,8 +4,7 @@ import { OpenStreetMap, SearchBar, LocationSearchBar } from '../components/Map';
 import { openSideNav } from '../store';
 import { CreatePostModal } from '../components/posts/CreatePostModal';
 import { useCreatePost, usePostsNearLocation } from '../api/graphql/post/usePost';
-import { calculateRadiusFromZoom } from '../utils/maps';
-import { clusterPostsByProximity } from '../components/Map';
+import { calculateRadiusFromZoom, clusterNearbyPosts } from '../utils/maps';
 
 // Helper to convert File to base64
 const fileToBase64 = (file: File): Promise<string> => {
@@ -150,44 +149,22 @@ export function MapPage() {
     // Add post markers from cache (only if zoom > 16)
     let postMarkers: any[] = [];
     if (mapZoom > 16 && cachedPosts.length > 0) {
-      // First create the raw post markers with full post data
+      // First create the raw post markers
       const rawPostMarkers = cachedPosts.map((post: any) => ({
         lat: post.location?.lat || 0,
         lng: post.location?.lng || 0,
-        id: post.id,
-        title: post.title || 'Post',
-        text: post.text || '',
-        photos: post.photos || [],
-        author: post.author || { name: 'Unknown' },
-        likes: post.likes || 0,
-        commentCount: post.commentCount || 0,
-        createdAt: post.createdAt,
+        title: post.title?.substring(0, 30) + (post.title?.length > 30 ? '...' : '') || 'Post',
         type: 'post' as const,
         post: post
       })).filter((m: any) => m.lat && m.lng);
       
-      // Group nearby posts into clusters at center point
-      const { clusters, singles } = clusterPostsByProximity(rawPostMarkers, 50);
-      
-      // Single posts as individual markers
-      const singleMarkers = singles.map(post => ({
-        lat: post.lat,
-        lng: post.lng,
-        title: post.title?.substring(0, 30) + (post.title?.length > 30 ? '...' : '') || 'Post',
+      // Cluster nearby posts to prevent overlapping (50m threshold, 0m spacing)
+      const clusteredMarkers = clusterNearbyPosts(rawPostMarkers, 50, 0);
+      postMarkers = clusteredMarkers.map((marker: any) => ({
+        ...marker,
+        title: marker.post.title?.substring(0, 30) + (marker.post.title?.length > 30 ? '...' : '') || 'Post',
         type: 'post' as const,
-        post,
       }));
-      
-      // Clusters as combined markers
-      const clusterMarkers = clusters.map(cluster => ({
-        lat: cluster.centerLat,
-        lng: cluster.centerLng,
-        title: `${cluster.posts.length} posts`,
-        type: 'postCluster' as const,
-        cluster,
-      }));
-      
-      postMarkers = [...singleMarkers, ...clusterMarkers];
     }
     
     // Combine stores and posts

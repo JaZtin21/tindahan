@@ -11,9 +11,6 @@ import {
   getPostIcon,
   getPostPopupHtml,
 } from './PostMarker';
-import {
-  createPostClusterMarker,
-} from './PostClusterMarker';
 
 export function OpenStreetMap({ center, zoom, onMapClick, onMarkerClick, onMapMoveEnd, markers = [], currentLocation }: MapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
@@ -112,16 +109,11 @@ export function OpenStreetMap({ center, zoom, onMapClick, onMarkerClick, onMapMo
           // Create conversation bubble marker for posts
           const post = markerData.post;
 
-          const bubbleIcon = getPostIcon(L, post, markerData.mirrored);
+          const bubbleIcon = getPostIcon(L, post);
 
           const marker = L.marker([markerData.lat, markerData.lng], { icon: bubbleIcon })
             .bindPopup(getPostPopupHtml(post));
           
-          markersLayerRef.current.addLayer(marker);
-        } else if (markerData.type === 'postCluster' && markerData.cluster) {
-          // Create cluster marker containing multiple posts in grid
-          const cluster = markerData.cluster;
-          const marker = createPostClusterMarker(L, cluster);
           markersLayerRef.current.addLayer(marker);
         } else {
           // Store marker (original style)
@@ -217,16 +209,11 @@ export function OpenStreetMap({ center, zoom, onMapClick, onMarkerClick, onMapMo
           // Create conversation bubble marker for posts
           const post = markerData.post;
 
-          const bubbleIcon = getPostIcon(L, post, markerData.mirrored);
+          const bubbleIcon = getPostIcon(L, post);
 
           const marker = L.marker([markerData.lat, markerData.lng], { icon: bubbleIcon })
             .bindPopup(getPostPopupHtml(post));
           
-          markersLayerRef.current.addLayer(marker);
-        } else if (markerData.type === 'postCluster' && markerData.cluster) {
-          // Create cluster marker containing multiple posts in grid
-          const cluster = markerData.cluster;
-          const marker = createPostClusterMarker(L, cluster);
           markersLayerRef.current.addLayer(marker);
         } else {
           // Store marker (original style)
