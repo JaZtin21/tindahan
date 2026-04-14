@@ -3451,6 +3451,35 @@ func (ec *executionContext) fieldContext_Item_isActive(_ context.Context, field 
 	return fc, nil
 }
 
+func (ec *executionContext) _Item_rating(ctx context.Context, field graphql.CollectedField, obj *Item) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Item_rating,
+		func(ctx context.Context) (any, error) {
+			return obj.Rating, nil
+		},
+		nil,
+		ec.marshalOFloat2ᚖfloat64,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Item_rating(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Item",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Item_discount(ctx context.Context, field graphql.CollectedField, obj *Item) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -11283,6 +11312,8 @@ func (ec *executionContext) _Item(ctx context.Context, sel ast.SelectionSet, obj
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "rating":
+			out.Values[i] = ec._Item_rating(ctx, field, obj)
 		case "discount":
 			out.Values[i] = ec._Item_discount(ctx, field, obj)
 		case "createdAt":

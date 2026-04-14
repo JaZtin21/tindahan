@@ -19,6 +19,7 @@ type ProductRepository interface {
 	DeleteProduct(ctx context.Context, productID primitive.ObjectID) error
 	SearchProducts(ctx context.Context, req *domain.ProductSearchRequest) ([]*domain.Product, int64, error)
 	GetMyProducts(ctx context.Context, storeID primitive.ObjectID, page, limit int) ([]*domain.Product, int64, error)
+	GetTopRatedProductsByShop(ctx context.Context, storeID primitive.ObjectID, limit int) ([]*domain.Product, error)
 }
 
 type productRepository struct {
@@ -35,7 +36,7 @@ func (r *productRepository) CreateProduct(ctx context.Context, product *domain.P
 	product.CreatedAt = time.Now()
 	product.UpdatedAt = time.Now()
 	product.IsActive = true
-	
+
 	_, err := r.collection.InsertOne(ctx, product)
 	return err
 }
@@ -51,7 +52,7 @@ func (r *productRepository) GetProductByID(ctx context.Context, productID primit
 
 func (r *productRepository) UpdateProduct(ctx context.Context, productID primitive.ObjectID, updates *domain.UpdateProductRequest) error {
 	updateDoc := bson.M{}
-	
+
 	if updates.Name != nil {
 		updateDoc["name"] = *updates.Name
 	}
@@ -73,9 +74,9 @@ func (r *productRepository) UpdateProduct(ctx context.Context, productID primiti
 	if updates.IsActive != nil {
 		updateDoc["is_active"] = *updates.IsActive
 	}
-	
+
 	updateDoc["updated_at"] = time.Now()
-	
+
 	_, err := r.collection.UpdateOne(
 		ctx,
 		bson.M{"_id": productID},
@@ -91,7 +92,7 @@ func (r *productRepository) DeleteProduct(ctx context.Context, productID primiti
 
 func (r *productRepository) SearchProducts(ctx context.Context, req *domain.ProductSearchRequest) ([]*domain.Product, int64, error) {
 	filter := bson.M{"is_active": true}
-	
+
 	// Text search
 	if req.Query != "" {
 		filter["$or"] = []bson.M{
@@ -100,12 +101,12 @@ func (r *productRepository) SearchProducts(ctx context.Context, req *domain.Prod
 			{"category": bson.M{"$regex": req.Query, "$options": "i"}},
 		}
 	}
-	
+
 	// Category filter
 	if req.Category != "" {
 		filter["category"] = req.Category
 	}
-	
+
 	// Store filter
 	if req.StoreID != "" {
 		storeID, err := primitive.ObjectIDFromHex(req.StoreID)
@@ -113,7 +114,7 @@ func (r *productRepository) SearchProducts(ctx context.Context, req *domain.Prod
 			filter["store_id"] = storeID
 		}
 	}
-	
+
 	// Price range filter
 	if req.MinPrice > 0 || req.MaxPrice > 0 {
 		priceFilter := bson.M{}
@@ -125,12 +126,12 @@ func (r *productRepository) SearchProducts(ctx context.Context, req *domain.Prod
 		}
 		filter["price"] = priceFilter
 	}
-	
+
 	// Stock filter
 	if req.InStock {
 		filter["stock"] = bson.M{"$gt": 0}
 	}
-	
+
 	// Pagination
 	if req.Page <= 0 {
 		req.Page = 1
@@ -138,9 +139,9 @@ func (r *productRepository) SearchProducts(ctx context.Context, req *domain.Prod
 	if req.Limit <= 0 {
 		req.Limit = 10
 	}
-	
+
 	skip := (req.Page - 1) * req.Limit
-	
+
 	cursor, err := r.collection.Find(
 		ctx,
 		filter,
@@ -175,9 +176,9 @@ func (r *productRepository) GetMyProducts(ctx context.Context, storeID primitive
 	if limit <= 0 {
 		limit = 10
 	}
-	
+
 	skip := (page - 1) * limit
-	
+
 	cursor, err := r.collection.Find(
 		ctx,
 		bson.M{"store_id": storeID},
@@ -203,4 +204,36 @@ func (r *productRepository) GetMyProducts(ctx context.Context, storeID primitive
 	}
 
 	return products, total, nil
+}
+
+func (r *productRepository) GetTopRatedProductsByShop(ctx context.Context, storeID primitive.ObjectID, limit int) ([]*domain.Product, error) {
+	if limit <= 0 {
+		limit = 5
+	}
+	if limit > 10 {
+		limit = 10 // Cap at 10 to prevent abuse
+	}
+
+	cursor, err := r.collection.Find(
+		ctx,
+		bson.M{"store_id": storeID, "is_active": true},
+		options.Find().
+			SetLimit(int64(limit)).
+			SetSort(bson.M{"rating": -1, "created_at": -1}),
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var products []*domain.Product
+	for cursor.Next(ctx) {
+		var product domain.Product
+		if err := cursor.Decode(&product); err != nil {
+			return nil, err
+		}
+		products = append(products, &product)
+	}
+
+	return products, nil
 }

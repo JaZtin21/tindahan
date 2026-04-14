@@ -16,6 +16,7 @@ type Product struct {
 	StoreID     primitive.ObjectID `bson:"store_id" json:"store_id" validate:"required"`
 	Stock       int                `bson:"stock" json:"stock" validate:"min=0"`
 	IsActive    bool               `bson:"is_active" json:"is_active"`
+	Rating      float64            `bson:"rating" json:"rating"`
 	CreatedAt   time.Time          `bson:"created_at" json:"created_at"`
 	UpdatedAt   time.Time          `bson:"updated_at" json:"updated_at"`
 }
@@ -56,12 +57,12 @@ type UpdateProductRequest struct {
 }
 
 type ProductSearchRequest struct {
-	Query    string `json:"query" form:"query"`
-	Category string `json:"category" form:"category"`
-	StoreID  string `json:"store_id" form:"store_id"`
+	Query    string  `json:"query" form:"query"`
+	Category string  `json:"category" form:"category"`
+	StoreID  string  `json:"store_id" form:"store_id"`
 	MinPrice float64 `json:"min_price" form:"min_price"`
 	MaxPrice float64 `json:"max_price" form:"max_price"`
-	InStock  bool   `json:"in_stock" form:"in_stock"`
-	Page     int    `json:"page" form:"page"`
-	Limit    int    `json:"limit" form:"limit"`
+	InStock  bool    `json:"in_stock" form:"in_stock"`
+	Page     int     `json:"page" form:"page"`
+	Limit    int     `json:"limit" form:"limit"`
 }

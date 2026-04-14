@@ -138,6 +138,7 @@ export const CREATE_ITEM_MUTATION = gql`
         origin
         tags
         isActive
+        rating
         discount {
           percentage
           validUntil
@@ -222,6 +223,7 @@ export interface Item {
   origin?: string;
   tags: string[];
   isActive: boolean;
+  rating?: number;
   discount?: Discount;
   createdAt?: string;
   updatedAt?: string;

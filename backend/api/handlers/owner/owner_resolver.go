@@ -218,6 +218,23 @@ func (r *OwnerResolver) UpdateShop(ctx context.Context, shopId, ownerId string, 
 		}, err
 	}
 
+	// Verify ownership - fetch shop and check if ownerId matches
+	store, err := r.storeRepo.GetStoreByID(ctx, shopObjectID)
+	if err != nil {
+		return map[string]interface{}{
+			"success": false,
+			"message": "Shop not found",
+		}, err
+	}
+
+	ownerObjectID, _ := primitive.ObjectIDFromHex(ownerId)
+	if store.OwnerID != ownerObjectID {
+		return map[string]interface{}{
+			"success": false,
+			"message": "Unauthorized: You can only update your own shops",
+		}, nil
+	}
+
 	// Build update request with all fields
 	updates := &domain.UpdateStoreRequest{}
 
@@ -260,7 +277,7 @@ func (r *OwnerResolver) UpdateShop(ctx context.Context, shopId, ownerId string, 
 	}
 
 	// Fetch updated store
-	store, err := r.storeRepo.GetStoreByID(ctx, shopObjectID)
+	updatedStore, err := r.storeRepo.GetStoreByID(ctx, shopObjectID)
 	if err != nil {
 		return map[string]interface{}{
 			"success": true,
@@ -274,7 +291,7 @@ func (r *OwnerResolver) UpdateShop(ctx context.Context, shopId, ownerId string, 
 	}
 
 	// Ensure verification always has a value (required by GraphQL schema)
-	verification := store.Verification
+	verification := updatedStore.Verification
 	if !verification.IsVerified && verification.VerifiedDate == "" && verification.VerificationID == "" {
 		verification = domain.Verification{
 			IsVerified: false,
@@ -285,22 +302,22 @@ func (r *OwnerResolver) UpdateShop(ctx context.Context, shopId, ownerId string, 
 		"success": true,
 		"message": "Shop updated successfully",
 		"data": map[string]interface{}{
-			"id":             store.ID.Hex(),
-			"name":           store.Name,
-			"location":       store.Address,
-			"coordinates":    map[string]float64{"lat": store.Latitude, "lng": store.Longitude},
-			"coverPhoto":     store.CoverPhoto,
-			"otherPhotos":    store.OtherPhotos,
-			"businessHours":  store.BusinessHours,
-			"businessType":   store.BusinessType,
-			"paymentMethods": store.PaymentMethods,
-			"delivery":       store.Delivery,
-			"socialMedia":    store.SocialMedia,
+			"id":             updatedStore.ID.Hex(),
+			"name":           updatedStore.Name,
+			"location":       updatedStore.Address,
+			"coordinates":    map[string]float64{"lat": updatedStore.Latitude, "lng": updatedStore.Longitude},
+			"coverPhoto":     updatedStore.CoverPhoto,
+			"otherPhotos":    updatedStore.OtherPhotos,
+			"businessHours":  updatedStore.BusinessHours,
+			"businessType":   updatedStore.BusinessType,
+			"paymentMethods": updatedStore.PaymentMethods,
+			"delivery":       updatedStore.Delivery,
+			"socialMedia":    updatedStore.SocialMedia,
 			"verification":   verification,
-			"contactDetails": store.ContactDetails,
-			"status":         store.Status,
-			"createdAt":      store.CreatedAt.Format(time.RFC3339),
-			"updatedAt":      store.UpdatedAt.Format(time.RFC3339),
+			"contactDetails": updatedStore.ContactDetails,
+			"status":         updatedStore.Status,
+			"createdAt":      updatedStore.CreatedAt.Format(time.RFC3339),
+			"updatedAt":      updatedStore.UpdatedAt.Format(time.RFC3339),
 			"createdBy":      ownerId,
 		},
 	}, nil
@@ -315,6 +332,23 @@ func (r *OwnerResolver) DeleteShop(ctx context.Context, shopId, ownerId string) 
 			"success": false,
 			"message": "Invalid shop ID format",
 		}, err
+	}
+
+	// Verify ownership - fetch shop and check if ownerId matches
+	store, err := r.storeRepo.GetStoreByID(ctx, shopObjectID)
+	if err != nil {
+		return map[string]interface{}{
+			"success": false,
+			"message": "Shop not found",
+		}, err
+	}
+
+	ownerObjectID, _ := primitive.ObjectIDFromHex(ownerId)
+	if store.OwnerID != ownerObjectID {
+		return map[string]interface{}{
+			"success": false,
+			"message": "Unauthorized: You can only delete your own shops",
+		}, nil
 	}
 
 	// Delete from database
@@ -403,6 +437,7 @@ func (r *OwnerResolver) GetOwnerItems(ctx context.Context, ownerId string, page,
 			"category":    product.Category,
 			"stock":       product.Stock,
 			"isActive":    product.IsActive,
+			"rating":      product.Rating,
 			"shopId":      product.StoreID.Hex(),
 			"createdAt":   product.CreatedAt.Format(time.RFC3339),
 			"updatedAt":   product.UpdatedAt.Format(time.RFC3339),
@@ -466,10 +501,57 @@ func (r *OwnerResolver) CreateItem(ctx context.Context, ownerId, shopId string, 
 			"price":       product.Price,
 			"stock":       product.Stock,
 			"isActive":    product.IsActive,
+			"rating":      product.Rating,
 			"shopId":      shopId,
 			"createdAt":   product.CreatedAt.Format(time.RFC3339),
 			"updatedAt":   product.UpdatedAt.Format(time.RFC3339),
 		},
+	}, nil
+}
+
+// GetTopRatedItemsByShop retrieves top rated items for a shop preview
+func (r *OwnerResolver) GetTopRatedItemsByShop(ctx context.Context, shopId string, limit int) (map[string]interface{}, error) {
+	// Convert shopId to ObjectID
+	shopObjectID, err := primitive.ObjectIDFromHex(shopId)
+	if err != nil {
+		return map[string]interface{}{
+			"success": false,
+			"message": "Invalid shop ID format",
+		}, err
+	}
+
+	// Get top rated products
+	products, err := r.productRepo.GetTopRatedProductsByShop(ctx, shopObjectID, limit)
+	if err != nil {
+		return map[string]interface{}{
+			"success": false,
+			"message": "Failed to fetch top rated items: " + err.Error(),
+		}, err
+	}
+
+	// Convert to response format
+	data := make([]map[string]interface{}, len(products))
+	for i, product := range products {
+		data[i] = map[string]interface{}{
+			"id":          product.ID.Hex(),
+			"name":        product.Name,
+			"price":       product.Price,
+			"description": product.Description,
+			"category":    product.Category,
+			"stock":       product.Stock,
+			"isActive":    product.IsActive,
+			"rating":      product.Rating,
+			"shopId":      product.StoreID.Hex(),
+			"createdAt":   product.CreatedAt.Format(time.RFC3339),
+			"updatedAt":   product.UpdatedAt.Format(time.RFC3339),
+		}
+	}
+
+	return map[string]interface{}{
+		"success": true,
+		"message": "Top rated items retrieved successfully",
+		"data":    data,
+		"total":   len(products),
 	}, nil
 }
 
@@ -489,6 +571,33 @@ func (r *OwnerResolver) UpdateItem(ctx context.Context, itemId, ownerId string, 
 		}, err
 	}
 
+	// Verify ownership - fetch item and check if owner owns the shop
+	product, err := r.productRepo.GetProductByID(ctx, objectID)
+	if err != nil {
+		return map[string]interface{}{
+			"success": false,
+			"message": "Item not found",
+		}, err
+	}
+
+	// Fetch the shop that owns this item
+	store, err := r.storeRepo.GetStoreByID(ctx, product.StoreID)
+	if err != nil {
+		return map[string]interface{}{
+			"success": false,
+			"message": "Shop not found for this item",
+		}, err
+	}
+
+	// Check if requesting user owns the shop
+	ownerObjectID, _ := primitive.ObjectIDFromHex(ownerId)
+	if store.OwnerID != ownerObjectID {
+		return map[string]interface{}{
+			"success": false,
+			"message": "Unauthorized: You can only update items in your own shops",
+		}, nil
+	}
+
 	// Build update request
 	updates := &domain.UpdateProductRequest{
 		Name:  &name,
@@ -504,7 +613,7 @@ func (r *OwnerResolver) UpdateItem(ctx context.Context, itemId, ownerId string, 
 	}
 
 	// Fetch updated product
-	product, err := r.productRepo.GetProductByID(ctx, objectID)
+	updatedProduct, err := r.productRepo.GetProductByID(ctx, objectID)
 	if err != nil {
 		return map[string]interface{}{
 			"success": true,
@@ -521,13 +630,13 @@ func (r *OwnerResolver) UpdateItem(ctx context.Context, itemId, ownerId string, 
 		"success": true,
 		"message": "Item updated successfully",
 		"data": map[string]interface{}{
-			"id":        product.ID.Hex(),
-			"name":      product.Name,
-			"price":     product.Price,
-			"stock":     product.Stock,
-			"isActive":  product.IsActive,
-			"shopId":    product.StoreID.Hex(),
-			"updatedAt": product.UpdatedAt.Format(time.RFC3339),
+			"id":        updatedProduct.ID.Hex(),
+			"name":      updatedProduct.Name,
+			"price":     updatedProduct.Price,
+			"stock":     updatedProduct.Stock,
+			"isActive":  updatedProduct.IsActive,
+			"shopId":    updatedProduct.StoreID.Hex(),
+			"updatedAt": updatedProduct.UpdatedAt.Format(time.RFC3339),
 		},
 	}, nil
 }
@@ -541,6 +650,33 @@ func (r *OwnerResolver) DeleteItem(ctx context.Context, itemId, ownerId string) 
 			"success": false,
 			"message": "Invalid item ID format",
 		}, err
+	}
+
+	// Verify ownership - fetch item and check if owner owns the shop
+	product, err := r.productRepo.GetProductByID(ctx, objectID)
+	if err != nil {
+		return map[string]interface{}{
+			"success": false,
+			"message": "Item not found",
+		}, err
+	}
+
+	// Fetch the shop that owns this item
+	store, err := r.storeRepo.GetStoreByID(ctx, product.StoreID)
+	if err != nil {
+		return map[string]interface{}{
+			"success": false,
+			"message": "Shop not found for this item",
+		}, err
+	}
+
+	// Check if requesting user owns the shop
+	ownerObjectID, _ := primitive.ObjectIDFromHex(ownerId)
+	if store.OwnerID != ownerObjectID {
+		return map[string]interface{}{
+			"success": false,
+			"message": "Unauthorized: You can only delete items in your own shops",
+		}, nil
 	}
 
 	// Delete from database

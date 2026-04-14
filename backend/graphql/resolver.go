@@ -332,6 +332,27 @@ func (r *mutationResolver) CreateItem(ctx context.Context, input CreateItemInput
 
 	data := result["data"].(map[string]interface{})
 
+	// Handle stock type
+	var stock int
+	switch v := data["stock"].(type) {
+	case int:
+		stock = v
+	case int32:
+		stock = int(v)
+	case int64:
+		stock = int(v)
+	case float64:
+		stock = int(v)
+	default:
+		stock = 0
+	}
+
+	// Handle rating
+	var ratingPtr *float64
+	if r, ok := data["rating"].(float64); ok && r > 0 {
+		ratingPtr = &r
+	}
+
 	return &ItemPayload{
 		Success: result["success"].(bool),
 		Message: result["message"].(string),
@@ -341,8 +362,9 @@ func (r *mutationResolver) CreateItem(ctx context.Context, input CreateItemInput
 			Description: data["description"].(string),
 			Category:    data["category"].(string),
 			Price:       data["price"].(float64),
-			Stock:       data["stock"].(int),
+			Stock:       stock,
 			IsActive:    data["isActive"].(bool),
+			Rating:      ratingPtr,
 		},
 	}, nil
 }
@@ -1250,6 +1272,11 @@ func (r *queryResolver) MyItems(ctx context.Context, page *int, limit *int) (*It
 		default:
 			stock = 0
 		}
+		// Handle rating
+		var ratingPtr *float64
+		if r, ok := itemMap["rating"].(float64); ok && r > 0 {
+			ratingPtr = &r
+		}
 		items[i] = &Item{
 			ID:          itemMap["id"].(string),
 			Name:        itemMap["name"].(string),
@@ -1258,6 +1285,68 @@ func (r *queryResolver) MyItems(ctx context.Context, page *int, limit *int) (*It
 			Price:       itemMap["price"].(float64),
 			Stock:       stock,
 			IsActive:    itemMap["isActive"].(bool),
+			Rating:      ratingPtr,
+			ShopID:      itemMap["shopId"].(string),
+		}
+	}
+
+	return &ItemsPayload{
+		Success: result["success"].(bool),
+		Message: result["message"].(string),
+		Data:    items,
+	}, nil
+}
+
+// TopRatedItems is the resolver for the topRatedItems field.
+func (r *queryResolver) TopRatedItems(ctx context.Context, shopID string, limit *int) (*ItemsPayload, error) {
+	limitVal := 5
+	if limit != nil && *limit > 0 {
+		limitVal = *limit
+		if limitVal > 10 {
+			limitVal = 10 // Cap at 10
+		}
+	}
+
+	result, err := r.ownerResolver.GetTopRatedItemsByShop(ctx, shopID, limitVal)
+	if err != nil {
+		return &ItemsPayload{
+			Success: false,
+			Message: err.Error(),
+			Data:    []*Item{},
+		}, nil
+	}
+
+	data := result["data"].([]map[string]interface{})
+	items := make([]*Item, len(data))
+	for i, itemMap := range data {
+		// Handle stock type
+		var stock int
+		switch v := itemMap["stock"].(type) {
+		case int:
+			stock = v
+		case int32:
+			stock = int(v)
+		case int64:
+			stock = int(v)
+		case float64:
+			stock = int(v)
+		default:
+			stock = 0
+		}
+		// Handle rating
+		var ratingPtr *float64
+		if r, ok := itemMap["rating"].(float64); ok && r > 0 {
+			ratingPtr = &r
+		}
+		items[i] = &Item{
+			ID:          itemMap["id"].(string),
+			Name:        itemMap["name"].(string),
+			Description: itemMap["description"].(string),
+			Category:    itemMap["category"].(string),
+			Price:       itemMap["price"].(float64),
+			Stock:       stock,
+			IsActive:    itemMap["isActive"].(bool),
+			Rating:      ratingPtr,
 			ShopID:      itemMap["shopId"].(string),
 		}
 	}

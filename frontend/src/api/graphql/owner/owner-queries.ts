@@ -87,6 +87,7 @@ export const GET_OWNER_ITEMS_QUERY = gql`
         origin
         tags
         isActive
+        rating
         discount {
           percentage
           validUntil

@@ -4,6 +4,7 @@ extend type Query {
   item(id: ObjectID!): ItemPayload
   items(input: ProductSearchInput): ItemsPayload
   myItems(page: Int, limit: Int): ItemsPayload
+  topRatedItems(shopId: ObjectID!, limit: Int): ItemsPayload
 }
 
 extend type Mutation {
@@ -32,6 +33,7 @@ type Item {
   origin: String
   tags: [String!]!
   isActive: Boolean!
+  rating: Float
   discount: Discount
   createdAt: Time
   updatedAt: Time

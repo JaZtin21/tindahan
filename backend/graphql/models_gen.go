@@ -170,6 +170,7 @@ type Item struct {
 	Origin      *string    `json:"origin,omitempty"`
 	Tags        []string   `json:"tags"`
 	IsActive    bool       `json:"isActive"`
+	Rating      *float64   `json:"rating,omitempty"`
 	Discount    *Discount  `json:"discount,omitempty"`
 	CreatedAt   *time.Time `json:"createdAt,omitempty"`
 	UpdatedAt   *time.Time `json:"updatedAt,omitempty"`
