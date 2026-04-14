@@ -86,6 +86,50 @@ export const SHOP_QUERY = gql`
   }
 `;
 
+// Search shops by name (public search)
+export const SEARCH_SHOPS_QUERY = gql`
+  query SearchShops($query: String!, $page: Int, $limit: Int) {
+    searchShops(query: $query, page: $page, limit: $limit) {
+      success
+      message
+      data {
+        id
+        name
+        location
+        coordinates {
+          lat
+          lng
+        }
+        coverPhoto
+        businessType
+        status
+      }
+    }
+  }
+`;
+
+// Get shops by product name (public search)
+export const SHOPS_BY_PRODUCT_QUERY = gql`
+  query ShopsByProduct($productName: String!) {
+    shopsByProduct(productName: $productName) {
+      success
+      message
+      data {
+        id
+        name
+        location
+        coordinates {
+          lat
+          lng
+        }
+        coverPhoto
+        businessType
+        status
+      }
+    }
+  }
+`;
+
 // Note: The 'shops' query was removed from backend. Use myShops (owner only) or search alternatives
 // This query now uses myShops for authenticated users
 export const SHOPS_QUERY = gql`

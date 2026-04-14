@@ -555,13 +555,12 @@ func (r *OwnerResolver) GetTopRatedItemsByShop(ctx context.Context, shopId strin
 	}, nil
 }
 
-// GetProductByID retrieves a product by ID using the repository
 func (r *OwnerResolver) GetProductByID(ctx context.Context, id primitive.ObjectID) (*domain.Product, error) {
 	return r.productRepo.GetProductByID(ctx, id)
 }
 
-// UpdateItem updates an existing item (real DB implementation)
-func (r *OwnerResolver) UpdateItem(ctx context.Context, itemId, ownerId string, name string, price float64) (map[string]interface{}, error) {
+// UpdateItem updates an item (real DB implementation)
+func (r *OwnerResolver) UpdateItem(ctx context.Context, itemId, ownerId string, updates *domain.UpdateProductRequest) (map[string]interface{}, error) {
 	// Convert itemId to ObjectID
 	objectID, err := primitive.ObjectIDFromHex(itemId)
 	if err != nil {
@@ -598,13 +597,7 @@ func (r *OwnerResolver) UpdateItem(ctx context.Context, itemId, ownerId string, 
 		}, nil
 	}
 
-	// Build update request
-	updates := &domain.UpdateProductRequest{
-		Name:  &name,
-		Price: &price,
-	}
-
-	// Update in database
+	// Update in database using the provided updates
 	if err := r.productRepo.UpdateProduct(ctx, objectID, updates); err != nil {
 		return map[string]interface{}{
 			"success": false,
@@ -619,9 +612,7 @@ func (r *OwnerResolver) UpdateItem(ctx context.Context, itemId, ownerId string, 
 			"success": true,
 			"message": "Item updated but failed to fetch updated data",
 			"data": map[string]interface{}{
-				"id":    itemId,
-				"name":  name,
-				"price": price,
+				"id": itemId,
 			},
 		}, nil
 	}

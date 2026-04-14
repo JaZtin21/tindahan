@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useDispatch } from 'react-redux';
+import { useQuery } from '@apollo/client/react';
 import { OpenStreetMap, SearchBar, LocationSearchBar } from '../components/Map';
 import { openSideNav } from '../store';
 import { CreatePostModal } from '../components/posts/CreatePostModal';
 import { useCreatePost, usePostsNearLocation } from '../api/graphql/post/usePost';
+import { SHOPS_BY_PRODUCT_QUERY } from '../api/graphql/shop/shop-queries';
 import { calculateRadiusFromZoom, groupNearbyPosts } from '../utils/maps';
 
 // Helper to convert File to base64
@@ -41,11 +43,15 @@ export function MapPage() {
   const GAP_BETWEEN_POSTS = 500; // Gap between posts disappearing and next appearing
   const TRANSITION_DURATION = 300; // Animation duration for pop in/out
 
-  const [filteredStores, setFilteredStores] = useState([
-    { lat: 14.5995, lng: 120.9842, title: 'Mang Kiko\'s Sari-Sari Store' },
-    { lat: 14.6091, lng: 120.9799, title: 'Aling Nena\'s Grocery' },
-    { lat: 14.5897, lng: 120.9834, title: 'Tindahan ni Tony' },
-  ]);
+  // Store data from API - initially empty, populated by search or load
+  const [filteredStores, setFilteredStores] = useState<{ lat: number; lng: number; title: string; id?: string }[]>([]);
+  
+  // Query to get shops by product name
+  const [productNameForSearch, setProductNameForSearch] = useState<string | null>(null);
+  const { data: shopsByProductData, refetch: refetchShopsByProduct } = useQuery(SHOPS_BY_PRODUCT_QUERY, {
+    variables: { productName: productNameForSearch },
+    skip: !productNameForSearch
+  });
   const [locationQuery, setLocationQuery] = useState('');
   const [currentLocation, setCurrentLocation] = useState<{ lat: number; lng: number; name?: string } | null>(null);
   const [isCreatePostModalOpen, setIsCreatePostModalOpen] = useState(false);
@@ -242,6 +248,29 @@ export function MapPage() {
     setAllMarkers([...storeMarkers, ...visiblePostMarkers]);
   }, [filteredStores, groupedPostClusters, clusterRotations, mapZoom]);
 
+  // Handle product selection - shows stores on map without navigating
+  const handleProductSelect = useCallback(async (productName: string) => {
+    // Fetch stores that have this product
+    setProductNameForSearch(productName);
+    const result = await refetchShopsByProduct({ productName });
+    const shops = result.data?.shopsByProduct?.data || [];
+    
+    // Convert shops to marker format
+    const storeMarkers = shops.map((shop: any) => ({
+      id: shop.id,
+      lat: shop.coordinates?.lat || 0,
+      lng: shop.coordinates?.lng || 0,
+      title: shop.name,
+    })).filter((s: any) => s.lat && s.lng);
+    
+    // Update filtered stores - this will show them on the map
+    setFilteredStores(storeMarkers);
+    
+    // Maintain current zoom level (don't zoom in/out)
+    // Just trigger a search to show the results
+    setSearchQuery(productName);
+  }, [refetchShopsByProduct]);
+
   const handleLocationSelect = (location: { lat: number; lng: number; name: string }) => {
     const newCenter = { lat: location.lat, lng: location.lng };
     setMapCenter(newCenter);
@@ -354,12 +383,20 @@ export function MapPage() {
     }
   };
 
-  const handleStoreSelect = (store: { lat: number; lng: number; name: string }) => {
+  const handleStoreSelect = (store: { lat: number; lng: number; name: string; id?: string }) => {
     console.log('Flying to store:', store);
     const newCenter = { lat: store.lat, lng: store.lng };
     setMapCenter(newCenter);
     setMapZoom(20);
     lastFetchCenterRef.current = { lat: store.lat, lng: store.lng };
+    
+    // Add store to filtered stores so marker appears
+    setFilteredStores([{
+      lat: store.lat,
+      lng: store.lng,
+      title: store.name,
+      id: store.id || 'selected-store'
+    }]);
     
     // Fetch posts immediately for store location
     if (!postsLoading) {
@@ -445,6 +482,7 @@ export function MapPage() {
           <SearchBar 
             onSearch={handleSearch}
             onStoreSelect={handleStoreSelect}
+            onProductSelect={handleProductSelect}
             placeholder="Search for stores or products near you"
           />
         </div>

@@ -3,6 +3,8 @@
 extend type Query {
   shop(id: ObjectID!): ShopPayload
   myShops(page: Int, limit: Int): ShopsPayload
+  searchShops(query: String!, page: Int, limit: Int): ShopsPayload
+  shopsByProduct(productName: String!): ShopsPayload
 }
 
 extend type Mutation {

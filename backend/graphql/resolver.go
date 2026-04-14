@@ -4,6 +4,7 @@ package graphql
 
 import (
 	"context"
+	"fmt"
 	"time"
 	"tindahan-backend/api/handlers/auth"
 	"tindahan-backend/api/handlers/middleware"
@@ -13,10 +14,30 @@ import (
 	"tindahan-backend/api/handlers/shop"
 	"tindahan-backend/api/handlers/user"
 	"tindahan-backend/domain"
+	"tindahan-backend/repository"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
+
+// Helper functions for safe type extraction
+func getStringValue(m map[string]interface{}, key string) string {
+	if val, ok := m[key]; ok {
+		if s, ok := val.(string); ok {
+			return s
+		}
+	}
+	return ""
+}
+
+func getBoolValue(m map[string]interface{}, key string) bool {
+	if val, ok := m[key]; ok {
+		if b, ok := val.(bool); ok {
+			return b
+		}
+	}
+	return false
+}
 
 type Resolver struct {
 	authResolver    *auth.AuthResolver
@@ -25,6 +46,8 @@ type Resolver struct {
 	productResolver *product.ProductResolver
 	ownerResolver   *owner.OwnerResolver
 	postResolver    *post.PostResolver
+	storeRepo       repository.StoreRepository
+	productRepo     repository.ProductRepository
 	db              *mongo.Database
 	jwtSecret       string
 }
@@ -378,7 +401,26 @@ func (r *mutationResolver) UpdateItem(ctx context.Context, id string, input Upda
 			Message: "Authentication required",
 		}, nil
 	}
-	result, err := r.ownerResolver.UpdateItem(ctx, id, userID, *input.Name, *input.Price)
+
+	// Build update request with optional fields
+	updates := &domain.UpdateProductRequest{}
+	if input.Name != nil {
+		updates.Name = input.Name
+	}
+	if input.Price != nil {
+		updates.Price = input.Price
+	}
+	if input.Description != nil {
+		updates.Description = input.Description
+	}
+	if input.Category != nil {
+		updates.Category = input.Category
+	}
+	if input.Stock != nil {
+		updates.Stock = input.Stock
+	}
+
+	result, err := r.ownerResolver.UpdateItem(ctx, id, userID, updates)
 	if err != nil {
 		return &ItemPayload{
 			Success: false,
@@ -1223,16 +1265,32 @@ func (r *queryResolver) Items(ctx context.Context, input *ProductSearchInput) (*
 		limitVal = *input.Limit
 	}
 
-	result, _ := r.productResolver.Items(ctx, pageVal, limitVal)
+	result, _ := r.productResolver.Items(ctx, pageVal, limitVal, input.Query)
 	data := result["data"].([]map[string]interface{})
 	items := make([]*Item, len(data))
 	for i, itemMap := range data {
+		// Safely extract stock value (could be int or float64)
+		var stockVal int
+		if s, ok := itemMap["stock"].(int); ok {
+			stockVal = s
+		} else if s, ok := itemMap["stock"].(float64); ok {
+			stockVal = int(s)
+		}
+
+		// Safely extract price value
+		var priceVal float64
+		if p, ok := itemMap["price"].(float64); ok {
+			priceVal = p
+		} else if p, ok := itemMap["price"].(int); ok {
+			priceVal = float64(p)
+		}
+
 		items[i] = &Item{
-			ID:       itemMap["id"].(string),
-			Name:     itemMap["name"].(string),
-			Price:    itemMap["price"].(float64),
-			Stock:    int(itemMap["stock"].(float64)),
-			IsActive: itemMap["isActive"].(bool),
+			ID:       getStringValue(itemMap, "id"),
+			Name:     getStringValue(itemMap, "name"),
+			Price:    priceVal,
+			Stock:    stockVal,
+			IsActive: getBoolValue(itemMap, "isActive"),
 		}
 	}
 
@@ -1540,6 +1598,134 @@ func (r *queryResolver) MyShops(ctx context.Context, page *int, limit *int) (*Sh
 	}, nil
 }
 
+// SearchShops is the resolver for the searchShops field.
+func (r *queryResolver) SearchShops(ctx context.Context, query string, page *int, limit *int) (*ShopsPayload, error) {
+	pageVal := 1
+	limitVal := 10
+	if page != nil {
+		pageVal = *page
+	}
+	if limit != nil {
+		limitVal = *limit
+	}
+
+	req := &domain.StoreSearchRequest{
+		Query: query,
+		Page:  pageVal,
+		Limit: limitVal,
+	}
+
+	stores, total, err := r.storeRepo.SearchStores(ctx, req)
+	if err != nil {
+		return &ShopsPayload{
+			Success: false,
+			Message: err.Error(),
+			Data:    []*Shop{},
+		}, nil
+	}
+
+	shops := make([]*Shop, len(stores))
+	for i, store := range stores {
+		shop := &Shop{
+			ID:       store.ID.Hex(),
+			Name:     store.Name,
+			Location: store.Address,
+			Status:   ShopStatus(store.Status),
+		}
+
+		// Parse createdAt
+		var createdAt time.Time
+		if !store.CreatedAt.IsZero() {
+			createdAt = store.CreatedAt
+		}
+		shop.CreatedAt = createdAt
+
+		// Add coordinates if present
+		if store.Latitude != 0 && store.Longitude != 0 {
+			shop.Coordinates = &Coordinates{
+				Lat: store.Latitude,
+				Lng: store.Longitude,
+			}
+		}
+
+		shops[i] = shop
+	}
+
+	return &ShopsPayload{
+		Success: true,
+		Message: fmt.Sprintf("Found %d shops", total),
+		Data:    shops,
+	}, nil
+}
+
+// ShopsByProduct is the resolver for the shopsByProduct field.
+func (r *queryResolver) ShopsByProduct(ctx context.Context, productName string) (*ShopsPayload, error) {
+	// Search for products with matching name
+	req := &domain.ProductSearchRequest{
+		Query: productName,
+		Limit: 100,
+	}
+
+	products, _, err := r.productRepo.SearchProducts(ctx, req)
+	if err != nil {
+		return &ShopsPayload{
+			Success: false,
+			Message: err.Error(),
+			Data:    []*Shop{},
+		}, nil
+	}
+
+	// Collect unique store IDs
+	storeIDMap := make(map[string]bool)
+	var storeIDs []primitive.ObjectID
+	for _, product := range products {
+		storeID := product.StoreID.Hex()
+		if !storeIDMap[storeID] {
+			storeIDMap[storeID] = true
+			storeIDs = append(storeIDs, product.StoreID)
+		}
+	}
+
+	// Fetch store details for each unique store ID
+	var shops []*Shop
+	for _, storeID := range storeIDs {
+		store, err := r.storeRepo.GetStoreByID(ctx, storeID)
+		if err != nil {
+			continue // Skip if store not found
+		}
+
+		shop := &Shop{
+			ID:       store.ID.Hex(),
+			Name:     store.Name,
+			Location: store.Address,
+			Status:   ShopStatus(store.Status),
+		}
+
+		// Parse createdAt
+		var createdAt time.Time
+		if !store.CreatedAt.IsZero() {
+			createdAt = store.CreatedAt
+		}
+		shop.CreatedAt = createdAt
+
+		// Add coordinates if present
+		if store.Latitude != 0 && store.Longitude != 0 {
+			shop.Coordinates = &Coordinates{
+				Lat: store.Latitude,
+				Lng: store.Longitude,
+			}
+		}
+
+		shops = append(shops, shop)
+	}
+
+	return &ShopsPayload{
+		Success: true,
+		Message: fmt.Sprintf("Found %d shops with product '%s'", len(shops), productName),
+		Data:    shops,
+	}, nil
+}
+
 // Users is the resolver for the users field.
 func (r *queryResolver) Users(ctx context.Context, page *int, limit *int) ([]*User, error) {
 	pageVal := 1
@@ -1602,9 +1788,11 @@ func NewResolver(db *mongo.Database, jwtSecret string) *Resolver {
 		authResolver:    auth.NewAuthResolver(db, jwtSecret),
 		userResolver:    user.NewUserResolver(db),
 		shopResolver:    shop.NewShopResolver(db),
-		productResolver: product.NewProductResolver(),
+		productResolver: product.NewProductResolver(repository.NewProductRepository(db)),
 		ownerResolver:   owner.NewOwnerResolver(db),
 		postResolver:    post.NewPostResolver(db),
+		storeRepo:       repository.NewStoreRepository(db),
+		productRepo:     repository.NewProductRepository(db),
 		db:              db,
 		jwtSecret:       jwtSecret,
 	}

@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { ShopCard, AddItemForm, InventoryTable, Tabs, Inquiries, ShopForm } from '../../components/owner';
 import { Modal } from '../../components';
 import { useItemManagement, useShopManagement } from '../../hooks';
 import { useAuth } from '../../api/graphql/apolloProviderWithAuth';
-import type { Shop, ActiveTab } from '../../types/owner';
+import type { Shop, ActiveTab, Item } from '../../types/owner';
 
 interface ModalState {
   isOpen: boolean;
@@ -26,6 +26,8 @@ export function OwnerPage() {
   const [shopToDelete, setShopToDelete] = useState<string | null>(null);
   // Track shop with inventory data separately to avoid mutating state
   const [shopWithInventory, setShopWithInventory] = useState<Shop | null>(null);
+  // Track item being edited
+  const [itemToEdit, setItemToEdit] = useState<Item | null>(null);
 
   // Modal helpers
   const showSuccess = (title: string, message: string) => {
@@ -48,12 +50,39 @@ export function OwnerPage() {
     onError: showError,
   });
 
-  const { items, handleAddItem, handleEditItem, handleDeleteItem } = useItemManagement({
+  const { items, handleAddItem, handleEditItem: handleEditItemBase, handleDeleteItem } = useItemManagement({
     selectedShop,
     isAuthenticated,
     onSuccess: showSuccess,
     onError: showError,
+    onConfirmDelete: (item, onConfirm) => showConfirm(
+      'Delete Item?',
+      `Are you sure you want to delete "${item.name}"?`,
+      onConfirm
+    ),
   });
+
+  // Wrapper for edit item that opens edit form
+  const handleEditItem = useCallback((_shopId: string, itemId: string) => {
+    const item = items.find((i) => i.id === itemId);
+    if (item) {
+      setItemToEdit(item);
+      setActiveTab('edit-item');
+    }
+  }, [items]);
+
+  // Handle save edited item
+  const handleSaveEditItem = useCallback(async (item: Item) => {
+    await handleEditItemBase(selectedShop?.id || '', item.id, item);
+    setItemToEdit(null);
+    setActiveTab('inventory');
+  }, [handleEditItemBase, selectedShop]);
+
+  // Cancel edit and go back to inventory
+  const handleCancelEditItem = useCallback(() => {
+    setItemToEdit(null);
+    setActiveTab('inventory');
+  }, []);
 
   // Debug logging
   useEffect(() => {
@@ -135,20 +164,6 @@ export function OwnerPage() {
       setActiveTab('shops');
       setShopToDelete(null);
     }
-  };
-
-  const handleDeleteItemClick = (shopId: string, itemId: string) => {
-    const item = selectedShop?.inventory?.find((i) => i.id === itemId);
-    showConfirm(
-      'Delete Item?',
-      `Are you sure you want to delete "${item?.name || 'this item'}"? This action cannot be undone.`,
-      () => confirmDeleteItem(itemId)
-    );
-  };
-
-  const confirmDeleteItem = async (itemId: string) => {
-    setModal((prev) => ({ ...prev, isOpen: false }));
-    await handleDeleteItem(selectedShop?.id || '', itemId);
   };
 
   const handleCancelShopForm = () => {
@@ -249,7 +264,7 @@ export function OwnerPage() {
           <InventoryTable
             shops={[shopWithInventory]}
             onEditItem={handleEditItem}
-            onDeleteItem={handleDeleteItemClick}
+            onDeleteItem={handleDeleteItem}
           />
         )}
 
@@ -262,6 +277,14 @@ export function OwnerPage() {
             shop={shopWithInventory || selectedShop}
             onSaveShop={handleSaveShop}
             onCancel={handleCancelShopForm}
+          />
+        )}
+
+        {isShopView && activeTab === 'edit-item' && selectedShop && itemToEdit && (
+          <AddItemForm
+            item={itemToEdit}
+            onAddItem={handleSaveEditItem}
+            onCancel={handleCancelEditItem}
           />
         )}
       </div>

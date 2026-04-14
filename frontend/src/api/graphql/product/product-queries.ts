@@ -152,7 +152,7 @@ export const CREATE_ITEM_MUTATION = gql`
 `;
 
 export const UPDATE_ITEM_MUTATION = gql`
-  mutation UpdateItem($id: ID!, $input: UpdateItemInput!) {
+  mutation UpdateItem($id: ObjectID!, $input: UpdateItemInput!) {
     updateItem(id: $id, input: $input) {
       success
       message
@@ -189,7 +189,7 @@ export const UPDATE_ITEM_MUTATION = gql`
 `;
 
 export const DELETE_ITEM_MUTATION = gql`
-  mutation DeleteItem($id: ID!) {
+  mutation DeleteItem($id: ObjectID!) {
     deleteItem(id: $id) {
       success
       message

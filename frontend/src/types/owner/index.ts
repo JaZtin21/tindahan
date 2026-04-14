@@ -1,5 +1,5 @@
 // Owner-specific types and interfaces
-export type ActiveTab = 'shops' | 'add-item' | 'inventory' | 'add-shop' | 'inquiries' | 'edit-shop';
+export type ActiveTab = 'shops' | 'add-item' | 'inventory' | 'add-shop' | 'inquiries' | 'edit-shop' | 'edit-item';
 
 // Re-export Shop and Item types for convenience
 export type { Shop } from '../shop';

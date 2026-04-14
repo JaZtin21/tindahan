@@ -1,23 +1,14 @@
 import { useState } from 'react';
+import { useQuery } from '@apollo/client/react'; // changed import to match codebase pattern
+import { SEARCH_SHOPS_QUERY } from '../../api/graphql/shop/shop-queries';
+import { ITEMS_QUERY } from '../../api/graphql/product/product-queries';
 
 interface SearchBarProps {
   onSearch: (query: string) => void;
   onStoreSelect?: (store: { lat: number; lng: number; name: string }) => void;
+  onProductSelect?: (productName: string, stores: any[]) => void;
   placeholder?: string;
 }
-
-// Test data for stores and products - MATCHING THE MAP MARKERS
-const testData = [
-  { type: 'store', name: 'Mang Kiko\'s Sari-Sari Store', location: 'Quezon City', lat: 14.5995, lng: 120.9842 },
-  { type: 'store', name: 'Aling Nena\'s Grocery', location: 'Manila', lat: 14.6091, lng: 120.9799 },
-  { type: 'store', name: 'Tindahan ni Tony', location: 'Pasay', lat: 14.5897, lng: 120.9834 },
-  { type: 'product', name: 'Pancit Canton', available: 12 },
-  { type: 'product', name: 'Softdrinks (Coke)', available: 8 },
-  { type: 'product', name: 'Instant Noodles', available: 15 },
-  { type: 'product', name: 'Rice', available: 5 },
-  { type: 'product', name: 'Cooking Oil', available: 3 },
-  { type: 'product', name: 'Soap', available: 10 },
-];
 
 // Nominatim geocoding function
 const searchLocation = async (query: string) => {
@@ -52,12 +43,26 @@ const searchLocation = async (query: string) => {
   }
 };
 
-export function SearchBar({ onSearch, onStoreSelect, placeholder = "Search for stores, products, or locations..." }: SearchBarProps) {
+export function SearchBar({ onSearch, onStoreSelect, onProductSelect, placeholder = "Search for stores, products, or locations..." }: SearchBarProps) {
   const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [searchTimeout, setSearchTimeout] = useState<number | null>(null);
+  
+  // GraphQL query states
+  const [shopSearchVars, setShopSearchVars] = useState<any>(null);
+  const [productSearchVars, setProductSearchVars] = useState<any>(null);
+  
+  // GraphQL queries with skip
+  const { data: shopData } = useQuery(SEARCH_SHOPS_QUERY, {
+    variables: shopSearchVars,
+    skip: !shopSearchVars
+  });
+  const { data: productData } = useQuery(ITEMS_QUERY, {
+    variables: productSearchVars,
+    skip: !productSearchVars
+  });
 
   const handleInputChange = (value: string) => {
     setQuery(value);
@@ -70,29 +75,59 @@ export function SearchBar({ onSearch, onStoreSelect, placeholder = "Search for s
     if (value.trim()) {
       setIsLoading(true);
       
-      // Debounce search - wait 800ms after typing stops
+      // Debounce search - wait 300ms after typing stops
       const timeout = setTimeout(async () => {
         console.log('Debounce triggered for:', value);
         
-        // Search local data first (instant)
-        const localResults = testData.filter(item =>
-          item.name.toLowerCase().includes(value.toLowerCase())
-        );
+        // Trigger shop search
+        setShopSearchVars({ query: value, page: 1, limit: 10 });
+        setProductSearchVars({ input: { query: value, page: 1, limit: 10 } });
         
-        // Search for locations (always trigger API)
+        // Wait a bit for queries to load then use the data
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        const shops = shopData?.searchShops?.data || [];
+        const products = productData?.items?.data || [];
+        
+        // Search for locations
         const locationResults = await searchLocation(value);
-        console.log('API results:', locationResults);
+        
+        // Format results
+        const formattedShops = shops.map((shop: any) => ({
+          type: 'store',
+          id: shop.id,
+          name: shop.name,
+          location: shop.location,
+          lat: shop.coordinates?.lat,
+          lng: shop.coordinates?.lng,
+          source: 'api'
+        }));
+        
+        // Format products - only show unique product names
+        const uniqueProducts = new Map();
+        products.forEach((product: any) => {
+          if (!uniqueProducts.has(product.name)) {
+            uniqueProducts.set(product.name, {
+              type: 'product',
+              name: product.name,
+              id: product.id,
+              source: 'api'
+            });
+          }
+        });
+        const formattedProducts = Array.from(uniqueProducts.values());
         
         // Combine results
         const allResults = [
-          ...localResults.map((item: any) => ({ ...item, source: 'local' })),
+          ...formattedShops,
+          ...formattedProducts,
           ...locationResults.map((item: any) => ({ ...item, source: 'geocoding' }))
         ];
         
         setSuggestions(allResults);
         setShowSuggestions(true);
         setIsLoading(false);
-      }, 300); // Reduced to 300ms for faster response
+      }, 300);
       
       setSearchTimeout(timeout);
     } else {
@@ -110,12 +145,13 @@ export function SearchBar({ onSearch, onStoreSelect, placeholder = "Search for s
     }
   };
 
-  const handleSuggestionClick = (suggestion: any) => {
+  const handleSuggestionClick = async (suggestion: any) => {
     setQuery(suggestion.name);
     
-    // If it's a store, call the store select callback
-    if (suggestion.type === 'store' && onStoreSelect && 'lat' in suggestion && 'lng' in suggestion) {
+    // If it's a store, call the store select callback (navigates to shop)
+    if (suggestion.type === 'store' && onStoreSelect && suggestion.lat && suggestion.lng) {
       onStoreSelect({
+        id: suggestion.id,
         lat: suggestion.lat,
         lng: suggestion.lng,
         name: suggestion.name
@@ -123,12 +159,17 @@ export function SearchBar({ onSearch, onStoreSelect, placeholder = "Search for s
     }
     
     // If it's a location, fly to it
-    if (suggestion.type === 'location' && onStoreSelect && 'lat' in suggestion && 'lng' in suggestion) {
+    else if (suggestion.type === 'location' && onStoreSelect && suggestion.lat && suggestion.lng) {
       onStoreSelect({
         lat: suggestion.lat,
         lng: suggestion.lng,
         name: suggestion.name
       });
+    }
+    
+    // If it's a product, fetch stores that have this product and show on map (no navigation)
+    else if (suggestion.type === 'product' && onProductSelect) {
+      onProductSelect(suggestion.name, []);
     }
     
     handleSearch(suggestion.name);
@@ -166,9 +207,9 @@ export function SearchBar({ onSearch, onStoreSelect, placeholder = "Search for s
                   </div>
                   <div className="text-sm text-zinc-500 dark:text-zinc-400">
                     {suggestion.type === 'store' 
-                      ? `📍 ${suggestion.location} (Click to view)`
+                      ? `📍 ${suggestion.location || 'Store'} (Click to view)`
                       : suggestion.type === 'product'
-                      ? `📦 Available in ${suggestion.available} stores`
+                      ? `📦 Click to see stores with this product`
                       : `🌍 ${suggestion.details} (Click to fly here)`
                     }
                   </div>
