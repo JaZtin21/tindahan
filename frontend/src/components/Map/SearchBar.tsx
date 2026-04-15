@@ -1,23 +1,16 @@
-import { useState } from 'react';
-import { useLazyQuery } from '@apollo/client/react'; // useLazyQuery for async data fetching
+import { useState, useRef } from 'react';
+import { useLazyQuery } from '@apollo/client/react';
 import { SEARCH_SHOPS_QUERY } from '../../api/graphql/shop/shop-queries';
 import { ITEMS_QUERY } from '../../api/graphql/product/product-queries';
 import { searchLocation } from '../../utils/maps';
-
-interface SearchBarProps {
-  onSearch: (query: string) => void;
-  onStoreSelect?: (store: { lat: number; lng: number; name: string }) => void;
-  onProductSelect?: (productName: string, stores: any[]) => void;
-  onClearProductStores?: () => void;
-  placeholder?: string;
-}
+import type { SearchBarProps } from '../../types/map';
 
 export function SearchBar({ onSearch, onStoreSelect, onProductSelect, onClearProductStores, placeholder = "Search for stores, products, or locations..." }: SearchBarProps) {
   const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [searchTimeout, setSearchTimeout] = useState<number | null>(null);
+  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
   // GraphQL lazy queries - returns a function we can call to fetch data
   const [searchShops] = useLazyQuery(SEARCH_SHOPS_QUERY);
@@ -27,8 +20,8 @@ export function SearchBar({ onSearch, onStoreSelect, onProductSelect, onClearPro
     setQuery(value);
     
     // Clear previous timeout
-    if (searchTimeout) {
-      clearTimeout(searchTimeout);
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
     }
     
     if (value.trim()) {
@@ -87,7 +80,7 @@ export function SearchBar({ onSearch, onStoreSelect, onProductSelect, onClearPro
         setIsLoading(false);
       }, 300);
       
-      setSearchTimeout(timeout);
+      searchTimeoutRef.current = timeout;
     } else {
       setSuggestions([]);
       setShowSuggestions(false);

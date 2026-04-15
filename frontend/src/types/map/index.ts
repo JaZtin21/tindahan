@@ -87,6 +87,7 @@ export interface LocationHandlersOptions {
   fetchPosts: (options: { variables: any }) => void;
   postsLoading: boolean;
   lastFetchCenterRef: React.MutableRefObject<{ lat: number; lng: number } | null>;
+  setIsLocating?: (isLocating: boolean) => void;
 }
 
 // Hook option types
@@ -113,4 +114,13 @@ export interface UseMapCenterOptions {
   postsLoading: boolean;
   initialCenter?: MapCenter;
   initialZoom?: number;
+}
+
+// SearchBar component props
+export interface SearchBarProps {
+  onSearch: (query: string) => void;
+  onStoreSelect?: (store: { lat: number; lng: number; name: string }) => void;
+  onProductSelect?: (productName: string, stores: any[]) => void;
+  onClearProductStores?: () => void;
+  placeholder?: string;
 }
