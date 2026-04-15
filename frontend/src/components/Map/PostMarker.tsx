@@ -5,8 +5,8 @@ import type { Post } from '../../types';
  * New design: Bubble with description + photos, avatar at bottom right
  */
 export function getPostBubbleHtml(post: Post): string {
-  const authorInitial = post.author.name.charAt(0).toUpperCase();
-  const shortText = post.text.length > 60 ? post.text.substring(0, 60) + '...' : post.text;
+  const authorInitial = post.author?.name.charAt(0).toUpperCase() || '?';
+  const shortText = post.text && post.text.length > 60 ? post.text.substring(0, 60) + '...' : (post.text || '');
 
   return `
     <div class="post-marker-wrapper">
@@ -40,22 +40,22 @@ export function getPostBubbleHtml(post: Post): string {
  * Edit this to change the popup content
  */
 export function getPostPopupHtml(post: Post): string {
-  const authorInitial = post.author.name.charAt(0).toUpperCase();
+  const authorInitial = post.author?.name.charAt(0).toUpperCase() || '?';
 
   return `
     <div class="post-popup">
-      <div class="post-popup-title">${post.title}</div>
-      <div class="post-popup-text">${post.text}</div>
+      <div class="post-popup-title">${post.title || 'Untitled'}</div>
+      <div class="post-popup-text">${post.text || ''}</div>
       <div class="post-popup-author">
         <div class="post-popup-avatar">${authorInitial}</div>
         <div class="post-popup-author-info">
-          <div class="post-popup-author-name">${post.author.name}</div>
-          <div class="post-popup-author-email">${post.author.email}</div>
+          <div class="post-popup-author-name">${post.author?.name || 'Unknown'}</div>
+          <div class="post-popup-author-email">${post.author?.email || ''}</div>
         </div>
       </div>
       <div class="post-popup-stats">
-        <span>❤️ ${post.likes} likes</span>
-        <span>💬 ${post.commentCount} comments</span>
+        <span>❤️ ${post.likes || 0} likes</span>
+        <span>💬 ${post.commentCount || 0} comments</span>
       </div>
     </div>
   `;

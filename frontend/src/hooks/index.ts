@@ -3,3 +3,6 @@ export type { UseItemManagementProps, UseItemManagementReturn } from './useItemM
 
 export { useShopManagement } from './useShopManagement';
 export type { UseShopManagementProps, UseShopManagementReturn } from './useShopManagement';
+
+// MapPage hooks
+export { useMapPosts, useMapMarkers, useMapCenter } from './mappage';

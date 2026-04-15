@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { useQuery } from '@apollo/client/react';
 import { OpenStreetMap, SearchBar, LocationSearchBar } from '../components/Map';
@@ -6,32 +6,25 @@ import { openSideNav } from '../store';
 import { CreatePostModal } from '../components/posts/CreatePostModal';
 import { useCreatePost, usePostsNearLocation } from '../api/graphql/post/usePost';
 import { SHOPS_BY_PRODUCT_QUERY } from '../api/graphql/shop/shop-queries';
-import { calculateRadiusFromZoom, groupNearbyPosts, reverseGeocode } from '../utils/maps';
-import { fileToBase64 } from '../utils/file';
+import { 
+  useMapPosts, 
+  useMapMarkers, 
+  useMapCenter 
+} from '../hooks/mappage';
+import {
+  createStoreHandlers,
+  createLocationHandlers,
+  createProductHandlers,
+  createPostHandlers
+} from '../utils/maps/handlers';
 
 export function MapPage() {
   const dispatch = useDispatch();
-  // State for map center and zoom (updated immediately for smooth UI)
-  const [mapCenter, setMapCenter] = useState({ lat: 14.5995, lng: 120.9842 });
-  const [mapZoom, setMapZoom] = useState(14);
-  
-  // Refs for debounce logic
-  const debounceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const lastFetchCenterRef = useRef<{ lat: number; lng: number } | null>(null);
-  const mapInitializedRef = useRef(false);
-  
-  // Cache for posts - stores fetched posts so they persist when zooming
-  const [cachedPosts, setCachedPosts] = useState<any[]>([]);
-  
-  // Post cluster rotation state - tracks which post is visible in each cluster
-  const [clusterRotations, setClusterRotations] = useState<Map<string, number>>(new Map());
-  const [groupedPostClusters, setGroupedPostClusters] = useState<any[]>([]);
-  
+
   // Store states
   const [filteredStores, setFilteredStores] = useState<{ lat: number; lng: number; title: string; id?: string }[]>([]);
   const [productSearchStores, setProductSearchStores] = useState<{ lat: number; lng: number; title: string; id?: string }[]>([]);
   const [selectedStore, setSelectedStore] = useState<{ lat: number; lng: number; title: string; id?: string } | null>(null);
-  const [allMarkers, setAllMarkers] = useState<any[]>([]);
   
   // Query to get shops by product name
   const [productNameForSearch, setProductNameForSearch] = useState<string | null>(null);
@@ -40,10 +33,6 @@ export function MapPage() {
   const [locationQuery, setLocationQuery] = useState('');
   const [currentLocation, setCurrentLocation] = useState<{ lat: number; lng: number; name?: string } | null>(null);
   const [isCreatePostModalOpen, setIsCreatePostModalOpen] = useState(false);
-  
-  // CONFIGURABLE: Rotation timing settings (in milliseconds)
-  const POST_DISPLAY_DURATION = 3000; // How long each post stays visible
-  const GAP_BETWEEN_POSTS = 500; // Gap between posts disappearing and next appearing
 
   // GraphQL hooks
   const { refetch: refetchShopsByProduct } = useQuery(SHOPS_BY_PRODUCT_QUERY, {
@@ -56,389 +45,64 @@ export function MapPage() {
   // Lazy query for fetching posts - does NOT auto-fetch on mount
   const [fetchPosts, { data: postsData, loading: postsLoading }] = usePostsNearLocation();
 
-  // Handle map center changes with proper debounce
-  const handleMapCenterChange = useCallback((center: { lat: number; lng: number }, zoom: number) => {
-    // Skip first call from map initialization
-    if (!mapInitializedRef.current) {
-      console.log('[MapPage] Skipping initial map move event');
-      mapInitializedRef.current = true;
-      return;
-    }
-    
-    // Update map center/zoom immediately for smooth UI
-    setMapCenter(center);
-    setMapZoom(zoom);
-    
-    // Clear existing debounce timeout
-    if (debounceTimeoutRef.current) {
-      clearTimeout(debounceTimeoutRef.current);
-    }
-    
-    // Set new debounce timeout - only fetch after user stops moving
-    debounceTimeoutRef.current = setTimeout(() => {
-      // Only fetch if zoom > 16
-      if (zoom <= 16) {
-        console.log('[MapPage] SKIPPED - zoom <= 16');
-        return;
-      }
-      
-      // Don't fetch if already loading
-      if (postsLoading) {
-        console.log('[MapPage] SKIPPED - already loading');
-        return;
-      }
-      
-      // Check if center actually moved significantly (prevent refetch on pure zoom)
-      const lastCenter = lastFetchCenterRef.current;
-      if (lastCenter) {
-        const latDiff = Math.abs(lastCenter.lat - center.lat);
-        const lngDiff = Math.abs(lastCenter.lng - center.lng);
-        const centerMoved = latDiff > 0.001 || lngDiff > 0.001; // ~100 meters
-        
-        if (!centerMoved) {
-          console.log('[MapPage] SKIPPED - center did not move enough');
-          return;
-        }
-      }
-      
-      console.log('[MapPage] FETCHING - zoom:', zoom, ', center moved');
-      lastFetchCenterRef.current = { lat: center.lat, lng: center.lng };
-      fetchPosts({
-        variables: {
-          lat: center.lat,
-          lng: center.lng,
-          radius: calculateRadiusFromZoom(zoom),
-          page: 1,
-          limit: 50
-        }
-      });
-    }, 800);
-  }, [fetchPosts, postsLoading]);
-  
-  // Cleanup debounce on unmount
-  useEffect(() => {
-    return () => {
-      if (debounceTimeoutRef.current) {
-        clearTimeout(debounceTimeoutRef.current);
-      }
-    };
-  }, []);
+  // Custom hooks for map functionality
+  const { 
+    mapCenter, 
+    mapZoom, 
+    setMapCenter, 
+    setMapZoom, 
+    handleMapCenterChange,
+    lastFetchCenterRef 
+  } = useMapCenter({ fetchPosts, postsLoading });
 
-  // Update cached posts when new data arrives - ACCUMULATE instead of replace
-  useEffect(() => {
-    const data = postsData as { postsNearLocation?: { data: any[] } } | undefined;
-    const newPosts = data?.postsNearLocation?.data;
-    if (newPosts && newPosts.length > 0) {
-      setCachedPosts(prevPosts => {
-        // Create a map of existing posts by ID for quick lookup
-        const existingPostsMap = new Map(prevPosts.map(p => [p.id, p]));
-        
-        // Add new posts, overwriting if same ID
-        newPosts.forEach((newPost: any) => {
-          existingPostsMap.set(newPost.id, newPost);
-        });
-        
-        // Convert map back to array
-        return Array.from(existingPostsMap.values());
-      });
-    }
-  }, [postsData]);
+  const { 
+    clusterRotations, 
+    groupedPostClusters 
+  } = useMapPosts({ postsData });
 
-  // Group posts into clusters ONLY when posts change (NOT on zoom)
-  useEffect(() => {
-    if (cachedPosts.length === 0) {
-      setGroupedPostClusters([]);
-      return;
-    }
-    
-    // Create raw post markers
-    const rawPostMarkers = cachedPosts.map((post: any) => ({
-      lat: post.location?.lat || 0,
-      lng: post.location?.lng || 0,
-      title: post.title?.substring(0, 30) + (post.title?.length > 30 ? '...' : '') || 'Post',
-      type: 'post' as const,
-      post: post,
-      id: post.id
-    })).filter((m: any) => m.lat && m.lng);
-    
-    // Group nearby posts (15m threshold for same building/clustering)
-    const clusters = groupNearbyPosts(rawPostMarkers, 15);
-    setGroupedPostClusters(clusters);
-    
-    // Initialize rotation indices for new clusters only
-    setClusterRotations(prev => {
-      const next = new Map(prev);
-      clusters.forEach((cluster: any) => {
-        if (!next.has(cluster.id)) {
-          next.set(cluster.id, 0);
-        }
-      });
-      // Remove old clusters
-      const clusterIds = new Set(clusters.map((c: any) => c.id));
-      for (const id of next.keys()) {
-        if (!clusterIds.has(id)) {
-          next.delete(id);
-        }
-      }
-      return next;
-    });
-  }, [cachedPosts]); // <-- NO mapZoom dependency!
+  const { allMarkers } = useMapMarkers({
+    filteredStores,
+    productSearchStores,
+    groupedPostClusters,
+    clusterRotations,
+    mapZoom,
+    selectedStore
+  });
 
-  // Rotation effect - cycles through posts in each cluster
-  useEffect(() => {
-    if (groupedPostClusters.length === 0) return;
-    
-    const interval = setInterval(() => {
-      setClusterRotations(prev => {
-        const next = new Map(prev);
-        groupedPostClusters.forEach((cluster: any) => {
-          const currentIndex = next.get(cluster.id) || 0;
-          const nextIndex = (currentIndex + 1) % cluster.posts.length;
-          next.set(cluster.id, nextIndex);
-        });
-        return next;
-      });
-    }, POST_DISPLAY_DURATION + GAP_BETWEEN_POSTS);
-    
-    return () => clearInterval(interval);
-  }, [groupedPostClusters]);
+  // Create handlers using factory functions
+  const { handleStoreSelect } = createStoreHandlers({
+    setMapCenter,
+    setMapZoom,
+    setSelectedStore,
+    fetchPosts,
+    postsLoading,
+    lastFetchCenterRef,
+    dispatch,
+    openSideNav
+  });
 
-  // Combine all markers for display (ONLY builds visible markers, no clustering here)
-  useEffect(() => {
-    // Use product search stores if available, otherwise fall back to filtered stores
-    const storesToShow = productSearchStores.length > 0 ? productSearchStores : filteredStores;
-    
-    console.log('[MapPage] Building markers - productSearchStores:', productSearchStores.length, 'filteredStores:', filteredStores.length, 'storesToShow:', storesToShow.length);
-    
-    // Convert stores to marker format
-    const storeMarkers = storesToShow.map(store => ({
-      lat: store.lat,
-      lng: store.lng,
-      title: store.title,
-      type: 'store' as const,
-      id: store.id,
-    }));
-    
-    // Only show posts when zoom > 16
-    let visiblePostMarkers: any[] = [];
-    
-    if (mapZoom > 16) {
-      groupedPostClusters.forEach((cluster: any) => {
-        const currentIndex = clusterRotations.get(cluster.id) || 0;
-        const currentPost = cluster.posts[currentIndex];
-        
-        if (currentPost) {
-          visiblePostMarkers.push({
-            lat: currentPost.lat,
-            lng: currentPost.lng,
-            title: currentPost.post?.title?.substring(0, 30) + (currentPost.post?.title?.length > 30 ? '...' : '') || 'Post',
-            type: 'post' as const,
-            post: currentPost.post,
-            clusterId: cluster.id,
-            rotationIndex: currentIndex,
-            totalInCluster: cluster.posts.length
-          });
-        }
-      });
-    }
-    
-    // Add selected store as a marker if no product stores are showing
-    if (productSearchStores.length === 0 && filteredStores.length === 0 && selectedStore) {
-      storeMarkers.push({
-        lat: selectedStore.lat,
-        lng: selectedStore.lng,
-        title: selectedStore.title,
-        type: 'store' as const,
-        id: selectedStore.id,
-      });
-    }
-    
-    // Combine stores and visible posts
-    setAllMarkers([...storeMarkers, ...visiblePostMarkers]);
-  }, [filteredStores, productSearchStores, groupedPostClusters, clusterRotations, mapZoom, selectedStore]);
+  const { handleLocationSelect, handleMyLocation } = createLocationHandlers({
+    setMapCenter,
+    setMapZoom,
+    setLocationQuery,
+    setCurrentLocation,
+    fetchPosts,
+    postsLoading,
+    lastFetchCenterRef
+  });
 
-  // Clear product search stores callback
-  const clearProductStores = useCallback(() => {
-    console.log('[MapPage] Clearing product search stores');
-    setProductSearchStores([]);
-    setFilteredStores([]);
-  }, []);
+  const { handleProductSelect, clearProductStores } = createProductHandlers({
+    setProductNameForSearch,
+    setProductSearchStores,
+    setFilteredStores,
+    refetchShopsByProduct
+  });
 
-  // Handle product selection - shows stores on map without navigating
-  const handleProductSelect = useCallback(async (productName: string) => {
-    // Fetch stores that have this product
-    setProductNameForSearch(productName);
-    const result = await refetchShopsByProduct({ productName });
-    const shops = result.data?.shopsByProduct?.data || [];
-    
-    // Convert shops to marker format
-    const storeMarkers = shops.map((shop: any) => ({
-      id: shop.id,
-      lat: shop.coordinates?.lat || 0,
-      lng: shop.coordinates?.lng || 0,
-      title: shop.name,
-    })).filter((s: any) => s.lat && s.lng);
-    
-    // Update product search stores - these persist when selecting a store
-    setProductSearchStores(storeMarkers);
-    // Also update filtered stores for backward compatibility
-    setFilteredStores(storeMarkers);
-  }, [refetchShopsByProduct]);
+  const { handleCreatePost } = createPostHandlers({ createPost });
 
-  const handleLocationSelect = (location: { lat: number; lng: number; name: string }) => {
-    const newCenter = { lat: location.lat, lng: location.lng };
-    setMapCenter(newCenter);
-    setMapZoom(17);
-    setLocationQuery(location.name);
-    setCurrentLocation({ lat: location.lat, lng: location.lng, name: location.name });
-    lastFetchCenterRef.current = { lat: location.lat, lng: location.lng };
-    
-    // Fetch posts immediately for new location
-    if (!postsLoading) {
-      fetchPosts({
-        variables: {
-          lat: location.lat,
-          lng: location.lng,
-          radius: calculateRadiusFromZoom(17),
-          page: 1,
-          limit: 50
-        }
-      });
-    }
-  };
-
+  // handleSearch is required by SearchBar but actual search happens through suggestions
   const handleSearch = (query: string) => {
     console.log('Search submitted:', query);
-    // Could trigger a general search/filter here
-  };
-
-  const handleMyLocation = async () => {
-    console.log('Getting your location...');
-
-    try {
-      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(
-          resolve,
-          reject,
-          {
-            enableHighAccuracy: true,
-            timeout: 10000,
-            maximumAge: 0
-          }
-        );
-      });
-
-      const userLocation = {
-        lat: position.coords.latitude,
-        lng: position.coords.longitude,
-      };
-
-      console.log('ACTUAL User location:', userLocation);
-      console.log('GPS Accuracy:', position.coords.accuracy, 'meters');
-
-      if (position.coords.accuracy > 1000) {
-        console.warn('Location accuracy is poor (', position.coords.accuracy, 'meters)');
-        alert(`Location accuracy is poor (${position.coords.accuracy.toFixed(0)}m). This is normal on PC. For better accuracy, try on your phone.`);
-      }
-
-      setMapCenter(userLocation);
-      setMapZoom(20);
-
-      const address = await reverseGeocode(userLocation.lat, userLocation.lng);
-      setLocationQuery(address);
-      setCurrentLocation({ ...userLocation, name: address });
-      lastFetchCenterRef.current = { lat: userLocation.lat, lng: userLocation.lng };
-      
-      // Fetch posts immediately for user location
-      if (!postsLoading) {
-        fetchPosts({
-          variables: {
-            lat: userLocation.lat,
-            lng: userLocation.lng,
-            radius: calculateRadiusFromZoom(20),
-            page: 1,
-            limit: 50
-          }
-        });
-      }
-
-      console.log('Map centered and MAX zoomed on your location!');
-      console.log('Address found:', address);
-    } catch (error) {
-      console.error('Error getting location:', error);
-      console.log('Location error details:', (error as Error).message);
-      alert(`Failed to get your location: ${(error as Error).message}. Please enable location services and try again.`);
-    }
-  };
-
-  const handleStoreSelect = (store: { lat: number; lng: number; name: string; id?: string }) => {
-    console.log('Flying to store:', store);
-    const newCenter = { lat: store.lat, lng: store.lng };
-    setMapCenter(newCenter);
-    setMapZoom(20);
-    lastFetchCenterRef.current = { lat: store.lat, lng: store.lng };
-    
-    // Set selected store for highlighting - product search stores remain unchanged
-    setSelectedStore({
-      lat: store.lat,
-      lng: store.lng,
-      title: store.name,
-      id: store.id || 'selected-store'
-    });
-    
-    // Fetch posts immediately for store location
-    if (!postsLoading) {
-      fetchPosts({
-        variables: {
-          lat: store.lat,
-          lng: store.lng,
-          radius: calculateRadiusFromZoom(20),
-          page: 1,
-          limit: 50
-        }
-      });
-    }
-
-    dispatch(openSideNav({
-      name: store.name,
-      lat: store.lat,
-      lng: store.lng,
-      type: 'store',
-      description: 'Local sari-sari store offering daily essentials and snacks.',
-      address: 'Address not available',
-      phone: '+63 XXX XXX XXXX',
-      hours: '6:00 AM - 9:00 PM'
-    }));
-  };
-
-  // Handle post creation with photo upload
-  const handleCreatePost = async (post: { title: string; text: string; photos: File[]; types: string[]; location: { lat: number; lng: number; name: string } }) => {
-    try {
-      // Convert photos to base64
-      const photoPromises = post.photos.map(file => fileToBase64(file));
-      const base64Photos = await Promise.all(photoPromises);
-
-      const result = await createPost({
-        variables: {
-          input: {
-            title: post.title,
-            text: post.text,
-            photos: base64Photos,
-            types: post.types,
-            location: post.location
-          }
-        }
-      });
-
-      if (result.data?.createPost?.success) {
-        alert('Post created successfully!');
-      } else {
-        alert('Failed to create post: ' + result.data?.createPost?.message);
-      }
-    } catch (error) {
-      console.error('Error creating post:', error);
-      alert('Failed to create post. Please try again.');
-    }
   };
 
   return (
