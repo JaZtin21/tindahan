@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useLazyQuery } from '@apollo/client/react'; // useLazyQuery for async data fetching
 import { SEARCH_SHOPS_QUERY } from '../../api/graphql/shop/shop-queries';
 import { ITEMS_QUERY } from '../../api/graphql/product/product-queries';
+import { searchLocation } from '../../utils/maps';
 
 interface SearchBarProps {
   onSearch: (query: string) => void;
@@ -10,39 +11,6 @@ interface SearchBarProps {
   onClearProductStores?: () => void;
   placeholder?: string;
 }
-
-// Nominatim geocoding function
-const searchLocation = async (query: string) => {
-  try {
-    console.log('🔍 API TRIGGERED - Searching for:', query);
-    console.log('📡 Making request to: https://nominatim.openstreetmap.org/search');
-    
-    const response = await fetch(
-      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5`
-    );
-    
-    console.log('📡 Response status:', response.status);
-    
-    const data = await response.json();
-    console.log('📊 Raw API response:', data);
-    console.log('📈 Results count:', data.length);
-    
-    const results = data.map((item: any) => ({
-      type: 'location',
-      name: item.display_name,
-      lat: parseFloat(item.lat),
-      lng: parseFloat(item.lon),
-      details: item.class
-    }));
-    
-    console.log('✅ Processed results:', results);
-    return results;
-  } catch (error: any) {
-    console.error('❌ API ERROR:', error);
-    console.error('❌ Error details:', error?.message || 'Unknown error');
-    return [];
-  }
-};
 
 export function SearchBar({ onSearch, onStoreSelect, onProductSelect, onClearProductStores, placeholder = "Search for stores, products, or locations..." }: SearchBarProps) {
   const [query, setQuery] = useState('');

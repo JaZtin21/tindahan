@@ -2,5 +2,6 @@
 export { useDebouncedMapCenter } from './useDebouncedMapCenter';
 export { fetchPostsNearLocation, calculateRadiusFromZoom } from './fetchPostsNearLocation';
 export { groupNearbyPosts } from './groupNearbyPosts';
+export { reverseGeocode, searchLocation } from './geocoding';
 export type { Post, PostLocation, PostAuthor, FetchPostsResult } from './fetchPostsNearLocation';
 export type { Post as GroupPost, PostCluster } from './groupNearbyPosts';

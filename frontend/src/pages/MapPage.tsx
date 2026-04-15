@@ -6,22 +6,11 @@ import { openSideNav } from '../store';
 import { CreatePostModal } from '../components/posts/CreatePostModal';
 import { useCreatePost, usePostsNearLocation } from '../api/graphql/post/usePost';
 import { SHOPS_BY_PRODUCT_QUERY } from '../api/graphql/shop/shop-queries';
-import { calculateRadiusFromZoom, groupNearbyPosts } from '../utils/maps';
-
-// Helper to convert File to base64
-const fileToBase64 = (file: File): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = reject;
-  });
-};
+import { calculateRadiusFromZoom, groupNearbyPosts, reverseGeocode } from '../utils/maps';
+import { fileToBase64 } from '../utils/file';
 
 export function MapPage() {
   const dispatch = useDispatch();
-  const [searchQuery, setSearchQuery] = useState('');
-  
   // State for map center and zoom (updated immediately for smooth UI)
   const [mapCenter, setMapCenter] = useState({ lat: 14.5995, lng: 120.9842 });
   const [mapZoom, setMapZoom] = useState(14);
@@ -38,25 +27,29 @@ export function MapPage() {
   const [clusterRotations, setClusterRotations] = useState<Map<string, number>>(new Map());
   const [groupedPostClusters, setGroupedPostClusters] = useState<any[]>([]);
   
-  // CONFIGURABLE: Rotation timing settings (in milliseconds)
-  const POST_DISPLAY_DURATION = 3000; // How long each post stays visible
-  const GAP_BETWEEN_POSTS = 500; // Gap between posts disappearing and next appearing
-  const TRANSITION_DURATION = 300; // Animation duration for pop in/out
-
-  // Store data from API - initially empty, populated by search or load
+  // Store states
   const [filteredStores, setFilteredStores] = useState<{ lat: number; lng: number; title: string; id?: string }[]>([]);
-  // Separate state for product search results - persists when selecting a store
   const [productSearchStores, setProductSearchStores] = useState<{ lat: number; lng: number; title: string; id?: string }[]>([]);
+  const [selectedStore, setSelectedStore] = useState<{ lat: number; lng: number; title: string; id?: string } | null>(null);
+  const [allMarkers, setAllMarkers] = useState<any[]>([]);
   
   // Query to get shops by product name
   const [productNameForSearch, setProductNameForSearch] = useState<string | null>(null);
-  const { data: shopsByProductData, refetch: refetchShopsByProduct } = useQuery(SHOPS_BY_PRODUCT_QUERY, {
-    variables: { productName: productNameForSearch },
-    skip: !productNameForSearch
-  });
+  
+  // Location and modal states
   const [locationQuery, setLocationQuery] = useState('');
   const [currentLocation, setCurrentLocation] = useState<{ lat: number; lng: number; name?: string } | null>(null);
   const [isCreatePostModalOpen, setIsCreatePostModalOpen] = useState(false);
+  
+  // CONFIGURABLE: Rotation timing settings (in milliseconds)
+  const POST_DISPLAY_DURATION = 3000; // How long each post stays visible
+  const GAP_BETWEEN_POSTS = 500; // Gap between posts disappearing and next appearing
+
+  // GraphQL hooks
+  const { refetch: refetchShopsByProduct } = useQuery(SHOPS_BY_PRODUCT_QUERY, {
+    variables: { productName: productNameForSearch },
+    skip: !productNameForSearch
+  });
 
   const [createPost, { loading: isCreatingPost }] = useCreatePost();
 
@@ -150,12 +143,6 @@ export function MapPage() {
       });
     }
   }, [postsData]);
-  
-  // Selected store for highlighting (separate from product search stores)
-  const [selectedStore, setSelectedStore] = useState<{ lat: number; lng: number; title: string; id?: string } | null>(null);
-  
-  // Combine store and post markers for the map
-  const [allMarkers, setAllMarkers] = useState<any[]>([]);
 
   // Group posts into clusters ONLY when posts change (NOT on zoom)
   useEffect(() => {
@@ -270,6 +257,13 @@ export function MapPage() {
     setAllMarkers([...storeMarkers, ...visiblePostMarkers]);
   }, [filteredStores, productSearchStores, groupedPostClusters, clusterRotations, mapZoom, selectedStore]);
 
+  // Clear product search stores callback
+  const clearProductStores = useCallback(() => {
+    console.log('[MapPage] Clearing product search stores');
+    setProductSearchStores([]);
+    setFilteredStores([]);
+  }, []);
+
   // Handle product selection - shows stores on map without navigating
   const handleProductSelect = useCallback(async (productName: string) => {
     // Fetch stores that have this product
@@ -289,10 +283,6 @@ export function MapPage() {
     setProductSearchStores(storeMarkers);
     // Also update filtered stores for backward compatibility
     setFilteredStores(storeMarkers);
-    
-    // Maintain current zoom level (don't zoom in/out)
-    // Just trigger a search to show the results
-    setSearchQuery(productName);
   }, [refetchShopsByProduct]);
 
   const handleLocationSelect = (location: { lat: number; lng: number; name: string }) => {
@@ -318,34 +308,8 @@ export function MapPage() {
   };
 
   const handleSearch = (query: string) => {
-    setSearchQuery(query);
-    console.log('Searching for:', query);
-  };
-
-  const handleMapClick = (lat: number, lng: number) => {
-    console.log('Map clicked at:', { lat, lng });
-  };
-
-  // Reverse geocoding function to get address from coordinates
-  const reverseGeocode = async (lat: number, lng: number) => {
-    try {
-      console.log('🔍 Reverse geocoding for:', { lat, lng });
-
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&addressdetails=1`
-      );
-
-      const data = await response.json();
-
-      if (data && data.display_name) {
-        return data.display_name;
-      } else {
-        return `Unknown Location (${lat.toFixed(4)}, ${lng.toFixed(4)})`;
-      }
-    } catch (error: any) {
-      console.error('❌ Reverse geocoding ERROR:', error);
-      return `My Location (${lat.toFixed(4)}, ${lng.toFixed(4)})`;
-    }
+    console.log('Search submitted:', query);
+    // Could trigger a general search/filter here
   };
 
   const handleMyLocation = async () => {
@@ -507,11 +471,7 @@ export function MapPage() {
             onSearch={handleSearch}
             onStoreSelect={handleStoreSelect}
             onProductSelect={handleProductSelect}
-            onClearProductStores={() => {
-              console.log('[MapPage] Clearing product search stores');
-              setProductSearchStores([]);
-              setFilteredStores([]); // Also clear filtered stores to prevent fallback
-            }}
+            onClearProductStores={clearProductStores}
             placeholder="Search for stores or products near you"
           />
         </div>
@@ -534,7 +494,6 @@ export function MapPage() {
         <OpenStreetMap
           center={mapCenter}
           zoom={mapZoom}
-          onMapClick={handleMapClick}
           onMarkerClick={handleStoreSelect}
           onMapMoveEnd={handleMapCenterChange}
           markers={allMarkers}
