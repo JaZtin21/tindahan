@@ -45,6 +45,8 @@ export function MapPage() {
 
   // Store data from API - initially empty, populated by search or load
   const [filteredStores, setFilteredStores] = useState<{ lat: number; lng: number; title: string; id?: string }[]>([]);
+  // Separate state for product search results - persists when selecting a store
+  const [productSearchStores, setProductSearchStores] = useState<{ lat: number; lng: number; title: string; id?: string }[]>([]);
   
   // Query to get shops by product name
   const [productNameForSearch, setProductNameForSearch] = useState<string | null>(null);
@@ -149,6 +151,9 @@ export function MapPage() {
     }
   }, [postsData]);
   
+  // Selected store for highlighting (separate from product search stores)
+  const [selectedStore, setSelectedStore] = useState<{ lat: number; lng: number; title: string; id?: string } | null>(null);
+  
   // Combine store and post markers for the map
   const [allMarkers, setAllMarkers] = useState<any[]>([]);
 
@@ -213,12 +218,18 @@ export function MapPage() {
 
   // Combine all markers for display (ONLY builds visible markers, no clustering here)
   useEffect(() => {
+    // Use product search stores if available, otherwise fall back to filtered stores
+    const storesToShow = productSearchStores.length > 0 ? productSearchStores : filteredStores;
+    
+    console.log('[MapPage] Building markers - productSearchStores:', productSearchStores.length, 'filteredStores:', filteredStores.length, 'storesToShow:', storesToShow.length);
+    
     // Convert stores to marker format
-    const storeMarkers = filteredStores.map(store => ({
+    const storeMarkers = storesToShow.map(store => ({
       lat: store.lat,
       lng: store.lng,
       title: store.title,
       type: 'store' as const,
+      id: store.id,
     }));
     
     // Only show posts when zoom > 16
@@ -244,9 +255,20 @@ export function MapPage() {
       });
     }
     
+    // Add selected store as a marker if no product stores are showing
+    if (productSearchStores.length === 0 && filteredStores.length === 0 && selectedStore) {
+      storeMarkers.push({
+        lat: selectedStore.lat,
+        lng: selectedStore.lng,
+        title: selectedStore.title,
+        type: 'store' as const,
+        id: selectedStore.id,
+      });
+    }
+    
     // Combine stores and visible posts
     setAllMarkers([...storeMarkers, ...visiblePostMarkers]);
-  }, [filteredStores, groupedPostClusters, clusterRotations, mapZoom]);
+  }, [filteredStores, productSearchStores, groupedPostClusters, clusterRotations, mapZoom, selectedStore]);
 
   // Handle product selection - shows stores on map without navigating
   const handleProductSelect = useCallback(async (productName: string) => {
@@ -263,7 +285,9 @@ export function MapPage() {
       title: shop.name,
     })).filter((s: any) => s.lat && s.lng);
     
-    // Update filtered stores - this will show them on the map
+    // Update product search stores - these persist when selecting a store
+    setProductSearchStores(storeMarkers);
+    // Also update filtered stores for backward compatibility
     setFilteredStores(storeMarkers);
     
     // Maintain current zoom level (don't zoom in/out)
@@ -390,13 +414,13 @@ export function MapPage() {
     setMapZoom(20);
     lastFetchCenterRef.current = { lat: store.lat, lng: store.lng };
     
-    // Add store to filtered stores so marker appears
-    setFilteredStores([{
+    // Set selected store for highlighting - product search stores remain unchanged
+    setSelectedStore({
       lat: store.lat,
       lng: store.lng,
       title: store.name,
       id: store.id || 'selected-store'
-    }]);
+    });
     
     // Fetch posts immediately for store location
     if (!postsLoading) {
@@ -483,6 +507,11 @@ export function MapPage() {
             onSearch={handleSearch}
             onStoreSelect={handleStoreSelect}
             onProductSelect={handleProductSelect}
+            onClearProductStores={() => {
+              console.log('[MapPage] Clearing product search stores');
+              setProductSearchStores([]);
+              setFilteredStores([]); // Also clear filtered stores to prevent fallback
+            }}
             placeholder="Search for stores or products near you"
           />
         </div>

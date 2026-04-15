@@ -7,6 +7,7 @@ interface SearchBarProps {
   onSearch: (query: string) => void;
   onStoreSelect?: (store: { lat: number; lng: number; name: string }) => void;
   onProductSelect?: (productName: string, stores: any[]) => void;
+  onClearProductStores?: () => void;
   placeholder?: string;
 }
 
@@ -43,7 +44,7 @@ const searchLocation = async (query: string) => {
   }
 };
 
-export function SearchBar({ onSearch, onStoreSelect, onProductSelect, placeholder = "Search for stores, products, or locations..." }: SearchBarProps) {
+export function SearchBar({ onSearch, onStoreSelect, onProductSelect, onClearProductStores, placeholder = "Search for stores, products, or locations..." }: SearchBarProps) {
   const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -148,8 +149,15 @@ export function SearchBar({ onSearch, onStoreSelect, onProductSelect, placeholde
   const handleSuggestionClick = async (suggestion: any) => {
     setQuery(suggestion.name);
     
+    console.log('[SearchBar] Clicked suggestion:', suggestion.type, suggestion.name);
+    
     // If it's a store, call the store select callback (navigates to shop)
+    // AND clear any product search stores from map
     if (suggestion.type === 'store' && onStoreSelect && suggestion.lat && suggestion.lng) {
+      console.log('[SearchBar] Clearing product stores for store click');
+      if (onClearProductStores) {
+        onClearProductStores();
+      }
       onStoreSelect({
         id: suggestion.id,
         lat: suggestion.lat,
@@ -158,8 +166,12 @@ export function SearchBar({ onSearch, onStoreSelect, onProductSelect, placeholde
       });
     }
     
-    // If it's a location, fly to it
+    // If it's a location, fly to it AND clear product search stores
     else if (suggestion.type === 'location' && onStoreSelect && suggestion.lat && suggestion.lng) {
+      console.log('[SearchBar] Clearing product stores for location click');
+      if (onClearProductStores) {
+        onClearProductStores();
+      }
       onStoreSelect({
         lat: suggestion.lat,
         lng: suggestion.lng,
@@ -168,7 +180,9 @@ export function SearchBar({ onSearch, onStoreSelect, onProductSelect, placeholde
     }
     
     // If it's a product, fetch stores that have this product and show on map (no navigation)
+    // Don't clear - product search will set new stores
     else if (suggestion.type === 'product' && onProductSelect) {
+      console.log('[SearchBar] Product clicked, not clearing stores');
       onProductSelect(suggestion.name, []);
     }
     
@@ -207,7 +221,7 @@ export function SearchBar({ onSearch, onStoreSelect, onProductSelect, placeholde
                   </div>
                   <div className="text-sm text-zinc-500 dark:text-zinc-400">
                     {suggestion.type === 'store' 
-                      ? `📍 ${suggestion.location || 'Store'} (Click to view)`
+                      ? `🏪 ${suggestion.location || 'Store'} (Click to view)`
                       : suggestion.type === 'product'
                       ? `📦 Click to see stores with this product`
                       : `🌍 ${suggestion.details} (Click to fly here)`
