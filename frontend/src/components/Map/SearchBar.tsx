@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useQuery } from '@apollo/client/react'; // changed import to match codebase pattern
+import { useLazyQuery } from '@apollo/client/react'; // useLazyQuery for async data fetching
 import { SEARCH_SHOPS_QUERY } from '../../api/graphql/shop/shop-queries';
 import { ITEMS_QUERY } from '../../api/graphql/product/product-queries';
 
@@ -51,19 +51,9 @@ export function SearchBar({ onSearch, onStoreSelect, onProductSelect, onClearPro
   const [isLoading, setIsLoading] = useState(false);
   const [searchTimeout, setSearchTimeout] = useState<number | null>(null);
   
-  // GraphQL query states
-  const [shopSearchVars, setShopSearchVars] = useState<any>(null);
-  const [productSearchVars, setProductSearchVars] = useState<any>(null);
-  
-  // GraphQL queries with skip
-  const { data: shopData } = useQuery(SEARCH_SHOPS_QUERY, {
-    variables: shopSearchVars,
-    skip: !shopSearchVars
-  });
-  const { data: productData } = useQuery(ITEMS_QUERY, {
-    variables: productSearchVars,
-    skip: !productSearchVars
-  });
+  // GraphQL lazy queries - returns a function we can call to fetch data
+  const [searchShops] = useLazyQuery(SEARCH_SHOPS_QUERY);
+  const [searchProducts] = useLazyQuery(ITEMS_QUERY);
 
   const handleInputChange = (value: string) => {
     setQuery(value);
@@ -80,15 +70,14 @@ export function SearchBar({ onSearch, onStoreSelect, onProductSelect, onClearPro
       const timeout = setTimeout(async () => {
         console.log('Debounce triggered for:', value);
         
-        // Trigger shop search
-        setShopSearchVars({ query: value, page: 1, limit: 10 });
-        setProductSearchVars({ input: { query: value, page: 1, limit: 10 } });
+        // Trigger both searches and AWAIT the results (fixes race condition)
+        const [shopsResult, productsResult] = await Promise.all([
+          searchShops({ variables: { query: value, page: 1, limit: 10 } }),
+          searchProducts({ variables: { input: { query: value, page: 1, limit: 10 } } })
+        ]);
         
-        // Wait a bit for queries to load then use the data
-        await new Promise(resolve => setTimeout(resolve, 500));
-        
-        const shops = shopData?.searchShops?.data || [];
-        const products = productData?.items?.data || [];
+        const shops = shopsResult.data?.searchShops?.data || [];
+        const products = productsResult.data?.items?.data || [];
         
         // Search for locations
         const locationResults = await searchLocation(value);
