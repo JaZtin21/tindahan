@@ -6,7 +6,7 @@ import type { UseMapPostsOptions, Post } from '../../types/map';
 const POST_DISPLAY_DURATION = 3000;
 const GAP_BETWEEN_POSTS = 500;
 
-export function useMapPosts({ postsData }: UseMapPostsOptions) {
+export function useMapPosts({ postsData, pausedClusters = new Set() }: UseMapPostsOptions) {
   // Cache for posts - stores fetched posts so they persist when zooming
   const [cachedPosts, setCachedPosts] = useState<Post[]>([]);
   
@@ -66,7 +66,7 @@ export function useMapPosts({ postsData }: UseMapPostsOptions) {
     });
   }, [cachedPosts]);
 
-  // Rotation effect - cycles through posts in each cluster
+  // Rotation effect - cycles through posts in each cluster (skips paused clusters)
   useEffect(() => {
     if (groupedPostClusters.length === 0) return;
     
@@ -74,6 +74,10 @@ export function useMapPosts({ postsData }: UseMapPostsOptions) {
       setClusterRotations(prev => {
         const next = new Map(prev);
         groupedPostClusters.forEach((cluster: any) => {
+          // Skip rotation for paused clusters
+          if (pausedClusters.has(cluster.id)) {
+            return;
+          }
           const currentIndex = next.get(cluster.id) || 0;
           const nextIndex = (currentIndex + 1) % cluster.posts.length;
           next.set(cluster.id, nextIndex);
@@ -83,7 +87,7 @@ export function useMapPosts({ postsData }: UseMapPostsOptions) {
     }, POST_DISPLAY_DURATION + GAP_BETWEEN_POSTS);
     
     return () => clearInterval(interval);
-  }, [groupedPostClusters]);
+  }, [groupedPostClusters, pausedClusters]);
 
   return {
     cachedPosts,

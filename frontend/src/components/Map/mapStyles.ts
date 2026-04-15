@@ -114,6 +114,23 @@ export function getMapMarkerStyles(): string {
     .post-bubble-marker {
       background: transparent !important;
       border: none !important;
+      transition: transform 0.2s ease, z-index 0s;
+      z-index: 400 !important;
+    }
+
+    .post-bubble-marker:hover {
+      transform: scale(1.08) translateY(-8px);
+      z-index: 1000 !important;
+      filter: drop-shadow(0 8px 20px rgba(0,0,0,0.25));
+    }
+
+    .post-bubble-marker:hover .post-bubble-new {
+      box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+    }
+
+    .post-bubble-marker:hover .post-bubble-avatar-new {
+      transform: scale(1.1);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
     }
 
     .post-bubble-marker > div {

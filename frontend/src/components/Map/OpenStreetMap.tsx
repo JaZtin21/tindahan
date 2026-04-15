@@ -9,10 +9,9 @@ import {
 } from './mapStyles';
 import {
   getPostIcon,
-  getPostPopupHtml,
 } from './PostMarker';
 
-export function OpenStreetMap({ center, zoom, onMapClick, onMarkerClick, onMapMoveEnd, markers = [], currentLocation }: MapProps) {
+export function OpenStreetMap({ center, zoom, onMapClick, onMarkerClick, onMapMoveEnd, onPostClick, onPostHover, markers = [], currentLocation }: MapProps & { onPostHover?: (clusterId: string | undefined, isHovering: boolean) => void }) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const currentLocationMarkerRef = useRef<any>(null);
@@ -117,7 +116,21 @@ export function OpenStreetMap({ center, zoom, onMapClick, onMarkerClick, onMapMo
           const bubbleIcon = getPostIcon(L, post, false);
 
           const marker = L.marker([markerData.lat, markerData.lng], { icon: bubbleIcon })
-            .bindPopup(getPostPopupHtml(post));
+            .on('click', () => {
+              if (onPostClick) {
+                onPostClick(post, markerData.clusterId);
+              }
+            })
+            .on('mouseover', () => {
+              if (onPostHover) {
+                onPostHover(markerData.clusterId, true);
+              }
+            })
+            .on('mouseout', () => {
+              if (onPostHover) {
+                onPostHover(markerData.clusterId, false);
+              }
+            });
           
           markersLayerRef.current.addLayer(marker);
         } else {
@@ -233,7 +246,21 @@ export function OpenStreetMap({ center, zoom, onMapClick, onMarkerClick, onMapMo
             // Create new post marker
             const bubbleIcon = getPostIcon(L, post, shouldAnimate);
             const marker = L.marker([markerData.lat, markerData.lng], { icon: bubbleIcon })
-              .bindPopup(getPostPopupHtml(post));
+              .on('click', () => {
+                if (onPostClick) {
+                  onPostClick(post, markerData.clusterId);
+                }
+              })
+              .on('mouseover', () => {
+                if (onPostHover) {
+                  onPostHover(markerData.clusterId, true);
+                }
+              })
+              .on('mouseout', () => {
+                if (onPostHover) {
+                  onPostHover(markerData.clusterId, false);
+                }
+              });
             
             markersLayerRef.current.addLayer(marker);
             existingMarkersRef.current.set(markerId, marker);

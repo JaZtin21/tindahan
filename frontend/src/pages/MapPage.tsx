@@ -4,6 +4,8 @@ import { useQuery } from '@apollo/client/react';
 import { OpenStreetMap, SearchBar, LocationSearchBar } from '../components/Map';
 import { openSideNav } from '../store';
 import { CreatePostModal } from '../components/posts/CreatePostModal';
+import { PostPreviewModal } from '../components/posts/PostPreviewModal';
+import type { Post } from '../types/map';
 import { useCreatePost, usePostsNearLocation } from '../api/graphql/post/usePost';
 import { SHOPS_BY_PRODUCT_QUERY } from '../api/graphql/shop/shop-queries';
 import { 
@@ -33,6 +35,13 @@ export function MapPage() {
   const [locationQuery, setLocationQuery] = useState('');
   const [currentLocation, setCurrentLocation] = useState<{ lat: number; lng: number; name?: string } | null>(null);
   const [isCreatePostModalOpen, setIsCreatePostModalOpen] = useState(false);
+  
+  // Post preview modal state
+  const [selectedPost, setSelectedPost] = useState<Post | null>(null);
+  const [isPostPreviewOpen, setIsPostPreviewOpen] = useState(false);
+  
+  // Paused clusters for rotation (when user hovers/clicks a post)
+  const [pausedClusters, setPausedClusters] = useState<Set<string>>(new Set());
   const [isLocating, setIsLocating] = useState(false); // Loading state for My Location button
 
   // GraphQL hooks
@@ -59,7 +68,7 @@ export function MapPage() {
   const { 
     clusterRotations, 
     groupedPostClusters 
-  } = useMapPosts({ postsData });
+  } = useMapPosts({ postsData, pausedClusters });
 
   const { allMarkers } = useMapMarkers({
     filteredStores,
@@ -105,6 +114,41 @@ export function MapPage() {
   // handleSearch is required by SearchBar but actual search happens through suggestions
   const handleSearch = (query: string) => {
     console.log('Search submitted:', query);
+  };
+
+  // Handle post click from map marker
+  const handlePostClick = (post: Post, clusterId?: string) => {
+    setSelectedPost(post);
+    setIsPostPreviewOpen(true);
+    
+    // Pause rotation for this cluster
+    if (clusterId) {
+      setPausedClusters(prev => new Set(prev).add(clusterId));
+    }
+  };
+
+  // Handle post hover - pause/resume cluster rotation
+  const handlePostHover = (clusterId: string | undefined, isHovering: boolean) => {
+    if (!clusterId) return;
+    
+    setPausedClusters(prev => {
+      const next = new Set(prev);
+      if (isHovering) {
+        next.add(clusterId);
+      } else {
+        next.delete(clusterId);
+      }
+      return next;
+    });
+  };
+
+  // Handle post preview modal close
+  const handleClosePostPreview = () => {
+    setIsPostPreviewOpen(false);
+    setSelectedPost(null);
+    
+    // Resume rotation for all clusters
+    setPausedClusters(new Set());
   };
 
   return (
@@ -166,6 +210,13 @@ export function MapPage() {
         <span className="font-medium">Add Post</span>
       </button>
 
+      {/* Post Preview Modal */}
+      <PostPreviewModal
+        post={selectedPost!}
+        isOpen={isPostPreviewOpen}
+        onClose={handleClosePostPreview}
+      />
+
       {/* Main Content */}
       <div className="fixed top-[77px] left-0 right-0 bottom-0 z-[1]">
         {/* Full Screen Map */}
@@ -174,6 +225,8 @@ export function MapPage() {
           zoom={mapZoom}
           onMarkerClick={handleStoreSelect}
           onMapMoveEnd={handleMapCenterChange}
+          onPostClick={handlePostClick}
+          onPostHover={handlePostHover}
           markers={allMarkers}
           currentLocation={currentLocation}
         />

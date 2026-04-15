@@ -35,6 +35,7 @@ export interface MapProps {
   onMapClick?: (lat: number, lng: number) => void;
   onMarkerClick?: (store: { lat: number; lng: number; name: string }) => void;
   onMapMoveEnd?: (center: { lat: number; lng: number }, zoom: number) => void;
+  onPostClick?: (post: Post, clusterId?: string) => void;
   markers?: PostMarker[];
   currentLocation?: { lat: number; lng: number; name?: string } | null;
 }
@@ -93,6 +94,14 @@ export interface LocationHandlersOptions {
 // Hook option types
 export interface UseMapPostsOptions {
   postsData?: any;
+  pausedClusters?: Set<string>; // Cluster IDs to pause rotation for
+}
+
+// Post preview modal props
+export interface PostPreviewModalProps {
+  post: Post;
+  isOpen: boolean;
+  onClose: () => void;
 }
 
 export interface UseMapMarkersOptions {

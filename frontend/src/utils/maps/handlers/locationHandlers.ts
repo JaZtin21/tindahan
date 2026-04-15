@@ -38,24 +38,15 @@ export function createLocationHandlers({
     console.log('Getting your location...');
     setIsLocating?.(true); // Start loading indicator
 
-    // Detect if PC (no touch support or large screen) vs Mobile
-    const isPC = !('ontouchstart' in window) || window.innerWidth > 1024;
-    
-    // PC gets shorter timeout and no high accuracy (faster fallback)
-    const timeout = isPC ? 3000 : 10000;
-    const enableHighAccuracy = !isPC; // Disable on PC for faster response
-
-    console.log(`[MyLocation] Device detected: ${isPC ? 'PC' : 'Mobile'}, timeout: ${timeout}ms, highAccuracy: ${enableHighAccuracy}`);
-
     try {
       const position = await new Promise<GeolocationPosition>((resolve, reject) => {
         navigator.geolocation.getCurrentPosition(
           resolve,
           reject,
           {
-            enableHighAccuracy,
-            timeout,
-            maximumAge: isPC ? 60000 : 0 // Allow 1min cached on PC for faster response
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0
           }
         );
       });
@@ -68,21 +59,22 @@ export function createLocationHandlers({
       console.log('ACTUAL User location:', userLocation);
       console.log('GPS Accuracy:', position.coords.accuracy, 'meters');
 
-      // Update map immediately - don't wait for geocoding
-      setMapCenter(userLocation);
-      setMapZoom(20);
-      lastFetchCenterRef.current = { lat: userLocation.lat, lng: userLocation.lng };
-
-      // Show accuracy warning only if very poor
       if (position.coords.accuracy > 1000) {
         console.warn('Location accuracy is poor (', position.coords.accuracy, 'meters)');
+        alert(`Location accuracy is poor (${position.coords.accuracy.toFixed(0)}m). This is normal on PC. For better accuracy, try on your phone.`);
       }
 
-      // Run geocoding and posts fetching IN PARALLEL (not sequential)
-      const [address] = await Promise.all([
-        reverseGeocode(userLocation.lat, userLocation.lng),
-        // Fetch posts in parallel with geocoding
-        !postsLoading ? fetchPosts({
+      setMapCenter(userLocation);
+      setMapZoom(20);
+
+      const address = await reverseGeocode(userLocation.lat, userLocation.lng);
+      setLocationQuery(address);
+      setCurrentLocation({ ...userLocation, name: address });
+      lastFetchCenterRef.current = { lat: userLocation.lat, lng: userLocation.lng };
+      
+      // Fetch posts immediately for user location
+      if (!postsLoading) {
+        fetchPosts({
           variables: {
             lat: userLocation.lat,
             lng: userLocation.lng,
@@ -90,11 +82,8 @@ export function createLocationHandlers({
             page: 1,
             limit: 50
           }
-        }) : Promise.resolve(null)
-      ]);
-
-      setLocationQuery(address);
-      setCurrentLocation({ ...userLocation, name: address });
+        });
+      }
 
       console.log('Map centered and MAX zoomed on your location!');
       console.log('Address found:', address);
