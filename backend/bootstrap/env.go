@@ -8,10 +8,10 @@ import (
 )
 
 type Env struct {
-	ServerPort string
-	MongoURI   string
+	ServerPort  string
+	MongoURI    string
 	MongoDBName string
-	JWTSecret  string
+	JWTSecret   string
 }
 
 func LoadEnv() *Env {
@@ -22,10 +22,10 @@ func LoadEnv() *Env {
 	}
 
 	return &Env{
-		ServerPort: getEnv("SERVER_PORT", "8080"),
-		MongoURI:   getEnv("MONGO_URI", "mongodb://localhost:27017"),
+		ServerPort:  getEnv("SERVER_PORT", "8080"),
+		MongoURI:    getEnv("MONGO_URI", "mongodb://admin:password@localhost:27017/?replicaSet=rs0&authSource=admin"),
 		MongoDBName: getEnv("MONGO_DB_NAME", "tindahan_db"),
-		JWTSecret:  getEnv("JWT_SECRET", "tindahan-secret-key"),
+		JWTSecret:   getEnv("JWT_SECRET", "tindahan-secret-key"),
 	}
 }
 

@@ -1,14 +1,17 @@
 package route
 
 import (
+	"net/http"
 	"tindahan-backend/api/handlers/middleware"
 	"tindahan-backend/bootstrap"
 	"tindahan-backend/graphql"
 
 	"github.com/99designs/gqlgen/graphql/handler"
+	"github.com/99designs/gqlgen/graphql/handler/transport"
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/gorilla/websocket"
 )
 
 func Setup(router *gin.Engine, app *bootstrap.Application) {
@@ -26,7 +29,26 @@ func Setup(router *gin.Engine, app *bootstrap.Application) {
 		Resolvers: graphql.NewResolver(app.MongoDatabase, app.Env.JWTSecret),
 	}
 
-	graphqlHandler := handler.NewDefaultServer(graphql.NewExecutableSchema(graphqlConfig))
+	// Create GraphQL server with WebSocket support for subscriptions
+	execSchema := graphql.NewExecutableSchema(graphqlConfig)
+	graphqlHandler := handler.New(execSchema)
+
+	// Add WebSocket transport for subscriptions (no auth required - public)
+	graphqlHandler.AddTransport(transport.Websocket{
+		KeepAlivePingInterval: 0,
+		Upgrader: websocket.Upgrader{
+			CheckOrigin: func(r *http.Request) bool {
+				return true // Allow all origins
+			},
+			ReadBufferSize:  1024,
+			WriteBufferSize: 1024,
+		},
+	})
+	// Add standard HTTP transports
+	graphqlHandler.AddTransport(transport.Options{})
+	graphqlHandler.AddTransport(transport.GET{})
+	graphqlHandler.AddTransport(transport.POST{})
+	graphqlHandler.AddTransport(transport.MultipartForm{})
 
 	// Health check
 	router.GET("/health", func(c *gin.Context) {
@@ -39,8 +61,23 @@ func Setup(router *gin.Engine, app *bootstrap.Application) {
 	// GraphQL endpoints - separate playground from GraphQL endpoint
 	playgroundHandler := playground.Handler("GraphQL Playground", "/query")
 	router.GET("/playground", gin.WrapH(playgroundHandler))
-	
-	// Apply auth middleware to GraphQL endpoint
-	authMiddleware := middleware.AuthMiddleware(app.Env.JWTSecret)
-	router.POST("/query", authMiddleware, gin.WrapH(graphqlHandler))
+
+	// GraphQL endpoint handler - checks for WebSocket upgrade (subscriptions = public, queries/mutations = auth required)
+	graphqlEndpointHandler := func(c *gin.Context) {
+		// Check if it's a WebSocket upgrade request (subscriptions don't need auth)
+		if c.GetHeader("Upgrade") == "websocket" {
+			graphqlHandler.ServeHTTP(c.Writer, c.Request)
+			return
+		}
+
+		// Regular HTTP request - require auth for queries/mutations
+		middleware.AuthMiddleware(app.Env.JWTSecret)(c)
+		if !c.IsAborted() {
+			graphqlHandler.ServeHTTP(c.Writer, c.Request)
+		}
+	}
+
+	// Register for both GET and POST (GraphQL supports both)
+	router.GET("/query", graphqlEndpointHandler)
+	router.POST("/query", graphqlEndpointHandler)
 }

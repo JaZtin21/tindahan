@@ -256,6 +256,7 @@ type ComplexityRoot struct {
 
 	Subscription struct {
 		ItemStockUpdates  func(childComplexity int, shopID string) int
+		LivePosts         func(childComplexity int) int
 		ShopStatusUpdates func(childComplexity int) int
 	}
 
@@ -325,6 +326,7 @@ type QueryResolver interface {
 type SubscriptionResolver interface {
 	ItemStockUpdates(ctx context.Context, shopID string) (<-chan *Item, error)
 	ShopStatusUpdates(ctx context.Context) (<-chan *Shop, error)
+	LivePosts(ctx context.Context) (<-chan []*Post, error)
 }
 
 type executableSchema graphql.ExecutableSchemaState[ResolverRoot, DirectiveRoot, ComplexityRoot]
@@ -1424,6 +1426,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Subscription.ItemStockUpdates(childComplexity, args["shopId"].(string)), true
+	case "Subscription.livePosts":
+		if e.ComplexityRoot.Subscription.LivePosts == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Subscription.LivePosts(childComplexity), true
 	case "Subscription.shopStatusUpdates":
 		if e.ComplexityRoot.Subscription.ShopStatusUpdates == nil {
 			break
@@ -7849,6 +7857,63 @@ func (ec *executionContext) fieldContext_Subscription_shopStatusUpdates(_ contex
 	return fc, nil
 }
 
+func (ec *executionContext) _Subscription_livePosts(ctx context.Context, field graphql.CollectedField) (ret func(ctx context.Context) graphql.Marshaler) {
+	return graphql.ResolveFieldStream(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Subscription_livePosts,
+		func(ctx context.Context) (any, error) {
+			return ec.Resolvers.Subscription().LivePosts(ctx)
+		},
+		nil,
+		ec.marshalNPost2ᚕᚖtindahanᚑbackendᚋgraphqlᚐPostᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Subscription_livePosts(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Subscription",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Post_id(ctx, field)
+			case "title":
+				return ec.fieldContext_Post_title(ctx, field)
+			case "text":
+				return ec.fieldContext_Post_text(ctx, field)
+			case "photos":
+				return ec.fieldContext_Post_photos(ctx, field)
+			case "types":
+				return ec.fieldContext_Post_types(ctx, field)
+			case "author":
+				return ec.fieldContext_Post_author(ctx, field)
+			case "location":
+				return ec.fieldContext_Post_location(ctx, field)
+			case "likes":
+				return ec.fieldContext_Post_likes(ctx, field)
+			case "isLiked":
+				return ec.fieldContext_Post_isLiked(ctx, field)
+			case "comments":
+				return ec.fieldContext_Post_comments(ctx, field)
+			case "commentCount":
+				return ec.fieldContext_Post_commentCount(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Post_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_Post_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Post", field.Name)
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _User_id(ctx context.Context, field graphql.CollectedField, obj *User) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -12905,6 +12970,8 @@ func (ec *executionContext) _Subscription(ctx context.Context, sel ast.Selection
 		return ec._Subscription_itemStockUpdates(ctx, fields[0])
 	case "shopStatusUpdates":
 		return ec._Subscription_shopStatusUpdates(ctx, fields[0])
+	case "livePosts":
+		return ec._Subscription_livePosts(ctx, fields[0])
 	default:
 		panic("unknown field " + strconv.Quote(fields[0].Name))
 	}

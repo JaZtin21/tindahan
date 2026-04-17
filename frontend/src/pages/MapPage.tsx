@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useDispatch } from 'react-redux';
-import { useQuery } from '@apollo/client/react';
+import { useQuery, useSubscription } from '@apollo/client/react';
 import { OpenStreetMap, SearchBar, LocationSearchBar } from '../components/Map';
 import { openSideNav } from '../store';
 import { CreatePostModal } from '../components/posts/CreatePostModal';
@@ -8,6 +8,7 @@ import { PostPreviewModal } from '../components/posts/PostPreviewModal';
 import type { Post } from '../types/map';
 import { useCreatePost, usePostsNearLocation } from '../api/graphql/post/usePost';
 import { SHOPS_BY_PRODUCT_QUERY } from '../api/graphql/shop/shop-queries';
+import { LIVE_POSTS_SUBSCRIPTION } from '../api/graphql/subscriptions/live-posts';
 import { 
   useMapPosts, 
   useMapMarkers, 
@@ -22,6 +23,18 @@ import {
 
 export function MapPage() {
   const dispatch = useDispatch();
+
+  // Live posts subscription - logs all posts from last 24 hours
+  const { data: livePostsData, error: livePostsError } = useSubscription(LIVE_POSTS_SUBSCRIPTION);
+
+  useEffect(() => {
+    if (livePostsData?.livePosts) {
+      // Handle live posts data - posts from last 24 hours
+    }
+    if (livePostsError) {
+      console.error('Live posts subscription error:', livePostsError);
+    }
+  }, [livePostsData, livePostsError]);
 
   // Store states
   const [filteredStores, setFilteredStores] = useState<{ lat: number; lng: number; title: string; id?: string }[]>([]);

@@ -6,4 +6,7 @@ type Subscription {
 
   # Real-time shop status updates
   shopStatusUpdates: Shop!
+
+  # Real-time posts from last 24 hours
+  livePosts: [Post!]!
 }

@@ -13,15 +13,22 @@ import (
 )
 
 type PostResolver struct {
+	db       *mongo.Database
 	postRepo repository.PostRepository
 	userRepo repository.UserRepository
 }
 
 func NewPostResolver(db *mongo.Database) *PostResolver {
 	return &PostResolver{
+		db:       db,
 		postRepo: repository.NewPostRepository(db),
 		userRepo: repository.NewUserRepository(db),
 	}
+}
+
+// GetDB returns the MongoDB database instance
+func (r *PostResolver) GetDB() *mongo.Database {
+	return r.db
 }
 
 // CreatePost creates a new post

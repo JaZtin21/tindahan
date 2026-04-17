@@ -1,7 +1,10 @@
-import { ApolloClient, InMemoryCache, HttpLink, from } from '@apollo/client';
+import { ApolloClient, InMemoryCache, HttpLink, from, split } from '@apollo/client';
 import { ApolloProvider } from '@apollo/client/react';
 import { setContext } from '@apollo/client/link/context';
 import { onError } from '@apollo/client/link/error';
+import { GraphQLWsLink } from '@apollo/client/link/subscriptions';
+import { createClient } from 'graphql-ws';
+import { getMainDefinition } from '@apollo/client/utilities';
 import { useGoogleLogin } from '@react-oauth/google';
 import { useEffect, useMemo, useState, createContext, useContext, useRef, useCallback } from 'react';
 import { Observable } from '@apollo/client/utilities';
@@ -439,9 +442,58 @@ const ApolloProviderWithAuth = ({ children }: any) => {
             }
         });
 
+        // WebSocket link for subscriptions with auth
+        const wsLink = new GraphQLWsLink(createClient({
+            url: GRAPHQL_ENDPOINT.replace('http', 'ws'),
+            connectionParams: () => ({
+                headers: {
+                    Authorization: jwtRef.current ? `Bearer ${jwtRef.current}` : '',
+                },
+            }),
+        }));
+
+        // Split link based on operation type
+        const splitLink = split(
+            ({ query }) => {
+                const definition = getMainDefinition(query);
+                return (
+                    definition.kind === 'OperationDefinition' &&
+                    definition.operation === 'subscription'
+                );
+            },
+            wsLink,
+            from([errorLink, authLink, httpLink])
+        );
+
         return new ApolloClient({
-            link: from([errorLink, authLink, httpLink]),
-            cache: new InMemoryCache(),
+            link: splitLink,
+            cache: new InMemoryCache({
+                typePolicies: {
+                    Subscription: {
+                        fields: {
+                            livePosts: {
+                                // Merge function to handle subscription updates
+                                // Initial: all posts from last 24h, Updates: only new posts
+                                merge(existing = [], incoming) {
+                                    // Create a map of existing posts by ID to avoid duplicates
+                                    const postMap = new Map();
+                                    existing.forEach((post: any) => {
+                                        if (post?.id) postMap.set(post.id, post);
+                                    });
+                                    
+                                    // Add incoming posts (will overwrite if same ID = update)
+                                    incoming.forEach((post: any) => {
+                                        if (post?.id) postMap.set(post.id, post);
+                                    });
+                                    
+                                    // Return merged array
+                                    return Array.from(postMap.values());
+                                },
+                            },
+                        },
+                    },
+                },
+            }),
         });
     }, [logoutAndClear]);
 

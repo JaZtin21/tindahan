@@ -5,6 +5,8 @@ package graphql
 import (
 	"context"
 	"fmt"
+	"log"
+	"sync"
 	"time"
 	"tindahan-backend/api/handlers/auth"
 	"tindahan-backend/api/handlers/middleware"
@@ -16,9 +18,52 @@ import (
 	"tindahan-backend/domain"
 	"tindahan-backend/repository"
 
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
+
+// PostNotifier handles real-time notifications for post changes
+type PostNotifier struct {
+	mu        sync.RWMutex
+	listeners map[chan struct{}]bool
+}
+
+// NewPostNotifier creates a new PostNotifier
+func NewPostNotifier() *PostNotifier {
+	return &PostNotifier{
+		listeners: make(map[chan struct{}]bool),
+	}
+}
+
+// Subscribe adds a new listener
+func (n *PostNotifier) Subscribe() chan struct{} {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+	ch := make(chan struct{}, 1)
+	n.listeners[ch] = true
+	return ch
+}
+
+// Unsubscribe removes a listener
+func (n *PostNotifier) Unsubscribe(ch chan struct{}) {
+	n.mu.Lock()
+	defer n.mu.Unlock()
+	delete(n.listeners, ch)
+	close(ch)
+}
+
+// NotifyAll notifies all listeners of a change
+func (n *PostNotifier) NotifyAll() {
+	n.mu.RLock()
+	defer n.mu.RUnlock()
+	for ch := range n.listeners {
+		select {
+		case ch <- struct{}{}:
+		default:
+		}
+	}
+}
 
 // Helper functions for safe type extraction
 func getStringValue(m map[string]interface{}, key string) string {
@@ -50,6 +95,7 @@ type Resolver struct {
 	productRepo     repository.ProductRepository
 	db              *mongo.Database
 	jwtSecret       string
+	postNotifier    *PostNotifier
 }
 
 // Login is the resolver for the login field.
@@ -216,6 +262,10 @@ func (r *mutationResolver) CreatePost(ctx context.Context, input CreatePostInput
 			Message: result["message"].(string),
 		}, nil
 	}
+
+	// Notify all subscribers that a new post was created
+	r.postNotifier.NotifyAll()
+	log.Println("🔴 LIVE POSTS: Notified subscribers of new post")
 
 	data := result["data"].(map[string]interface{})
 	return &PostPayload{
@@ -1823,6 +1873,253 @@ func (r *subscriptionResolver) ShopStatusUpdates(ctx context.Context) (<-chan *S
 	return nil, nil
 }
 
+// LivePosts is the resolver for the livePosts field - uses MongoDB Change Streams for true real-time updates
+func (r *subscriptionResolver) LivePosts(ctx context.Context) (<-chan []*Post, error) {
+	postChan := make(chan []*Post, 1)
+
+	go func() {
+		defer close(postChan)
+
+		twentyFourHoursAgo := time.Now().Add(-24 * time.Hour)
+		// Track sent post IDs to only send new ones on change
+		sentPostIDs := make(map[string]bool)
+
+		// Create change stream to watch for inserts on posts collection
+		pipeline := mongo.Pipeline{
+			{{Key: "$match", Value: bson.M{
+				"operationType": bson.M{"$in": []string{"insert", "update", "replace"}},
+			}}},
+		}
+
+		// Watch the posts collection for changes
+		changeStream, err := r.postResolver.GetDB().Collection("posts").Watch(ctx, pipeline)
+		if err != nil {
+			log.Printf("LIVE POSTS ERROR: Failed to create change stream: %v", err)
+			return
+		}
+		defer changeStream.Close(ctx)
+
+		// Send initial posts from last 24 hours
+		cursor, err := r.postResolver.GetDB().Collection("posts").Find(ctx, bson.M{
+			"created_at": bson.M{"$gte": twentyFourHoursAgo},
+		})
+		if err == nil {
+			var rawDocs []bson.M
+			if err := cursor.All(ctx, &rawDocs); err == nil {
+				cursor.Close(ctx)
+
+				posts := make([]*Post, 0, len(rawDocs))
+				for _, doc := range rawDocs {
+					post := r.docToPost(doc)
+					if post != nil {
+						posts = append(posts, post)
+						sentPostIDs[post.ID] = true
+					}
+				}
+
+				select {
+				case postChan <- posts:
+				case <-ctx.Done():
+					return
+				}
+			}
+		}
+
+		// Watch for changes - BLOCKS until change detected (NO POLLING)
+		for changeStream.Next(ctx) {
+			var changeDoc bson.M
+			if err := changeStream.Decode(&changeDoc); err != nil {
+				continue
+			}
+
+			// Get the document ID from the change stream
+			var docID primitive.ObjectID
+			if fullDoc, ok := changeDoc["fullDocument"].(bson.M); ok {
+				if id, ok := fullDoc["_id"].(primitive.ObjectID); ok {
+					docID = id
+				}
+			}
+
+			// Query only for new/updated posts not yet sent
+			cursor, err := r.postResolver.GetDB().Collection("posts").Find(ctx, bson.M{
+				"created_at": bson.M{"$gte": twentyFourHoursAgo},
+				"_id":        bson.M{"$nin": getObjectIDsFromMap(sentPostIDs)},
+			})
+			if err != nil {
+				continue
+			}
+
+			var rawDocs []bson.M
+			if err := cursor.All(ctx, &rawDocs); err != nil {
+				cursor.Close(ctx)
+				continue
+			}
+			cursor.Close(ctx)
+
+			// Convert and send only new posts
+			newPosts := make([]*Post, 0, len(rawDocs))
+			for _, doc := range rawDocs {
+				post := r.docToPost(doc)
+				if post != nil && !sentPostIDs[post.ID] {
+					newPosts = append(newPosts, post)
+					sentPostIDs[post.ID] = true
+				}
+			}
+
+			// Only send if there are new posts
+			if len(newPosts) > 0 {
+				select {
+				case postChan <- newPosts:
+				case <-ctx.Done():
+					return
+				}
+			}
+
+			// Also handle updates to existing posts
+			if docID != primitive.NilObjectID {
+				var updatedPost bson.M
+				err := r.postResolver.GetDB().Collection("posts").FindOne(ctx, bson.M{"_id": docID}).Decode(&updatedPost)
+				if err == nil {
+					post := r.docToPost(updatedPost)
+					if post != nil && sentPostIDs[post.ID] {
+						// Send updated post as well
+						select {
+						case postChan <- []*Post{post}:
+						case <-ctx.Done():
+							return
+						}
+					}
+				}
+			}
+		}
+	}()
+
+	return postChan, nil
+}
+
+// Helper to convert string IDs to ObjectIDs for MongoDB query
+func getObjectIDsFromMap(idMap map[string]bool) []primitive.ObjectID {
+	var result []primitive.ObjectID
+	for id := range idMap {
+		if oid, err := primitive.ObjectIDFromHex(id); err == nil {
+			result = append(result, oid)
+		}
+	}
+	return result
+}
+
+// docToPost converts a MongoDB document to a GraphQL Post struct
+func (r *Resolver) docToPost(doc bson.M) *Post {
+	post := &Post{}
+
+	// ID
+	if id, ok := doc["_id"].(primitive.ObjectID); ok {
+		post.ID = id.Hex()
+	}
+
+	// Title (required)
+	if title, ok := doc["title"].(string); ok {
+		post.Title = title
+	} else {
+		post.Title = ""
+	}
+
+	// Text (required)
+	if text, ok := doc["text"].(string); ok {
+		post.Text = text
+	} else {
+		post.Text = ""
+	}
+
+	// Photos
+	if photos, ok := doc["photos"].([]interface{}); ok {
+		post.Photos = make([]string, 0, len(photos))
+		for _, p := range photos {
+			if s, ok := p.(string); ok {
+				post.Photos = append(post.Photos, s)
+			}
+		}
+	}
+
+	// Types
+	if types, ok := doc["types"].([]interface{}); ok {
+		post.Types = make([]string, 0, len(types))
+		for _, t := range types {
+			if s, ok := t.(string); ok {
+				post.Types = append(post.Types, s)
+			}
+		}
+	}
+
+	// Likes (required) - handle both int32 and int64
+	if likes, ok := doc["likes"].(int32); ok {
+		post.Likes = int(likes)
+	} else if likes, ok := doc["likes"].(int64); ok {
+		post.Likes = int(likes)
+	} else {
+		post.Likes = 0
+	}
+
+	// IsLiked (required)
+	post.IsLiked = false // Default to false, would need user context to determine
+
+	// Comments (required - empty array)
+	post.Comments = []*Comment{}
+
+	// CommentCount (required)
+	if count, ok := doc["comment_count"].(int32); ok {
+		post.CommentCount = int(count)
+	} else if count, ok := doc["comment_count"].(int64); ok {
+		post.CommentCount = int(count)
+	} else {
+		post.CommentCount = 0
+	}
+
+	// Author (required) - create minimal author from author_id
+	if authorID, ok := doc["author_id"].(primitive.ObjectID); ok {
+		post.Author = &User{
+			ID:    authorID.Hex(),
+			Name:  "Unknown",
+			Email: "",
+		}
+	} else {
+		// Create empty author as fallback
+		post.Author = &User{
+			ID:    "",
+			Name:  "Unknown",
+			Email: "",
+		}
+	}
+
+	// CreatedAt (non-pointer)
+	if createdAt, ok := doc["created_at"].(primitive.DateTime); ok {
+		post.CreatedAt = createdAt.Time()
+	}
+
+	// UpdatedAt (pointer)
+	if updatedAt, ok := doc["updated_at"].(primitive.DateTime); ok {
+		t := updatedAt.Time()
+		post.UpdatedAt = &t
+	}
+
+	// Location (optional)
+	if locDoc, ok := doc["location"].(bson.M); ok {
+		loc := &Location{}
+		if lat, ok := locDoc["lat"].(float64); ok {
+			loc.Lat = lat
+		}
+		if lng, ok := locDoc["lng"].(float64); ok {
+			loc.Lng = lng
+		}
+		if name, ok := locDoc["name"].(string); ok {
+			loc.Name = name
+		}
+		post.Location = loc
+	}
+
+	return post
+}
+
 // Mutation returns MutationResolver implementation.
 func (r *Resolver) Mutation() MutationResolver { return &mutationResolver{r} }
 
@@ -1849,6 +2146,7 @@ func NewResolver(db *mongo.Database, jwtSecret string) *Resolver {
 		productRepo:     repository.NewProductRepository(db),
 		db:              db,
 		jwtSecret:       jwtSecret,
+		postNotifier:    NewPostNotifier(),
 	}
 }
 
