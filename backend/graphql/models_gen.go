@@ -107,6 +107,7 @@ type CreateShopInput struct {
 	Delivery       *DeliveryOptionsInput `json:"delivery"`
 	SocialMedia    *SocialMediaInput     `json:"socialMedia"`
 	ContactDetails *ContactDetailsInput  `json:"contactDetails"`
+	Rating         *float64              `json:"rating,omitempty"`
 }
 
 type CreateUserInput struct {
@@ -289,6 +290,7 @@ type Shop struct {
 	Verification   *Verification    `json:"verification"`
 	ContactDetails *ContactDetails  `json:"contactDetails"`
 	Inventory      []*Item          `json:"inventory"`
+	Rating         *float64         `json:"rating,omitempty"`
 	CreatedAt      time.Time        `json:"createdAt"`
 	UpdatedAt      *time.Time       `json:"updatedAt,omitempty"`
 	CreatedBy      string           `json:"createdBy"`
@@ -388,6 +390,7 @@ type UpdateShopInput struct {
 	SocialMedia    *SocialMediaInput     `json:"socialMedia,omitempty"`
 	ContactDetails *ContactDetailsInput  `json:"contactDetails,omitempty"`
 	Status         *ShopStatus           `json:"status,omitempty"`
+	Rating         *float64              `json:"rating,omitempty"`
 }
 
 type User struct {

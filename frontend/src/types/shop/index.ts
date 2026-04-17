@@ -51,6 +51,7 @@ export interface Shop {
     address: string;
   };
   inventory: Item[];
+  rating?: number;
   createdAt: string;
   updatedAt?: string;
   createdBy?: string;

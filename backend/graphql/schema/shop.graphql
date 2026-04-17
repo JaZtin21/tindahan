@@ -29,6 +29,7 @@ type Shop {
   verification: Verification!
   contactDetails: ContactDetails!
   inventory: [Item!]!
+  rating: Float
   createdAt: Time!
   updatedAt: Time
   createdBy: ObjectID!
@@ -102,6 +103,7 @@ input CreateShopInput {
   delivery: DeliveryOptionsInput!
   socialMedia: SocialMediaInput!
   contactDetails: ContactDetailsInput!
+  rating: Float
 }
 
 input UpdateShopInput {
@@ -118,6 +120,7 @@ input UpdateShopInput {
   socialMedia: SocialMediaInput
   contactDetails: ContactDetailsInput
   status: ShopStatus
+  rating: Float
 }
 
 input CoordinatesInput {

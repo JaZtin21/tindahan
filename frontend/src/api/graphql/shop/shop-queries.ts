@@ -77,6 +77,7 @@ export const SHOP_QUERY = gql`
           updatedAt
           shopId
         }
+        rating
         createdAt
         updatedAt
         createdBy
@@ -114,6 +115,7 @@ export const SEARCH_SHOPS_QUERY = gql`
           email
           address
         }
+        rating
       }
     }
   }
@@ -147,6 +149,7 @@ export const SHOPS_BY_PRODUCT_QUERY = gql`
           email
           address
         }
+        rating
       }
     }
   }

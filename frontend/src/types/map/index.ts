@@ -58,6 +58,7 @@ export interface Store {
   phone?: string;
   email?: string;
   hours?: string;
+  rating?: number;
 }
 
 // Post creation input

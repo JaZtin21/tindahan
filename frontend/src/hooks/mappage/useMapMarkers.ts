@@ -65,6 +65,11 @@ export function useMapMarkers({
         location: selectedStore.location,
         coverPhoto: selectedStore.coverPhoto,
         businessType: selectedStore.businessType,
+        description: selectedStore.description,
+        phone: selectedStore.phone,
+        email: selectedStore.email,
+        hours: selectedStore.hours,
+        rating: selectedStore.rating,
       });
     }
     

@@ -230,6 +230,7 @@ type ComplexityRoot struct {
 		Name           func(childComplexity int) int
 		OtherPhotos    func(childComplexity int) int
 		PaymentMethods func(childComplexity int) int
+		Rating         func(childComplexity int) int
 		SocialMedia    func(childComplexity int) int
 		Status         func(childComplexity int) int
 		UpdatedAt      func(childComplexity int) int
@@ -1330,6 +1331,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Shop.PaymentMethods(childComplexity), true
+	case "Shop.rating":
+		if e.ComplexityRoot.Shop.Rating == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Shop.Rating(childComplexity), true
 	case "Shop.socialMedia":
 		if e.ComplexityRoot.Shop.SocialMedia == nil {
 			break
@@ -7219,6 +7226,35 @@ func (ec *executionContext) fieldContext_Shop_inventory(_ context.Context, field
 	return fc, nil
 }
 
+func (ec *executionContext) _Shop_rating(ctx context.Context, field graphql.CollectedField, obj *Shop) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Shop_rating,
+		func(ctx context.Context) (any, error) {
+			return obj.Rating, nil
+		},
+		nil,
+		ec.marshalOFloat2ᚖfloat64,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Shop_rating(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Shop",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Float does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Shop_createdAt(ctx context.Context, field graphql.CollectedField, obj *Shop) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -7447,6 +7483,8 @@ func (ec *executionContext) fieldContext_ShopPayload_data(_ context.Context, fie
 				return ec.fieldContext_Shop_contactDetails(ctx, field)
 			case "inventory":
 				return ec.fieldContext_Shop_inventory(ctx, field)
+			case "rating":
+				return ec.fieldContext_Shop_rating(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_Shop_createdAt(ctx, field)
 			case "updatedAt":
@@ -7574,6 +7612,8 @@ func (ec *executionContext) fieldContext_ShopsPayload_data(_ context.Context, fi
 				return ec.fieldContext_Shop_contactDetails(ctx, field)
 			case "inventory":
 				return ec.fieldContext_Shop_inventory(ctx, field)
+			case "rating":
+				return ec.fieldContext_Shop_rating(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_Shop_createdAt(ctx, field)
 			case "updatedAt":
@@ -7792,6 +7832,8 @@ func (ec *executionContext) fieldContext_Subscription_shopStatusUpdates(_ contex
 				return ec.fieldContext_Shop_contactDetails(ctx, field)
 			case "inventory":
 				return ec.fieldContext_Shop_inventory(ctx, field)
+			case "rating":
+				return ec.fieldContext_Shop_rating(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_Shop_createdAt(ctx, field)
 			case "updatedAt":
@@ -10058,7 +10100,7 @@ func (ec *executionContext) unmarshalInputCreateShopInput(ctx context.Context, o
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"name", "description", "location", "coordinates", "coverPhoto", "otherPhotos", "businessHours", "businessType", "paymentMethods", "delivery", "socialMedia", "contactDetails"}
+	fieldsInOrder := [...]string{"name", "description", "location", "coordinates", "coverPhoto", "otherPhotos", "businessHours", "businessType", "paymentMethods", "delivery", "socialMedia", "contactDetails", "rating"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -10149,6 +10191,13 @@ func (ec *executionContext) unmarshalInputCreateShopInput(ctx context.Context, o
 				return it, err
 			}
 			it.ContactDetails = data
+		case "rating":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("rating"))
+			data, err := ec.unmarshalOFloat2ᚖfloat64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Rating = data
 		}
 	}
 	return it, nil
@@ -11014,7 +11063,7 @@ func (ec *executionContext) unmarshalInputUpdateShopInput(ctx context.Context, o
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"name", "description", "location", "coordinates", "coverPhoto", "otherPhotos", "businessHours", "businessType", "paymentMethods", "delivery", "socialMedia", "contactDetails", "status"}
+	fieldsInOrder := [...]string{"name", "description", "location", "coordinates", "coverPhoto", "otherPhotos", "businessHours", "businessType", "paymentMethods", "delivery", "socialMedia", "contactDetails", "status", "rating"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -11112,6 +11161,13 @@ func (ec *executionContext) unmarshalInputUpdateShopInput(ctx context.Context, o
 				return it, err
 			}
 			it.Status = data
+		case "rating":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("rating"))
+			data, err := ec.unmarshalOFloat2ᚖfloat64(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Rating = data
 		}
 	}
 	return it, nil
@@ -12657,6 +12713,8 @@ func (ec *executionContext) _Shop(ctx context.Context, sel ast.SelectionSet, obj
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "rating":
+			out.Values[i] = ec._Shop_rating(ctx, field, obj)
 		case "createdAt":
 			out.Values[i] = ec._Shop_createdAt(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
