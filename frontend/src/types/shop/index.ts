@@ -34,6 +34,7 @@ export interface Verification {
 export interface Shop {
   id: string;
   name: string;
+  description?: string;
   location: string;
   coordinates: { lat: number; lng: number };
   coverPhoto: string;

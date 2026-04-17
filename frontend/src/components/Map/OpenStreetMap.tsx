@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import type { PostMarker, MapProps } from '../../types';
 import {
   getStoreMarkerHtml,
-  getStorePopupHtml,
   getCurrentLocationHtml,
   getCurrentLocationPopupHtml,
   getMapMarkerStyles,
@@ -100,7 +99,7 @@ export function OpenStreetMap({ center, zoom, onMapClick, onMarkerClick, onMapMo
     };
     
     // Helper function to render markers
-    function renderMarkers(markersData: PostMarker[], mapInstance: any, L: any, onMarkerClickHandler?: (store: { lat: number; lng: number; name: string }) => void) {
+    function renderMarkers(markersData: PostMarker[], mapInstance: any, L: any, onMarkerClickHandler?: (store: { lat: number; lng: number; name: string; id?: string; location?: string; coverPhoto?: string; businessType?: string }) => void) {
       if (!markersLayerRef.current) return;
       
       // Clear existing markers
@@ -144,13 +143,16 @@ export function OpenStreetMap({ center, zoom, onMapClick, onMarkerClick, onMapMo
           });
 
           const marker = L.marker([markerData.lat, markerData.lng], { icon: customIcon })
-            .bindPopup(getStorePopupHtml(markerData.title || 'Store Location', markerData.lat, markerData.lng))
             .on('click', () => {
               if (onMarkerClickHandler && markerData.title) {
                 onMarkerClickHandler({
                   lat: markerData.lat,
                   lng: markerData.lng,
-                  name: markerData.title
+                  name: markerData.title,
+                  id: markerData.id,
+                  location: (markerData as any).location,
+                  coverPhoto: (markerData as any).coverPhoto,
+                  businessType: (markerData as any).businessType
                 });
               }
             });
@@ -285,13 +287,16 @@ export function OpenStreetMap({ center, zoom, onMapClick, onMarkerClick, onMapMo
             });
 
             const marker = L.marker([markerData.lat, markerData.lng], { icon: customIcon })
-              .bindPopup(getStorePopupHtml(markerData.title || 'Store Location', markerData.lat, markerData.lng))
               .on('click', () => {
                 if (onMarkerClick && markerData.title) {
                   onMarkerClick({
                     lat: markerData.lat,
                     lng: markerData.lng,
-                    name: markerData.title
+                    name: markerData.title,
+                    id: markerData.id,
+                    location: (markerData as any).location,
+                    coverPhoto: (markerData as any).coverPhoto,
+                    businessType: (markerData as any).businessType
                   });
                 }
               });

@@ -133,13 +133,10 @@ export function OwnerPage() {
     } else {
       const result = await createShop(shopData);
       if (result.success) {
-        // Find the newly created shop
+        // Refresh shops list and navigate to My Shops tab
         await refreshShops();
-        const newShop = shops.find((s) => s.name === shopData.name);
-        if (newShop) {
-          setSelectedShop(newShop);
-          setActiveTab('add-item');
-        }
+        setSelectedShop(null);
+        setActiveTab('shops');
       }
     }
   };

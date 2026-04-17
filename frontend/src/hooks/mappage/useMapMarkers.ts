@@ -22,6 +22,9 @@ export function useMapMarkers({
       title: store.title,
       type: 'store' as const,
       id: store.id,
+      location: store.location,
+      coverPhoto: store.coverPhoto,
+      businessType: store.businessType,
     }));
     
     // Only show posts when zoom > 16
@@ -55,6 +58,9 @@ export function useMapMarkers({
         title: selectedStore.title,
         type: 'store' as const,
         id: selectedStore.id,
+        location: selectedStore.location,
+        coverPhoto: selectedStore.coverPhoto,
+        businessType: selectedStore.businessType,
       });
     }
     

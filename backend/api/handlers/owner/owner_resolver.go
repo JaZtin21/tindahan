@@ -2,6 +2,7 @@ package owner
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"tindahan-backend/domain"
@@ -64,9 +65,10 @@ func (r *OwnerResolver) GetOwnerShops(ctx context.Context, ownerId string, page,
 		}
 
 		data[i] = map[string]interface{}{
-			"id":       store.ID.Hex(),
-			"name":     store.Name,
-			"location": store.Address,
+			"id":          store.ID.Hex(),
+			"name":        store.Name,
+			"description": store.Description,
+			"location":    store.Address,
 			"coordinates": map[string]float64{
 				"lat": store.Latitude,
 				"lng": store.Longitude,
@@ -85,6 +87,7 @@ func (r *OwnerResolver) GetOwnerShops(ctx context.Context, ownerId string, page,
 			"updatedAt":      store.UpdatedAt.Format(time.RFC3339),
 			"createdBy":      store.OwnerID.Hex(),
 		}
+		fmt.Printf("DEBUG GetOwnerShops: store %s description = '%s'\n", store.ID.Hex(), store.Description)
 	}
 
 	return map[string]interface{}{
@@ -98,6 +101,7 @@ func (r *OwnerResolver) GetOwnerShops(ctx context.Context, ownerId string, page,
 // CreateShopInput represents all fields for creating a shop
 type CreateShopInput struct {
 	Name           string
+	Description    string
 	Location       string
 	Coordinates    struct{ Lat, Lng float64 }
 	CoverPhoto     string
@@ -123,12 +127,15 @@ func (r *OwnerResolver) CreateShop(ctx context.Context, ownerId string, input Cr
 
 	now := time.Now()
 
+	// Debug logging
+	fmt.Printf("DEBUG CreateShop: input.Description = '%s'\n", input.Description)
+
 	// Create store domain object with all fields
 	store := &domain.Store{
 		ID:          primitive.NewObjectID(),
 		Name:        input.Name,
 		Address:     input.Location,
-		Description: "",
+		Description: input.Description,
 		City:        "",
 		Latitude:    input.Coordinates.Lat,
 		Longitude:   input.Coordinates.Lng,
@@ -157,6 +164,7 @@ func (r *OwnerResolver) CreateShop(ctx context.Context, ownerId string, input Cr
 			"message": "Failed to create shop: " + err.Error(),
 		}, err
 	}
+	fmt.Printf("DEBUG CreateShop: saved store with description = '%s'\n", store.Description)
 
 	// Ensure verification always has a value (required by GraphQL schema)
 	verification := store.Verification
@@ -194,6 +202,7 @@ func (r *OwnerResolver) CreateShop(ctx context.Context, ownerId string, input Cr
 // UpdateShopInput contains all fields for updating a shop
 type UpdateShopInput struct {
 	Name           string
+	Description    string
 	Location       string
 	Coordinates    struct{ Lat, Lng float64 }
 	CoverPhoto     string
@@ -209,6 +218,8 @@ type UpdateShopInput struct {
 
 // UpdateShop updates an existing shop with all fields (real DB implementation)
 func (r *OwnerResolver) UpdateShop(ctx context.Context, shopId, ownerId string, input UpdateShopInput) (map[string]interface{}, error) {
+	fmt.Printf("DEBUG UpdateShop: input.Description = '%s'\n", input.Description)
+
 	// Convert shopId to ObjectID
 	shopObjectID, err := primitive.ObjectIDFromHex(shopId)
 	if err != nil {
@@ -240,6 +251,9 @@ func (r *OwnerResolver) UpdateShop(ctx context.Context, shopId, ownerId string, 
 
 	if input.Name != "" {
 		updates.Name = &input.Name
+	}
+	if input.Description != "" {
+		updates.Description = &input.Description
 	}
 	if input.Location != "" {
 		updates.Address = &input.Location

@@ -86,11 +86,6 @@ export function SideNav({ isOpen, onClose, selectedLocation }: SideNavProps) {
                 <h3 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">
                   {selectedLocation.name}
                 </h3>
-                <div className="flex items-center gap-2 mt-1">
-                  <span className="text-sm px-2 py-1 bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-300 rounded-full">
-                    {selectedLocation.type === 'store' ? 'Store' : 'Location'}
-                  </span>
-                </div>
               </div>
 
               {/* Description */}
@@ -138,15 +133,6 @@ export function SideNav({ isOpen, onClose, selectedLocation }: SideNavProps) {
                     </div>
                   </div>
                 )}
-              </div>
-
-              {/* Coordinates */}
-              <div>
-                <h4 className="font-semibold text-zinc-900 dark:text-zinc-100 mb-2">Coordinates</h4>
-                <div className="text-sm text-zinc-600 dark:text-zinc-400 font-mono">
-                  <p>Latitude: {selectedLocation.lat.toFixed(6)}</p>
-                  <p>Longitude: {selectedLocation.lng.toFixed(6)}</p>
-                </div>
               </div>
 
               {/* Action Buttons */}

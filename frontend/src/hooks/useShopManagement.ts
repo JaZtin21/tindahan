@@ -26,6 +26,7 @@ function convertOwnerShopToShop(ownerShop: OwnerShop): Shop {
   return {
     id: ownerShop.id,
     name: ownerShop.name,
+    description: ownerShop.description,
     location: ownerShop.location,
     coordinates: ownerShop.coordinates,
     coverPhoto: ownerShop.coverPhoto,
@@ -48,6 +49,7 @@ function convertOwnerShopToShop(ownerShop: OwnerShop): Shop {
 function shopToCreateInput(shop: Shop) {
   return {
     name: shop.name,
+    description: shop.description,
     location: shop.location,
     coordinates: shop.coordinates,
     coverPhoto: shop.coverPhoto,
@@ -64,6 +66,7 @@ function shopToCreateInput(shop: Shop) {
 function shopToUpdateInput(shop: Shop) {
   return {
     name: shop.name,
+    description: shop.description,
     location: shop.location,
     coordinates: shop.coordinates,
     coverPhoto: shop.coverPhoto,

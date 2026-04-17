@@ -12,7 +12,7 @@ export function createStoreHandlers({
   openSideNav
 }: StoreHandlersOptions) {
   
-  const handleStoreSelect = (store: { lat: number; lng: number; name: string; id?: string }) => {
+  const handleStoreSelect = (store: { lat: number; lng: number; name: string; id?: string; description?: string; location?: string; coverPhoto?: string; businessType?: string; phone?: string; hours?: string }) => {
     console.log('Flying to store:', store);
     const newCenter = { lat: store.lat, lng: store.lng };
     setMapCenter(newCenter);
@@ -24,7 +24,10 @@ export function createStoreHandlers({
       lat: store.lat,
       lng: store.lng,
       title: store.name,
-      id: store.id || 'selected-store'
+      id: store.id || 'selected-store',
+      location: store.location,
+      coverPhoto: store.coverPhoto,
+      businessType: store.businessType
     });
     
     // Fetch posts immediately for store location
@@ -45,10 +48,11 @@ export function createStoreHandlers({
       lat: store.lat,
       lng: store.lng,
       type: 'store',
-      description: 'Local sari-sari store offering daily essentials and snacks.',
-      address: 'Address not available',
-      phone: '+63 XXX XXX XXXX',
-      hours: '6:00 AM - 9:00 PM'
+      description: store.description || 'Local sari-sari store offering daily essentials and snacks.',
+      address: store.location || 'Address not available',
+      image: store.coverPhoto,
+      phone: store.phone || '+63 XXX XXX XXXX',
+      hours: store.hours || '6:00 AM - 9:00 PM'
     }));
   };
 

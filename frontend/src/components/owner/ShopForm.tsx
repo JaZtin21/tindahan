@@ -13,11 +13,15 @@ const DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d
 export function ShopForm({ shop, onSaveShop, onCancel }: ShopFormProps) {
   const [formData, setFormData] = useState({
     name: shop?.name || '',
+    description: shop?.description || '',
     phone: shop?.contactDetails?.phone || '',
     email: shop?.contactDetails?.email || '',
     address: shop?.contactDetails?.address || '',
     coverPhoto: shop?.coverPhoto || DEFAULT_IMAGE,
-    coordinates: shop?.coordinates || { lat: 14.5995, lng: 120.9842 }
+    coordinates: shop?.coordinates || { lat: 14.5995, lng: 120.9842 },
+    openTime: shop?.businessHours?.openTime || '08:00',
+    closeTime: shop?.businessHours?.closeTime || '20:00',
+    businessDays: shop?.businessHours?.days || ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
   });
 
   const handleLocationSelect = (coordinates: { lat: number; lng: number }, address: string) => {
@@ -46,6 +50,7 @@ export function ShopForm({ shop, onSaveShop, onCancel }: ShopFormProps) {
     const shopData: Shop = {
       id: shop?.id || Date.now().toString(),
       name: formData.name,
+      description: formData.description,
       location: formData.address,
       coordinates: formData.coordinates,
       coverPhoto: formData.coverPhoto || DEFAULT_IMAGE,
@@ -55,11 +60,11 @@ export function ShopForm({ shop, onSaveShop, onCancel }: ShopFormProps) {
         email: formData.email,
         address: formData.address
       },
-      // Default values for required API fields
-      businessHours: shop?.businessHours || {
-        openTime: '08:00',
-        closeTime: '20:00',
-        days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+      // Business hours from form
+      businessHours: {
+        openTime: formData.openTime,
+        closeTime: formData.closeTime,
+        days: formData.businessDays
       },
       businessType: shop?.businessType || 'SARI_SARI_STORE',
       paymentMethods: shop?.paymentMethods || {
@@ -103,7 +108,17 @@ export function ShopForm({ shop, onSaveShop, onCancel }: ShopFormProps) {
                 required
               />
             </div>
-            
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2">Description</label>
+            <textarea
+              value={formData.description}
+              onChange={(e) => setFormData({...formData, description: e.target.value})}
+              className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+              placeholder="Describe your shop, what you sell, special offers, etc."
+              rows={4}
+            />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -150,6 +165,56 @@ export function ShopForm({ shop, onSaveShop, onCancel }: ShopFormProps) {
               <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-2">
                 Click button to select location on map
               </p>
+            </div>
+          </div>
+
+          {/* Business Hours */}
+          <div className="border border-zinc-200 dark:border-zinc-700 rounded-lg p-4">
+            <label className="block text-sm font-medium mb-4">Business Hours</label>
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <div>
+                <label className="block text-xs text-zinc-500 mb-1">Open Time</label>
+                <input
+                  type="time"
+                  value={formData.openTime}
+                  onChange={(e) => setFormData({...formData, openTime: e.target.value})}
+                  className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-zinc-500 mb-1">Close Time</label>
+                <input
+                  type="time"
+                  value={formData.closeTime}
+                  onChange={(e) => setFormData({...formData, closeTime: e.target.value})}
+                  className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs text-zinc-500 mb-2">Operating Days</label>
+              <div className="flex flex-wrap gap-2">
+                {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day) => (
+                  <button
+                    key={day}
+                    type="button"
+                    onClick={() => {
+                      const currentDays = formData.businessDays;
+                      const newDays = currentDays.includes(day)
+                        ? currentDays.filter(d => d !== day)
+                        : [...currentDays, day];
+                      setFormData({...formData, businessDays: newDays});
+                    }}
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                      formData.businessDays.includes(day)
+                        ? 'bg-emerald-500 text-white'
+                        : 'bg-zinc-100 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-600'
+                    }`}
+                  >
+                    {day}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 

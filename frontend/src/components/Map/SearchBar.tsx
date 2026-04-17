@@ -48,9 +48,14 @@ export function SearchBar({ onSearch, onStoreSelect, onProductSelect, onClearPro
           type: 'store',
           id: shop.id,
           name: shop.name,
+          description: shop.description,
           location: shop.location,
           lat: shop.coordinates?.lat,
           lng: shop.coordinates?.lng,
+          coverPhoto: shop.coverPhoto,
+          businessType: shop.businessType,
+          phone: shop.contactDetails?.phone,
+          hours: shop.businessHours ? `${shop.businessHours.openTime} - ${shop.businessHours.closeTime}` : undefined,
           source: 'api'
         }));
         
@@ -112,7 +117,13 @@ export function SearchBar({ onSearch, onStoreSelect, onProductSelect, onClearPro
         id: suggestion.id,
         lat: suggestion.lat,
         lng: suggestion.lng,
-        name: suggestion.name
+        name: suggestion.name,
+        description: suggestion.description,
+        location: suggestion.location,
+        coverPhoto: suggestion.coverPhoto,
+        businessType: suggestion.businessType,
+        phone: suggestion.phone,
+        hours: suggestion.hours
       });
     }
     

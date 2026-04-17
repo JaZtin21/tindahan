@@ -485,6 +485,11 @@ func (r *mutationResolver) CreateShop(ctx context.Context, input CreateShopInput
 		BusinessType: string(input.BusinessType),
 	}
 
+	// Handle optional description
+	if input.Description != nil {
+		shopInput.Description = *input.Description
+	}
+
 	// Handle coordinates
 	if input.Coordinates != nil {
 		shopInput.Coordinates.Lat = input.Coordinates.Lat
@@ -686,6 +691,9 @@ func (r *mutationResolver) UpdateShop(ctx context.Context, id string, input Upda
 	shopInput := owner.UpdateShopInput{}
 	if input.Name != nil {
 		shopInput.Name = *input.Name
+	}
+	if input.Description != nil {
+		shopInput.Description = *input.Description
 	}
 	if input.Location != nil {
 		shopInput.Location = *input.Location
@@ -1484,6 +1492,12 @@ func (r *queryResolver) MyShops(ctx context.Context, page *int, limit *int) (*Sh
 			Status:   ShopStatus(shopMap["status"].(string)),
 		}
 
+		// Parse description
+		fmt.Printf("DEBUG MyShops resolver: shop %s description from map = '%v'\n", shop.ID, shopMap["description"])
+		if description, ok := shopMap["description"].(string); ok && description != "" {
+			shop.Description = &description
+		}
+
 		// Parse createdAt
 		if createdAtStr, ok := shopMap["createdAt"].(string); ok {
 			createdAt, _ := time.Parse(time.RFC3339, createdAtStr)
@@ -1627,10 +1641,17 @@ func (r *queryResolver) SearchShops(ctx context.Context, query string, page *int
 	shops := make([]*Shop, len(stores))
 	for i, store := range stores {
 		shop := &Shop{
-			ID:       store.ID.Hex(),
-			Name:     store.Name,
-			Location: store.Address,
-			Status:   ShopStatus(store.Status),
+			ID:           store.ID.Hex(),
+			Name:         store.Name,
+			Location:     store.Address,
+			Status:       ShopStatus(store.Status),
+			CoverPhoto:   store.CoverPhoto,
+			BusinessType: BusinessType(store.BusinessType),
+		}
+
+		// Add description if present
+		if store.Description != "" {
+			shop.Description = &store.Description
 		}
 
 		// Parse createdAt
@@ -1645,6 +1666,24 @@ func (r *queryResolver) SearchShops(ctx context.Context, query string, page *int
 			shop.Coordinates = &Coordinates{
 				Lat: store.Latitude,
 				Lng: store.Longitude,
+			}
+		}
+
+		// Add business hours if present
+		if store.BusinessHours.OpenTime != "" || store.BusinessHours.CloseTime != "" {
+			shop.BusinessHours = &BusinessHours{
+				OpenTime:  store.BusinessHours.OpenTime,
+				CloseTime: store.BusinessHours.CloseTime,
+				Days:      store.BusinessHours.Days,
+			}
+		}
+
+		// Add contact details if present
+		if store.ContactDetails.Phone != "" || store.ContactDetails.Email != "" {
+			shop.ContactDetails = &ContactDetails{
+				Phone:   store.ContactDetails.Phone,
+				Email:   store.ContactDetails.Email,
+				Address: store.ContactDetails.Address,
 			}
 		}
 

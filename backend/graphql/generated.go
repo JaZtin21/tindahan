@@ -6729,6 +6729,35 @@ func (ec *executionContext) fieldContext_Shop_name(_ context.Context, field grap
 	return fc, nil
 }
 
+func (ec *executionContext) _Shop_description(ctx context.Context, field graphql.CollectedField, obj *Shop) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Shop_description,
+		func(ctx context.Context) (any, error) {
+			return obj.Description, nil
+		},
+		nil,
+		ec.marshalOString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Shop_description(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Shop",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Shop_location(ctx context.Context, field graphql.CollectedField, obj *Shop) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -10016,7 +10045,7 @@ func (ec *executionContext) unmarshalInputCreateShopInput(ctx context.Context, o
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"name", "location", "coordinates", "coverPhoto", "otherPhotos", "businessHours", "businessType", "paymentMethods", "delivery", "socialMedia", "contactDetails"}
+	fieldsInOrder := [...]string{"name", "description", "location", "coordinates", "coverPhoto", "otherPhotos", "businessHours", "businessType", "paymentMethods", "delivery", "socialMedia", "contactDetails"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -10030,6 +10059,13 @@ func (ec *executionContext) unmarshalInputCreateShopInput(ctx context.Context, o
 				return it, err
 			}
 			it.Name = data
+		case "description":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("description"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Description = data
 		case "location":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("location"))
 			data, err := ec.unmarshalNString2string(ctx, v)
@@ -10965,7 +11001,7 @@ func (ec *executionContext) unmarshalInputUpdateShopInput(ctx context.Context, o
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"name", "location", "coordinates", "coverPhoto", "otherPhotos", "businessHours", "businessType", "paymentMethods", "delivery", "socialMedia", "contactDetails", "status"}
+	fieldsInOrder := [...]string{"name", "description", "location", "coordinates", "coverPhoto", "otherPhotos", "businessHours", "businessType", "paymentMethods", "delivery", "socialMedia", "contactDetails", "status"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -10979,6 +11015,13 @@ func (ec *executionContext) unmarshalInputUpdateShopInput(ctx context.Context, o
 				return it, err
 			}
 			it.Name = data
+		case "description":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("description"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Description = data
 		case "location":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("location"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
@@ -12539,6 +12582,8 @@ func (ec *executionContext) _Shop(ctx context.Context, sel ast.SelectionSet, obj
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "description":
+			out.Values[i] = ec._Shop_description(ctx, field, obj)
 		case "location":
 			out.Values[i] = ec._Shop_location(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -13714,6 +13759,13 @@ func (ec *executionContext) marshalNString2string(ctx context.Context, sel ast.S
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) marshalOString2string(ctx context.Context, sel ast.SelectionSet, v *string) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return graphql.MarshalString(*v)
 }
 
 func (ec *executionContext) unmarshalNString2ᚕstringᚄ(ctx context.Context, v any) ([]string, error) {

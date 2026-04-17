@@ -16,6 +16,7 @@ extend type Mutation {
 type Shop {
   id: ObjectID!
   name: String!
+  description: String
   location: String!
   coordinates: Coordinates!
   coverPhoto: String!
@@ -90,6 +91,7 @@ type ShopsPayload {
 
 input CreateShopInput {
   name: String!
+  description: String
   location: String!
   coordinates: CoordinatesInput!
   coverPhoto: String!
@@ -104,6 +106,7 @@ input CreateShopInput {
 
 input UpdateShopInput {
   name: String
+  description: String
   location: String
   coordinates: CoordinatesInput
   coverPhoto: String

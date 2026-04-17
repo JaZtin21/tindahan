@@ -13,6 +13,7 @@ export const GET_OWNER_SHOPS_QUERY = gql`
       data {
         id
         name
+        description
         location
         coordinates {
           lat
@@ -104,6 +105,7 @@ export const GET_OWNER_ITEMS_QUERY = gql`
 export interface OwnerShop {
   id: string;
   name: string;
+  description?: string;
   location: string;
   coordinates: {
     lat: number;

@@ -23,17 +23,22 @@ export interface PostMarker {
   title?: string;
   type?: 'store' | 'post';
   post?: Post;
+  id?: string;
   // Rotation/clustering properties for posts
   rotationIndex?: number;
   totalInCluster?: number;
   clusterId?: string;
+  // Store extra fields
+  location?: string;
+  coverPhoto?: string;
+  businessType?: string;
 }
 
 export interface MapProps {
   center: { lat: number; lng: number };
   zoom: number;
   onMapClick?: (lat: number, lng: number) => void;
-  onMarkerClick?: (store: { lat: number; lng: number; name: string }) => void;
+  onMarkerClick?: (store: { lat: number; lng: number; name: string; id?: string; location?: string; coverPhoto?: string; businessType?: string }) => void;
   onMapMoveEnd?: (center: { lat: number; lng: number }, zoom: number) => void;
   onPostClick?: (post: Post, clusterId?: string) => void;
   markers?: PostMarker[];
@@ -46,6 +51,9 @@ export interface Store {
   lng: number;
   title: string;
   id?: string;
+  location?: string; // Address string from search results
+  coverPhoto?: string;
+  businessType?: string;
 }
 
 // Post creation input
@@ -128,7 +136,7 @@ export interface UseMapCenterOptions {
 // SearchBar component props
 export interface SearchBarProps {
   onSearch: (query: string) => void;
-  onStoreSelect?: (store: { lat: number; lng: number; name: string }) => void;
+  onStoreSelect?: (store: { lat: number; lng: number; name: string; id?: string; description?: string; location?: string; coverPhoto?: string; businessType?: string; phone?: string; hours?: string }) => void;
   onProductSelect?: (productName: string, stores: any[]) => void;
   onClearProductStores?: () => void;
   placeholder?: string;

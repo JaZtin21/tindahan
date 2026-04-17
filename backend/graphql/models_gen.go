@@ -96,6 +96,7 @@ type CreatePostInput struct {
 
 type CreateShopInput struct {
 	Name           string                `json:"name"`
+	Description    *string               `json:"description,omitempty"`
 	Location       string                `json:"location"`
 	Coordinates    *CoordinatesInput     `json:"coordinates"`
 	CoverPhoto     string                `json:"coverPhoto"`
@@ -275,6 +276,7 @@ type RefreshTokenInput struct {
 type Shop struct {
 	ID             string           `json:"id"`
 	Name           string           `json:"name"`
+	Description    *string          `json:"description,omitempty"`
 	Location       string           `json:"location"`
 	Coordinates    *Coordinates     `json:"coordinates"`
 	CoverPhoto     string           `json:"coverPhoto"`
@@ -374,6 +376,7 @@ type UpdateProfileInput struct {
 
 type UpdateShopInput struct {
 	Name           *string               `json:"name,omitempty"`
+	Description    *string               `json:"description,omitempty"`
 	Location       *string               `json:"location,omitempty"`
 	Coordinates    *CoordinatesInput     `json:"coordinates,omitempty"`
 	CoverPhoto     *string               `json:"coverPhoto,omitempty"`
