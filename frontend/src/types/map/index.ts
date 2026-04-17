@@ -38,7 +38,7 @@ export interface MapProps {
   center: { lat: number; lng: number };
   zoom: number;
   onMapClick?: (lat: number, lng: number) => void;
-  onMarkerClick?: (store: { lat: number; lng: number; name: string; id?: string; location?: string; coverPhoto?: string; businessType?: string }) => void;
+  onMarkerClick?: (store: { lat: number; lng: number; name: string; id?: string; location?: string; coverPhoto?: string; businessType?: string; description?: string; phone?: string; email?: string; hours?: string }) => void;
   onMapMoveEnd?: (center: { lat: number; lng: number }, zoom: number) => void;
   onPostClick?: (post: Post, clusterId?: string) => void;
   markers?: PostMarker[];
@@ -54,6 +54,10 @@ export interface Store {
   location?: string; // Address string from search results
   coverPhoto?: string;
   businessType?: string;
+  description?: string;
+  phone?: string;
+  email?: string;
+  hours?: string;
 }
 
 // Post creation input

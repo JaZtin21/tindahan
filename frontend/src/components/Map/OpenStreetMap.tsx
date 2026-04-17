@@ -152,7 +152,11 @@ export function OpenStreetMap({ center, zoom, onMapClick, onMarkerClick, onMapMo
                   id: markerData.id,
                   location: (markerData as any).location,
                   coverPhoto: (markerData as any).coverPhoto,
-                  businessType: (markerData as any).businessType
+                  businessType: (markerData as any).businessType,
+                  description: (markerData as any).description,
+                  phone: (markerData as any).phone,
+                  email: (markerData as any).email,
+                  hours: (markerData as any).hours
                 });
               }
             });
@@ -296,7 +300,11 @@ export function OpenStreetMap({ center, zoom, onMapClick, onMarkerClick, onMapMo
                     id: markerData.id,
                     location: (markerData as any).location,
                     coverPhoto: (markerData as any).coverPhoto,
-                    businessType: (markerData as any).businessType
+                    businessType: (markerData as any).businessType,
+                    description: (markerData as any).description,
+                    phone: (markerData as any).phone,
+                    email: (markerData as any).email,
+                    hours: (markerData as any).hours
                   });
                 }
               });

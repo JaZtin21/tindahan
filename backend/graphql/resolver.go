@@ -1661,30 +1661,24 @@ func (r *queryResolver) SearchShops(ctx context.Context, query string, page *int
 		}
 		shop.CreatedAt = createdAt
 
-		// Add coordinates if present
-		if store.Latitude != 0 && store.Longitude != 0 {
-			shop.Coordinates = &Coordinates{
-				Lat: store.Latitude,
-				Lng: store.Longitude,
-			}
+		// Always set coordinates (required field in schema)
+		shop.Coordinates = &Coordinates{
+			Lat: store.Latitude,
+			Lng: store.Longitude,
 		}
 
-		// Add business hours if present
-		if store.BusinessHours.OpenTime != "" || store.BusinessHours.CloseTime != "" {
-			shop.BusinessHours = &BusinessHours{
-				OpenTime:  store.BusinessHours.OpenTime,
-				CloseTime: store.BusinessHours.CloseTime,
-				Days:      store.BusinessHours.Days,
-			}
+		// Always set business hours (required field in schema)
+		shop.BusinessHours = &BusinessHours{
+			OpenTime:  store.BusinessHours.OpenTime,
+			CloseTime: store.BusinessHours.CloseTime,
+			Days:      store.BusinessHours.Days,
 		}
 
-		// Add contact details if present
-		if store.ContactDetails.Phone != "" || store.ContactDetails.Email != "" {
-			shop.ContactDetails = &ContactDetails{
-				Phone:   store.ContactDetails.Phone,
-				Email:   store.ContactDetails.Email,
-				Address: store.ContactDetails.Address,
-			}
+		// Always set contact details (required field in schema)
+		shop.ContactDetails = &ContactDetails{
+			Phone:   store.ContactDetails.Phone,
+			Email:   store.ContactDetails.Email,
+			Address: store.ContactDetails.Address,
 		}
 
 		shops[i] = shop
@@ -1734,10 +1728,17 @@ func (r *queryResolver) ShopsByProduct(ctx context.Context, productName string) 
 		}
 
 		shop := &Shop{
-			ID:       store.ID.Hex(),
-			Name:     store.Name,
-			Location: store.Address,
-			Status:   ShopStatus(store.Status),
+			ID:           store.ID.Hex(),
+			Name:         store.Name,
+			Location:     store.Address,
+			Status:       ShopStatus(store.Status),
+			CoverPhoto:   store.CoverPhoto,
+			BusinessType: BusinessType(store.BusinessType),
+		}
+
+		// Add description if present
+		if store.Description != "" {
+			shop.Description = &store.Description
 		}
 
 		// Parse createdAt
@@ -1753,6 +1754,20 @@ func (r *queryResolver) ShopsByProduct(ctx context.Context, productName string) 
 				Lat: store.Latitude,
 				Lng: store.Longitude,
 			}
+		}
+
+		// Always set business hours (required field in schema)
+		shop.BusinessHours = &BusinessHours{
+			OpenTime:  store.BusinessHours.OpenTime,
+			CloseTime: store.BusinessHours.CloseTime,
+			Days:      store.BusinessHours.Days,
+		}
+
+		// Always set contact details (required field in schema)
+		shop.ContactDetails = &ContactDetails{
+			Phone:   store.ContactDetails.Phone,
+			Email:   store.ContactDetails.Email,
+			Address: store.ContactDetails.Address,
 		}
 
 		shops = append(shops, shop)

@@ -128,6 +128,7 @@ export const SHOPS_BY_PRODUCT_QUERY = gql`
       data {
         id
         name
+        description
         location
         coordinates {
           lat
@@ -136,6 +137,16 @@ export const SHOPS_BY_PRODUCT_QUERY = gql`
         coverPhoto
         businessType
         status
+        businessHours {
+          openTime
+          closeTime
+          days
+        }
+        contactDetails {
+          phone
+          email
+          address
+        }
       }
     }
   }

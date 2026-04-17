@@ -14,6 +14,7 @@ interface SideNavProps {
     image?: string;
     address?: string;
     phone?: string;
+    email?: string;
     hours?: string;
   };
 }
@@ -64,7 +65,7 @@ export function SideNav({ isOpen, onClose, selectedLocation }: SideNavProps) {
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-4">
           {selectedLocation ? (
-            <div className="space-y-6">
+            <div className="space-y-6 flex flex-col min-h-full">
               {/* Image */}
               <div className="aspect-video bg-zinc-200 dark:bg-zinc-800 rounded-lg overflow-hidden">
                 {selectedLocation.image ? (
@@ -122,6 +123,18 @@ export function SideNav({ isOpen, onClose, selectedLocation }: SideNavProps) {
                   </div>
                 )}
 
+                {selectedLocation.email && (
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-purple-100 dark:bg-purple-900 rounded-full flex items-center justify-center">
+                      📧
+                    </div>
+                    <div>
+                      <p className="font-medium text-zinc-900 dark:text-zinc-100">Email</p>
+                      <p className="text-zinc-600 dark:text-zinc-400">{selectedLocation.email}</p>
+                    </div>
+                  </div>
+                )}
+
                 {selectedLocation.hours && (
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center">
@@ -136,7 +149,7 @@ export function SideNav({ isOpen, onClose, selectedLocation }: SideNavProps) {
               </div>
 
               {/* Action Buttons */}
-              <div className="space-y-3 pt-4">
+              <div className="space-y-3 pt-4 mt-auto">
                 <button className="w-full py-3 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors font-medium">
                   Get Directions
                 </button>

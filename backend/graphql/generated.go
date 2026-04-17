@@ -223,6 +223,7 @@ type ComplexityRoot struct {
 		CreatedAt      func(childComplexity int) int
 		CreatedBy      func(childComplexity int) int
 		Delivery       func(childComplexity int) int
+		Description    func(childComplexity int) int
 		ID             func(childComplexity int) int
 		Inventory      func(childComplexity int) int
 		Location       func(childComplexity int) int
@@ -1287,6 +1288,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Shop.Delivery(childComplexity), true
+	case "Shop.description":
+		if e.ComplexityRoot.Shop.Description == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Shop.Description(childComplexity), true
 	case "Shop.id":
 		if e.ComplexityRoot.Shop.ID == nil {
 			break
@@ -6739,9 +6746,9 @@ func (ec *executionContext) _Shop_description(ctx context.Context, field graphql
 			return obj.Description, nil
 		},
 		nil,
-		ec.marshalOString2string,
+		ec.marshalOString2ᚖstring,
 		true,
-		true,
+		false,
 	)
 }
 
@@ -7414,6 +7421,8 @@ func (ec *executionContext) fieldContext_ShopPayload_data(_ context.Context, fie
 				return ec.fieldContext_Shop_id(ctx, field)
 			case "name":
 				return ec.fieldContext_Shop_name(ctx, field)
+			case "description":
+				return ec.fieldContext_Shop_description(ctx, field)
 			case "location":
 				return ec.fieldContext_Shop_location(ctx, field)
 			case "coordinates":
@@ -7539,6 +7548,8 @@ func (ec *executionContext) fieldContext_ShopsPayload_data(_ context.Context, fi
 				return ec.fieldContext_Shop_id(ctx, field)
 			case "name":
 				return ec.fieldContext_Shop_name(ctx, field)
+			case "description":
+				return ec.fieldContext_Shop_description(ctx, field)
 			case "location":
 				return ec.fieldContext_Shop_location(ctx, field)
 			case "coordinates":
@@ -7755,6 +7766,8 @@ func (ec *executionContext) fieldContext_Subscription_shopStatusUpdates(_ contex
 				return ec.fieldContext_Shop_id(ctx, field)
 			case "name":
 				return ec.fieldContext_Shop_name(ctx, field)
+			case "description":
+				return ec.fieldContext_Shop_description(ctx, field)
 			case "location":
 				return ec.fieldContext_Shop_location(ctx, field)
 			case "coordinates":
@@ -13759,13 +13772,6 @@ func (ec *executionContext) marshalNString2string(ctx context.Context, sel ast.S
 		}
 	}
 	return res
-}
-
-func (ec *executionContext) marshalOString2string(ctx context.Context, sel ast.SelectionSet, v *string) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return graphql.MarshalString(*v)
 }
 
 func (ec *executionContext) unmarshalNString2ᚕstringᚄ(ctx context.Context, v any) ([]string, error) {

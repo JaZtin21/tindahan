@@ -15,7 +15,7 @@ export function useMapMarkers({
     // Use product search stores if available, otherwise fall back to filtered stores
     const storesToShow = productSearchStores.length > 0 ? productSearchStores : filteredStores;
     
-    // Convert stores to marker format
+    // Convert stores to marker format with all data for sidebar
     const storeMarkers = storesToShow.map(store => ({
       lat: store.lat,
       lng: store.lng,
@@ -25,6 +25,10 @@ export function useMapMarkers({
       location: store.location,
       coverPhoto: store.coverPhoto,
       businessType: store.businessType,
+      description: store.description,
+      phone: store.phone,
+      email: store.email,
+      hours: store.hours,
     }));
     
     // Only show posts when zoom > 16
