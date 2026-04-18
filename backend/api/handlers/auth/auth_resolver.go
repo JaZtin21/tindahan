@@ -6,6 +6,7 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"tindahan-backend/domain"
@@ -82,13 +83,17 @@ func (r *AuthResolver) Login(ctx context.Context, email, password string) (map[s
 		"message": "Login successful",
 		"data": map[string]interface{}{
 			"user": map[string]interface{}{
-				"id":        user.ID.Hex(),
-				"name":      user.FirstName + " " + user.LastName,
-				"email":     user.Email,
-				"role":      user.Role,
-				"isActive":  user.IsActive,
-				"createdAt": user.CreatedAt.Format(time.RFC3339),
-				"updatedAt": user.UpdatedAt.Format(time.RFC3339),
+				"id":           user.ID.Hex(),
+				"name":         user.FirstName + " " + user.LastName,
+				"email":        user.Email,
+				"firstName":    user.FirstName,
+				"lastName":     user.LastName,
+				"role":         user.Role,
+				"profilePhoto": user.ProfilePhoto,
+				"coverPhoto":   user.CoverPhoto,
+				"isActive":     user.IsActive,
+				"createdAt":    user.CreatedAt.Format(time.RFC3339),
+				"updatedAt":    user.UpdatedAt.Format(time.RFC3339),
 			},
 			"accessToken":  accessToken,
 			"refreshToken": refreshToken,
@@ -171,13 +176,17 @@ func (r *AuthResolver) Signup(ctx context.Context, firstName, lastName, email, p
 	// Prepare response data with proper structure
 	responseData := map[string]interface{}{
 		"user": map[string]interface{}{
-			"id":        user.ID.Hex(),
-			"name":      user.FirstName + " " + user.LastName,
-			"email":     user.Email,
-			"role":      user.Role,
-			"isActive":  user.IsActive,
-			"createdAt": user.CreatedAt.Format(time.RFC3339),
-			"updatedAt": user.UpdatedAt.Format(time.RFC3339),
+			"id":           user.ID.Hex(),
+			"name":         user.FirstName + " " + user.LastName,
+			"email":        user.Email,
+			"firstName":    user.FirstName,
+			"lastName":     user.LastName,
+			"role":         user.Role,
+			"profilePhoto": user.ProfilePhoto,
+			"coverPhoto":   user.CoverPhoto,
+			"isActive":     user.IsActive,
+			"createdAt":    user.CreatedAt.Format(time.RFC3339),
+			"updatedAt":    user.UpdatedAt.Format(time.RFC3339),
 		},
 		"accessToken":  accessToken,
 		"refreshToken": refreshToken,
@@ -289,18 +298,24 @@ func (r *AuthResolver) GoogleLogin(ctx context.Context, credential, role string)
 		}, err
 	}
 
+	log.Printf("🔍 GOOGLE LOGIN RESPONSE: UserID=%s, ProfilePhoto='%s', CoverPhoto='%s'", user.ID.Hex(), user.ProfilePhoto, user.CoverPhoto)
+
 	return map[string]interface{}{
 		"success": true,
 		"message": "Google login successful",
 		"data": map[string]interface{}{
 			"user": map[string]interface{}{
-				"id":        user.ID.Hex(),
-				"name":      user.FirstName + " " + user.LastName,
-				"email":     user.Email,
-				"role":      user.Role,
-				"isActive":  user.IsActive,
-				"createdAt": user.CreatedAt.Format(time.RFC3339),
-				"updatedAt": user.UpdatedAt.Format(time.RFC3339),
+				"id":           user.ID.Hex(),
+				"name":         user.FirstName + " " + user.LastName,
+				"email":        user.Email,
+				"firstName":    user.FirstName,
+				"lastName":     user.LastName,
+				"role":         user.Role,
+				"profilePhoto": user.ProfilePhoto,
+				"coverPhoto":   user.CoverPhoto,
+				"isActive":     user.IsActive,
+				"createdAt":    user.CreatedAt.Format(time.RFC3339),
+				"updatedAt":    user.UpdatedAt.Format(time.RFC3339),
 			},
 			"accessToken":  accessToken,
 			"refreshToken": refreshToken,
@@ -319,7 +334,7 @@ type GoogleUserInfo struct {
 // verifyGoogleIDToken verifies the Google ID token with Google's API
 func verifyGoogleIDToken(idToken string) (*GoogleUserInfo, error) {
 	url := "https://oauth2.googleapis.com/tokeninfo?id_token=" + idToken
-	
+
 	resp, err := http.Get(url)
 	if err != nil {
 		return nil, err
@@ -347,24 +362,30 @@ func (r *AuthResolver) findOrCreateGoogleUser(ctx context.Context, googleInfo *G
 	// Try to find existing user
 	existingUser, err := r.userRepo.GetUserByEmail(ctx, googleInfo.Email)
 	if err == nil && existingUser != nil {
-		log.Printf("✅ GOOGLE LOGIN: Existing user found - ID=%s", existingUser.ID.Hex())
 		return existingUser, nil
 	}
 
 	// Create new user from Google data
-	log.Printf("🔍 GOOGLE LOGIN: Creating new user for %s", googleInfo.Email)
 
 	// Parse name into first/last
-	firstName := googleInfo.Name
+	firstName := ""
 	lastName := ""
 	if len(googleInfo.Name) > 0 {
-		// Simple split - in production use a proper name parser
 		parts := splitName(googleInfo.Name)
 		if len(parts) > 0 {
 			firstName = parts[0]
 		}
 		if len(parts) > 1 {
+			// Join middle names with last name, or just use last part
 			lastName = parts[len(parts)-1]
+		}
+	}
+
+	// Fallback: if no name provided, use email prefix as first name
+	if firstName == "" {
+		parts := strings.Split(googleInfo.Email, "@")
+		if len(parts) > 0 {
+			firstName = parts[0]
 		}
 	}
 
@@ -375,22 +396,21 @@ func (r *AuthResolver) findOrCreateGoogleUser(ctx context.Context, googleInfo *G
 
 	now := time.Now()
 	user := &domain.User{
-		ID:        primitive.NewObjectID(),
-		FirstName: firstName,
-		LastName:  lastName,
-		Email:     googleInfo.Email,
-		Password:  "", // No password for Google users
-		Role:      role,
-		IsActive:  true,
-		CreatedAt: now,
-		UpdatedAt: now,
+		ID:           primitive.NewObjectID(),
+		FirstName:    firstName,
+		LastName:     lastName,
+		Email:        googleInfo.Email,
+		Password:     "",                 // No password for Google users
+		ProfilePhoto: googleInfo.Picture, // Store Google profile picture
+		Role:         role,
+		IsActive:     true,
+		CreatedAt:    now,
+		UpdatedAt:    now,
 	}
 
 	if err := r.userRepo.CreateUser(ctx, user); err != nil {
 		return nil, err
 	}
-
-	log.Printf("✅ GOOGLE LOGIN: New user created - ID=%s", user.ID.Hex())
 	return user, nil
 }
 

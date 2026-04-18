@@ -394,15 +394,19 @@ type UpdateShopInput struct {
 }
 
 type User struct {
-	ID        string     `json:"id"`
-	Name      string     `json:"name"`
-	Email     string     `json:"email"`
-	Phone     *string    `json:"phone,omitempty"`
-	Role      UserRole   `json:"role"`
-	Shops     []string   `json:"shops,omitempty"`
-	CreatedAt time.Time  `json:"createdAt"`
-	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
-	IsActive  bool       `json:"isActive"`
+	ID           string     `json:"id"`
+	Name         string     `json:"name"`
+	Email        string     `json:"email"`
+	FirstName    string     `json:"firstName"`
+	LastName     string     `json:"lastName"`
+	Role         UserRole   `json:"role"`
+	Phone        *string    `json:"phone,omitempty"`
+	ProfilePhoto *string    `json:"profilePhoto,omitempty"`
+	CoverPhoto   *string    `json:"coverPhoto,omitempty"`
+	Shops        []string   `json:"shops,omitempty"`
+	CreatedAt    time.Time  `json:"createdAt"`
+	UpdatedAt    *time.Time `json:"updatedAt,omitempty"`
+	IsActive     bool       `json:"isActive"`
 }
 
 type UserPayload struct {

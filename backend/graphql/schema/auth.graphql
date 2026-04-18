@@ -16,8 +16,12 @@ type User {
   id: ObjectID!
   name: String!
   email: String!
-  phone: String
+  firstName: String!
+  lastName: String!
   role: UserRole!
+  phone: String
+  profilePhoto: String
+  coverPhoto: String
   shops: [ObjectID!]
   createdAt: Time!
   updatedAt: Time

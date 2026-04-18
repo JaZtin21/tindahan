@@ -9,6 +9,7 @@ import type { Post } from '../types/map';
 import { useCreatePost, usePostsNearLocation } from '../api/graphql/post/usePost';
 import { SHOPS_BY_PRODUCT_QUERY } from '../api/graphql/shop/shop-queries';
 import { LIVE_POSTS_SUBSCRIPTION } from '../api/graphql/subscriptions/live-posts';
+import { useAuth } from '../api/graphql/apolloProviderWithAuth';
 import { 
   useMapPosts, 
   useMapMarkers, 
@@ -23,9 +24,13 @@ import {
 
 export function MapPage() {
   const dispatch = useDispatch();
+  const { isAuthenticated } = useAuth();
 
-  // Live posts subscription - logs all posts from last 24 hours
-  const { data: livePostsData, error: livePostsError } = useSubscription(LIVE_POSTS_SUBSCRIPTION);
+  // Live posts subscription - only subscribe if authenticated
+  const { data: livePostsData, error: livePostsError } = useSubscription(
+    LIVE_POSTS_SUBSCRIPTION,
+    { skip: !isAuthenticated }
+  );
 
   useEffect(() => {
     if (livePostsData?.livePosts) {

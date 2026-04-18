@@ -35,7 +35,7 @@ func NewUserRepository(db *mongo.Database) UserRepository {
 func (r *userRepository) CreateUser(ctx context.Context, user *domain.User) error {
 	user.CreatedAt = time.Now()
 	user.UpdatedAt = time.Now()
-	
+
 	_, err := r.collection.InsertOne(ctx, user)
 	return err
 }
@@ -60,7 +60,7 @@ func (r *userRepository) GetUserByID(ctx context.Context, userID primitive.Objec
 
 func (r *userRepository) UpdateUser(ctx context.Context, userID primitive.ObjectID, updates *domain.UpdateUserRequest) error {
 	updateDoc := bson.M{}
-	
+
 	if updates.FirstName != nil {
 		updateDoc["first_name"] = *updates.FirstName
 	}
@@ -73,9 +73,9 @@ func (r *userRepository) UpdateUser(ctx context.Context, userID primitive.Object
 	if updates.IsActive != nil {
 		updateDoc["is_active"] = *updates.IsActive
 	}
-	
+
 	updateDoc["updated_at"] = time.Now()
-	
+
 	_, err := r.collection.UpdateOne(
 		ctx,
 		bson.M{"_id": userID},
@@ -86,7 +86,7 @@ func (r *userRepository) UpdateUser(ctx context.Context, userID primitive.Object
 
 func (r *userRepository) GetAllUsers(ctx context.Context, page, limit int) ([]*domain.User, int64, error) {
 	skip := (page - 1) * limit
-	
+
 	cursor, err := r.collection.Find(
 		ctx,
 		bson.M{},

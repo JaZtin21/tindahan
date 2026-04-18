@@ -32,6 +32,8 @@ interface UserInfo {
     role?: 'CUSTOMER' | 'OWNER' | 'ADMIN';
     isActive?: boolean;
     shops?: string[];
+    profilePhoto?: string;
+    coverPhoto?: string;
     [key: string]: any;
 }
 

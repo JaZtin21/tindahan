@@ -14,6 +14,8 @@ export const ME_QUERY = gql`
         phone
         role
         shops
+        profilePhoto
+        coverPhoto
         createdAt
         updatedAt
         isActive
@@ -128,6 +130,8 @@ export interface User {
   phone?: string;
   role: 'CUSTOMER' | 'OWNER' | 'ADMIN';
   shops: string[];
+  profilePhoto?: string;
+  coverPhoto?: string;
   createdAt: string;
   updatedAt?: string;
   isActive: boolean;

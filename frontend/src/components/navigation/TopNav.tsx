@@ -64,9 +64,17 @@ export function TopNav() {
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                 className="flex items-center gap-2 focus:outline-none"
               >
-                <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-medium hover:bg-blue-700 transition-colors">
-                  {getUserInitials()}
-                </div>
+                {userInfo.profilePhoto ? (
+                  <img 
+                    src={userInfo.profilePhoto} 
+                    alt="Profile" 
+                    className="w-8 h-8 rounded-full object-cover border border-zinc-200 dark:border-zinc-700"
+                  />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-medium hover:bg-blue-700 transition-colors">
+                    {getUserInitials()}
+                  </div>
+                )}
               </button>
               
               {isDropdownOpen && (

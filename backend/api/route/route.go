@@ -62,17 +62,21 @@ func Setup(router *gin.Engine, app *bootstrap.Application) {
 	playgroundHandler := playground.Handler("GraphQL Playground", "/query")
 	router.GET("/playground", gin.WrapH(playgroundHandler))
 
-	// GraphQL endpoint handler - checks for WebSocket upgrade (subscriptions = public, queries/mutations = auth required)
+	// GraphQL endpoint handler - auth required for both WebSocket (subscriptions) and HTTP (queries/mutations)
 	graphqlEndpointHandler := func(c *gin.Context) {
-		// Check if it's a WebSocket upgrade request (subscriptions don't need auth)
-		if c.GetHeader("Upgrade") == "websocket" {
-			graphqlHandler.ServeHTTP(c.Writer, c.Request)
+		// Check if it's a WebSocket upgrade request
+		isWebSocket := c.GetHeader("Upgrade") == "websocket"
+
+		// Apply auth middleware for both WebSocket and HTTP
+		middleware.AuthMiddleware(app.Env.JWTSecret)(c)
+		if c.IsAborted() {
 			return
 		}
 
-		// Regular HTTP request - require auth for queries/mutations
-		middleware.AuthMiddleware(app.Env.JWTSecret)(c)
-		if !c.IsAborted() {
+		// Serve GraphQL (WebSocket or HTTP)
+		if isWebSocket {
+			graphqlHandler.ServeHTTP(c.Writer, c.Request)
+		} else {
 			graphqlHandler.ServeHTTP(c.Writer, c.Request)
 		}
 	}

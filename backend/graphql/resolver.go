@@ -29,6 +29,17 @@ type PostNotifier struct {
 	listeners map[chan struct{}]bool
 }
 
+// getStringPtr safely converts interface{} to *string for optional GraphQL fields
+func getStringPtr(v interface{}) *string {
+	if v == nil {
+		return nil
+	}
+	if s, ok := v.(string); ok {
+		return &s
+	}
+	return nil
+}
+
 // NewPostNotifier creates a new PostNotifier
 func NewPostNotifier() *PostNotifier {
 	return &PostNotifier{
@@ -119,13 +130,17 @@ func (r *mutationResolver) Login(ctx context.Context, input LoginInput) (*AuthPa
 		Message: result["message"].(string),
 		Data: &AuthResponse{
 			User: &User{
-				ID:        userData["id"].(string),
-				Name:      userData["name"].(string),
-				Email:     userData["email"].(string),
-				Role:      UserRole(userData["role"].(string)),
-				IsActive:  userData["isActive"].(bool),
-				CreatedAt: createdAt,
-				UpdatedAt: &updatedAt,
+				ID:           userData["id"].(string),
+				Name:         userData["name"].(string),
+				Email:        userData["email"].(string),
+				FirstName:    userData["firstName"].(string),
+				LastName:     userData["lastName"].(string),
+				Role:         UserRole(userData["role"].(string)),
+				IsActive:     userData["isActive"].(bool),
+				ProfilePhoto: getStringPtr(userData["profilePhoto"]),
+				CoverPhoto:   getStringPtr(userData["coverPhoto"]),
+				CreatedAt:    createdAt,
+				UpdatedAt:    &updatedAt,
 			},
 			AccessToken:  data["accessToken"].(string),
 			RefreshToken: data["refreshToken"].(string),
@@ -160,13 +175,17 @@ func (r *mutationResolver) Signup(ctx context.Context, input SignupInput) (*Auth
 		Message: result["message"].(string),
 		Data: &AuthResponse{
 			User: &User{
-				ID:        userData["id"].(string),
-				Name:      userData["name"].(string),
-				Email:     userData["email"].(string),
-				Role:      UserRole(userData["role"].(string)),
-				IsActive:  userData["isActive"].(bool),
-				CreatedAt: createdAt,
-				UpdatedAt: &updatedAt,
+				ID:           userData["id"].(string),
+				Name:         userData["name"].(string),
+				Email:        userData["email"].(string),
+				FirstName:    userData["firstName"].(string),
+				LastName:     userData["lastName"].(string),
+				Role:         UserRole(userData["role"].(string)),
+				IsActive:     userData["isActive"].(bool),
+				ProfilePhoto: getStringPtr(userData["profilePhoto"]),
+				CoverPhoto:   getStringPtr(userData["coverPhoto"]),
+				CreatedAt:    createdAt,
+				UpdatedAt:    &updatedAt,
 			},
 			AccessToken:  data["accessToken"].(string),
 			RefreshToken: data["refreshToken"].(string),
@@ -222,13 +241,17 @@ func (r *mutationResolver) GoogleLogin(ctx context.Context, input GoogleLoginInp
 		Message: result["message"].(string),
 		Data: &AuthResponse{
 			User: &User{
-				ID:        userData["id"].(string),
-				Name:      userData["name"].(string),
-				Email:     userData["email"].(string),
-				Role:      UserRole(userData["role"].(string)),
-				IsActive:  userData["isActive"].(bool),
-				CreatedAt: createdAt,
-				UpdatedAt: &updatedAt,
+				ID:           userData["id"].(string),
+				Name:         userData["name"].(string),
+				Email:        userData["email"].(string),
+				FirstName:    userData["firstName"].(string),
+				LastName:     userData["lastName"].(string),
+				Role:         UserRole(userData["role"].(string)),
+				IsActive:     userData["isActive"].(bool),
+				ProfilePhoto: getStringPtr(userData["profilePhoto"]),
+				CoverPhoto:   getStringPtr(userData["coverPhoto"]),
+				CreatedAt:    createdAt,
+				UpdatedAt:    &updatedAt,
 			},
 			AccessToken:  data["accessToken"].(string),
 			RefreshToken: data["refreshToken"].(string),
@@ -1105,13 +1128,17 @@ func (r *queryResolver) Me(ctx context.Context) (*UserPayload, error) {
 		Success: result["success"].(bool),
 		Message: result["message"].(string),
 		Data: &User{
-			ID:        data["id"].(string),
-			Name:      data["name"].(string),
-			Email:     data["email"].(string),
-			Role:      UserRole(data["role"].(string)),
-			IsActive:  data["isActive"].(bool),
-			CreatedAt: createdAt,
-			UpdatedAt: &updatedAt,
+			ID:           data["id"].(string),
+			Name:         data["name"].(string),
+			Email:        data["email"].(string),
+			FirstName:    data["firstName"].(string),
+			LastName:     data["lastName"].(string),
+			Role:         UserRole(data["role"].(string)),
+			IsActive:     data["isActive"].(bool),
+			ProfilePhoto: getStringPtr(data["profilePhoto"]),
+			CoverPhoto:   getStringPtr(data["coverPhoto"]),
+			CreatedAt:    createdAt,
+			UpdatedAt:    &updatedAt,
 		},
 	}, nil
 }
