@@ -18,6 +18,10 @@ export const LIVE_POSTS_SUBSCRIPTION = gql`
         id
         name
         email
+        firstName
+        lastName
+        role
+        profilePhoto
       }
       createdAt
       updatedAt

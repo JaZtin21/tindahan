@@ -29,6 +29,10 @@ export function PostPreviewModal({ post, isOpen, onClose }: PostPreviewModalProp
         year: 'numeric' 
       })
     : '';
+  
+  // Check if author has a profile photo
+  const hasProfilePhoto = !!post.author?.profilePhoto;
+  const profilePhotoUrl = post.author?.profilePhoto;
 
   return (
     <div 
@@ -56,17 +60,36 @@ export function PostPreviewModal({ post, isOpen, onClose }: PostPreviewModalProp
         {/* Author Header */}
         <div className="p-6 pb-4 border-b border-zinc-100 dark:border-zinc-800">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-400 to-blue-500 flex items-center justify-center text-white font-semibold text-lg">
-              {authorInitial}
-            </div>
+            {hasProfilePhoto ? (
+              <img 
+                src={profilePhotoUrl}
+                alt={post.author?.name || 'User'}
+                className="w-12 h-12 rounded-full object-cover border-2 border-emerald-400"
+                crossOrigin="anonymous"
+                referrerPolicy="no-referrer"
+                onError={(e) => {
+                  // Fallback to initials if image fails to load
+                  (e.target as HTMLImageElement).style.display = 'none';
+                }}
+              />
+            ) : (
+              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-400 to-blue-500 flex items-center justify-center text-white font-semibold text-lg">
+                {authorInitial}
+              </div>
+            )}
             <div>
               <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">
                 {post.author?.name || 'Unknown User'}
               </h3>
-              <p className="text-sm text-zinc-500">{post.author?.email}</p>
               {formattedDate && (
                 <p className="text-xs text-zinc-400 mt-0.5">{formattedDate}</p>
               )}
+              <button 
+                className="mt-1 px-3 py-1 text-xs font-medium bg-emerald-600 hover:bg-emerald-700 text-white rounded-full transition-colors"
+                onClick={() => {/* TODO: Implement follow functionality */}}
+              >
+                Follow
+              </button>
             </div>
           </div>
         </div>

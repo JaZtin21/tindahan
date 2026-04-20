@@ -104,6 +104,7 @@ type Resolver struct {
 	postResolver    *post.PostResolver
 	storeRepo       repository.StoreRepository
 	productRepo     repository.ProductRepository
+	userRepo        repository.UserRepository
 	db              *mongo.Database
 	jwtSecret       string
 	postNotifier    *PostNotifier
@@ -1967,10 +1968,10 @@ func (r *subscriptionResolver) LivePosts(ctx context.Context) (<-chan []*Post, e
 				}
 			}
 
-			// Query only for new/updated posts not yet sent
+			// Query ALL posts from last 24 hours (not just new ones)
+			// This ensures first post is always sent when change detected
 			cursor, err := r.postResolver.GetDB().Collection("posts").Find(ctx, bson.M{
 				"created_at": bson.M{"$gte": twentyFourHoursAgo},
-				"_id":        bson.M{"$nin": getObjectIDsFromMap(sentPostIDs)},
 			})
 			if err != nil {
 				continue
@@ -1983,20 +1984,25 @@ func (r *subscriptionResolver) LivePosts(ctx context.Context) (<-chan []*Post, e
 			}
 			cursor.Close(ctx)
 
-			// Convert and send only new posts
-			newPosts := make([]*Post, 0, len(rawDocs))
+			// Convert all posts and track which ones are new
+			allPosts := make([]*Post, 0, len(rawDocs))
+			newPosts := make([]*Post, 0)
 			for _, doc := range rawDocs {
 				post := r.docToPost(doc)
-				if post != nil && !sentPostIDs[post.ID] {
-					newPosts = append(newPosts, post)
-					sentPostIDs[post.ID] = true
+				if post != nil {
+					allPosts = append(allPosts, post)
+					if !sentPostIDs[post.ID] {
+						newPosts = append(newPosts, post)
+						sentPostIDs[post.ID] = true
+					}
 				}
 			}
 
-			// Only send if there are new posts
-			if len(newPosts) > 0 {
+			// Send ALL posts (not just new ones) to ensure first post shows up
+			// Frontend will handle deduplication
+			if len(allPosts) > 0 {
 				select {
-				case postChan <- newPosts:
+				case postChan <- allPosts:
 				case <-ctx.Done():
 					return
 				}
@@ -2102,12 +2108,41 @@ func (r *Resolver) docToPost(doc bson.M) *Post {
 		post.CommentCount = 0
 	}
 
-	// Author (required) - create minimal author from author_id
+	// Author (required) - fetch actual user data from database
 	if authorID, ok := doc["author_id"].(primitive.ObjectID); ok {
-		post.Author = &User{
-			ID:    authorID.Hex(),
-			Name:  "Unknown",
-			Email: "",
+		// Try to fetch user from database
+		if r.userRepo != nil {
+			ctx := context.Background()
+			if user, err := r.userRepo.GetUserByID(ctx, authorID); err == nil && user != nil {
+				name := user.FirstName
+				if user.LastName != "" {
+					name = user.FirstName + " " + user.LastName
+				}
+				post.Author = &User{
+					ID:           user.ID.Hex(),
+					Name:         name,
+					Email:        user.Email,
+					FirstName:    user.FirstName,
+					LastName:     user.LastName,
+					Role:         UserRole(user.Role),
+					ProfilePhoto: &user.ProfilePhoto,
+					IsActive:     user.IsActive,
+				}
+			} else {
+				// Fallback if user not found
+				post.Author = &User{
+					ID:    authorID.Hex(),
+					Name:  "Unknown",
+					Email: "",
+				}
+			}
+		} else {
+			// Fallback if userRepo not available
+			post.Author = &User{
+				ID:    authorID.Hex(),
+				Name:  "Unknown",
+				Email: "",
+			}
 		}
 	} else {
 		// Create empty author as fallback
@@ -2171,6 +2206,7 @@ func NewResolver(db *mongo.Database, jwtSecret string) *Resolver {
 		postResolver:    post.NewPostResolver(db),
 		storeRepo:       repository.NewStoreRepository(db),
 		productRepo:     repository.NewProductRepository(db),
+		userRepo:        repository.NewUserRepository(db),
 		db:              db,
 		jwtSecret:       jwtSecret,
 		postNotifier:    NewPostNotifier(),

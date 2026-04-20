@@ -43,6 +43,31 @@ export function TopNav() {
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
   }
 
+  // Check if photo is a Google profile image that has CORS restrictions
+  const isGoogleProfileImage = (url: string): boolean => {
+    return url?.includes('googleusercontent.com') || url?.includes('google.com') || false
+  }
+
+  // Get safe profile photo URL - Google images need special handling
+  const getSafeProfilePhoto = (): string | null => {
+    if (!userInfo?.profilePhoto) return null
+    const photo = userInfo.profilePhoto
+    
+    // Google profile images have strict CORS - use as-is but with special img attributes
+    // or use a proxy if available
+    if (isGoogleProfileImage(photo)) {
+      // For now, return the URL but we'll add crossOrigin attribute to img
+      // Consider using a backend proxy for Google images in production
+      return photo
+    }
+    
+    return photo
+  }
+
+  // State for image error handling - must be at top level
+  const [imgError, setImgError] = useState(false)
+  const safePhoto = getSafeProfilePhoto()
+
   return (
     <header className="border-b border-zinc-200 dark:border-zinc-800 fixed top-0 left-0 right-0 z-50 bg-white dark:bg-zinc-900">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
@@ -64,10 +89,13 @@ export function TopNav() {
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                 className="flex items-center gap-2 focus:outline-none"
               >
-                {userInfo.profilePhoto ? (
+                {safePhoto && !imgError ? (
                   <img 
-                    src={userInfo.profilePhoto} 
+                    src={safePhoto} 
                     alt="Profile" 
+                    crossOrigin="anonymous"
+                    referrerPolicy="no-referrer"
+                    onError={() => setImgError(true)}
                     className="w-8 h-8 rounded-full object-cover border border-zinc-200 dark:border-zinc-700"
                   />
                 ) : (

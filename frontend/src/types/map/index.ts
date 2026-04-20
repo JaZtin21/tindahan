@@ -9,6 +9,10 @@ export interface Post {
     id: string;
     name: string;
     email: string;
+    firstName?: string;
+    lastName?: string;
+    role?: string;
+    profilePhoto?: string;
   };
   likes?: number;
   commentCount?: number;

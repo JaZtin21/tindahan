@@ -7,6 +7,13 @@ import type { Post } from '../../types';
 export function getPostBubbleHtml(post: Post): string {
   const authorInitial = post.author?.name.charAt(0).toUpperCase() || '?';
   const shortText = post.text && post.text.length > 60 ? post.text.substring(0, 60) + '...' : (post.text || '');
+  const profilePhoto = post.author?.profilePhoto;
+  const hasProfilePhoto = !!profilePhoto;
+  
+  // Create avatar HTML - either image or initials
+  const avatarHtml = hasProfilePhoto 
+    ? `<img src="${profilePhoto}" alt="${post.author?.name || 'User'}" class="post-bubble-avatar-img" crossorigin="anonymous" referrerpolicy="no-referrer" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"><div class="post-bubble-avatar-fallback" style="display:none;">${authorInitial}</div>`
+    : `<div class="post-bubble-avatar-fallback">${authorInitial}</div>`;
 
   return `
     <div class="post-marker-wrapper">
@@ -29,7 +36,7 @@ export function getPostBubbleHtml(post: Post): string {
       <div class="post-bubble-pointer-new"></div>
       <!-- Profile Avatar (bottom left) -->
       <div class="post-bubble-avatar-new">
-        ${authorInitial}
+        ${avatarHtml}
       </div>
     </div>
   `;
@@ -41,13 +48,22 @@ export function getPostBubbleHtml(post: Post): string {
  */
 export function getPostPopupHtml(post: Post): string {
   const authorInitial = post.author?.name.charAt(0).toUpperCase() || '?';
+  const profilePhoto = post.author?.profilePhoto;
+  const hasProfilePhoto = !!profilePhoto;
+  
+  // Avatar HTML for popup - either image or initials
+  const avatarHtml = hasProfilePhoto
+    ? `<img src="${profilePhoto}" class="post-popup-avatar-img" crossorigin="anonymous" referrerpolicy="no-referrer" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"><div class="post-popup-avatar-fallback" style="display:none;">${authorInitial}</div>`
+    : `<div class="post-popup-avatar-fallback">${authorInitial}</div>`;
 
   return `
     <div class="post-popup">
       <div class="post-popup-title">${post.title || 'Untitled'}</div>
       <div class="post-popup-text">${post.text || ''}</div>
       <div class="post-popup-author">
-        <div class="post-popup-avatar">${authorInitial}</div>
+        <div class="post-popup-avatar-container">
+          ${avatarHtml}
+        </div>
         <div class="post-popup-author-info">
           <div class="post-popup-author-name">${post.author?.name || 'Unknown'}</div>
           <div class="post-popup-author-email">${post.author?.email || ''}</div>

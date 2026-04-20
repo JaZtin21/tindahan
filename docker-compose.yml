@@ -20,12 +20,5 @@ services:
         chmod 400 /tmp/mongo-keyfile &&
         mongod --replSet rs0 --bind_ip_all --keyFile /tmp/mongo-keyfile --auth
       '
-    healthcheck:
-      test: mongosh --eval "rs.status().ok || rs.initiate({_id:'rs0',members:[{_id:0,host:'localhost:27017'}]}).ok"
-      interval: 10s
-      timeout: 10s
-      retries: 10
-      start_period: 30s
-
 volumes:
   mongo-data:

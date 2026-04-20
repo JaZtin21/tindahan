@@ -227,6 +227,28 @@ export function getMapMarkerStyles(): string {
       margin-top: 7px;
       margin-left: 3px;
       z-index: 2;
+      overflow: hidden;
+    }
+
+    .post-bubble-avatar-new .post-bubble-avatar-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 50%;
+      display: block;
+    }
+
+    .post-bubble-avatar-new .post-bubble-avatar-fallback {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #e57373 0%, #c62828 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 18px;
+      font-weight: 600;
     }
 
     /* Post rotation animation - pop in/out effect */
