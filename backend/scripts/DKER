@@ -1,0 +1,83 @@
+===========================================
+MongoDB Local Development (Replica Set)
+===========================================
+
+# 1. Start MongoDB container with replica set
+cd c:\Users\CC1925\Desktop\react\oauth\tindahan
+docker-compose -f docker-compose.yml up -d
+
+# 2. Initialize replica set (first time only)
+docker exec tindahan-mongo mongosh --eval "rs.initiate({_id: 'rs0', members: [{_id: 0, host: 'localhost:27017'}]});"
+
+# 3. Create admin user (first time only)
+docker exec tindahan-mongo mongosh --eval "db.createUser({user: 'admin', pwd: 'password', roles: [{role: 'root', db: 'admin'}]})" admin
+
+# 4. Check status
+docker ps --filter "name=tindahan-mongo"
+docker logs -f tindahan-mongo
+
+# 5. Stop MongoDB
+docker-compose -f docker-compose.yml down
+
+
+===========================================
+Backend + MongoDB Stack Deploy (Production)
+===========================================
+
+# 1. Go to backend folder
+cd c:\Users\CC1925\Desktop\react\oauth\tindahan\backend
+
+# 2. Build the image (REQUIRED before deploy)
+docker build -t tindahan-api:latest .
+
+# 3. Deploy stack
+docker stack deploy -c docker-compose.yml tindahan
+
+# 4. Check status
+docker service ls
+
+# 5. View logs
+docker service logs tindahan_tindahan-api
+docker service logs tindahan_mongodb
+
+# Stop everything
+docker stack rm tindahan
+
+
+===========================================
+MongoDB Keyfile Security
+===========================================
+
+WHAT IS IT:
+- The mongo-keyfile is used for internal authentication between replica set members
+- Required for replica set replication to work securely
+
+PRODUCTION SECURITY OPTIONS:
+
+1. Use Docker Secrets (Recommended for Swarm)
+   - Store keyfile as a Docker secret instead of volume mount
+   - Keyfile is only accessible to the container, not on host filesystem
+   - Example in docker-compose.yml:
+     secrets:
+       - mongo-keyfile
+     
+   - Generate and add secret:
+     docker secret create mongo-keyfile /path/to/mongo-keyfile
+
+2. Use Environment Variable + Entrypoint
+   - Store keyfile content in env var, write to temp file on startup
+   - Never persists on disk
+
+3. File Permissions (Minimum)
+   - chmod 400 on the keyfile (read-only for owner)
+   - Owned by root or mongodb user
+   - Never commit to git (add to .gitignore)
+
+4. Generate Strong Random Key
+   - Use: openssl rand -base64 756 > mongo-keyfile
+   - Minimum 6-1024 base64 characters
+
+IMPORTANT: 
+- Never commit mongo-keyfile to version control
+- Restrict server access to the keyfile location
+- Rotate keys periodically in production

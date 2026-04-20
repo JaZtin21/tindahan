@@ -106,7 +106,8 @@ export interface LocationHandlersOptions {
 
 // Hook option types
 export interface UseMapPostsOptions {
-  postsData?: any;
+  postsData?: any; // Legacy fetch data
+  livePosts?: Post[]; // Live subscription posts (last 24h)
   pausedClusters?: Set<string>; // Cluster IDs to pause rotation for
 }
 
@@ -132,8 +133,9 @@ export interface MapCenter {
 }
 
 export interface UseMapCenterOptions {
-  fetchPosts: (options: { variables: any }) => void;
-  postsLoading: boolean;
+  // Legacy: for backward compatibility, not used with live posts
+  fetchPosts?: (options: { variables: any }) => void;
+  postsLoading?: boolean;
   initialCenter?: MapCenter;
   initialZoom?: number;
 }

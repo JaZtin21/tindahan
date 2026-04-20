@@ -73,7 +73,7 @@ export function MapPage() {
   // Lazy query for fetching posts - does NOT auto-fetch on mount
   const [fetchPosts, { data: postsData, loading: postsLoading }] = usePostsNearLocation();
 
-  // Custom hooks for map functionality
+  // Custom hooks for map functionality - no fetch on zoom, use live subscription
   const { 
     mapCenter, 
     mapZoom, 
@@ -81,12 +81,15 @@ export function MapPage() {
     setMapZoom, 
     handleMapCenterChange,
     lastFetchCenterRef 
-  } = useMapCenter({ fetchPosts, postsLoading });
+  } = useMapCenter({});
 
+  // Use live posts from subscription (last 24h posts) instead of fetch query
+  const livePosts = livePostsData?.livePosts;
+  
   const { 
     clusterRotations, 
     groupedPostClusters 
-  } = useMapPosts({ postsData, pausedClusters });
+  } = useMapPosts({ livePosts, pausedClusters });
 
   const { allMarkers } = useMapMarkers({
     filteredStores,

@@ -6,17 +6,18 @@ import type { UseMapPostsOptions, Post } from '../../types/map';
 const POST_DISPLAY_DURATION = 3000;
 const GAP_BETWEEN_POSTS = 500;
 
-export function useMapPosts({ postsData, pausedClusters = new Set() }: UseMapPostsOptions) {
-  // Cache for posts - stores fetched posts so they persist when zooming
+export function useMapPosts({ postsData, livePosts, pausedClusters = new Set() }: UseMapPostsOptions) {
+  // Cache for posts - stores posts from live subscription or legacy fetch
   const [cachedPosts, setCachedPosts] = useState<Post[]>([]);
-  
+
   // Post cluster rotation state
   const [clusterRotations, setClusterRotations] = useState<Map<string, number>>(new Map());
   const [groupedPostClusters, setGroupedPostClusters] = useState<any[]>([]);
 
-  // Update cached posts when new data arrives - ACCUMULATE instead of replace
+  // Update cached posts when live posts arrive (priority) or legacy fetch data
   useEffect(() => {
-    const newPosts = postsData?.postsNearLocation?.data;
+    // Priority: live subscription posts > legacy fetch posts
+    const newPosts = livePosts ?? postsData?.postsNearLocation?.data;
     if (newPosts && newPosts.length > 0) {
       setCachedPosts(prevPosts => {
         const existingPostsMap = new Map(prevPosts.map(p => [p.id, p]));
@@ -26,7 +27,7 @@ export function useMapPosts({ postsData, pausedClusters = new Set() }: UseMapPos
         return Array.from(existingPostsMap.values());
       });
     }
-  }, [postsData]);
+  }, [livePosts, postsData]);
 
   // Group posts into clusters ONLY when posts change (NOT on zoom)
   useEffect(() => {

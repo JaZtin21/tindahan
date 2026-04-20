@@ -8,13 +8,13 @@ import (
 )
 
 type Application struct {
-	Env          *Env
+	Env           *Env
 	MongoDatabase *mongo.Database
 }
 
 func App() *Application {
 	env := LoadEnv()
-	
+
 	// Connect to MongoDB
 	db, err := mongoRepo.ConnectDB(env.MongoURI, env.MongoDBName)
 	if err != nil {
@@ -22,7 +22,7 @@ func App() *Application {
 	}
 
 	return &Application{
-		Env:          env,
+		Env:           env,
 		MongoDatabase: db,
 	}
 }
