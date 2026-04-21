@@ -8,10 +8,14 @@ import (
 )
 
 type Env struct {
-	ServerPort  string
-	MongoURI    string
-	MongoDBName string
-	JWTSecret   string
+	ServerPort          string
+	MongoURI            string
+	MongoDBName         string
+	JWTSecret           string
+	CloudinaryCloudName string
+	CloudinaryAPIKey    string
+	CloudinaryAPISecret string
+	CloudinaryFolder    string
 }
 
 func LoadEnv() *Env {
@@ -22,10 +26,14 @@ func LoadEnv() *Env {
 	}
 
 	return &Env{
-		ServerPort:  getEnv("SERVER_PORT", "8080"),
-		MongoURI:    getEnv("MONGO_URI", "mongodb://admin:password@localhost:27017/?replicaSet=rs0&authSource=admin"),
-		MongoDBName: getEnv("MONGO_DB_NAME", "tindahan_db"),
-		JWTSecret:   getEnv("JWT_SECRET", "tindahan-secret-key"),
+		ServerPort:          getEnv("SERVER_PORT", "8080"),
+		MongoURI:            getEnv("MONGO_URI", "mongodb://admin:password@localhost:27017/?replicaSet=rs0&authSource=admin"),
+		MongoDBName:         getEnv("MONGO_DB_NAME", "tindahan_db"),
+		JWTSecret:           getEnv("JWT_SECRET", "tindahan-secret-key"),
+		CloudinaryCloudName: getEnv("CLOUDINARY_CLOUD_NAME", ""),
+		CloudinaryAPIKey:    getEnv("CLOUDINARY_API_KEY", ""),
+		CloudinaryAPISecret: getEnv("CLOUDINARY_API_SECRET", ""),
+		CloudinaryFolder:    getEnv("CLOUDINARY_FOLDER", "tindahan"),
 	}
 }
 

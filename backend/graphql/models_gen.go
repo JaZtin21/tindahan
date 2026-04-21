@@ -372,8 +372,10 @@ type UpdatePostInput struct {
 }
 
 type UpdateProfileInput struct {
-	Name  *string `json:"name,omitempty"`
-	Phone *string `json:"phone,omitempty"`
+	FirstName *string `json:"firstName,omitempty"`
+	LastName  *string `json:"lastName,omitempty"`
+	Phone     *string `json:"phone,omitempty"`
+	Birthday  *string `json:"birthday,omitempty"`
 }
 
 type UpdateShopInput struct {
@@ -401,6 +403,7 @@ type User struct {
 	LastName     string     `json:"lastName"`
 	Role         UserRole   `json:"role"`
 	Phone        *string    `json:"phone,omitempty"`
+	Birthday     *string    `json:"birthday,omitempty"`
 	ProfilePhoto *string    `json:"profilePhoto,omitempty"`
 	CoverPhoto   *string    `json:"coverPhoto,omitempty"`
 	Shops        []string   `json:"shops,omitempty"`

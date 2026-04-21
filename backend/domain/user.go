@@ -13,6 +13,7 @@ type User struct {
 	Email        string             `bson:"email" json:"email" validate:"required,email"`
 	Password     string             `bson:"password" json:"-" validate:"required,min=6"`
 	Phone        string             `bson:"phone" json:"phone"`
+	Birthday     string             `bson:"birthday,omitempty" json:"birthday,omitempty"`
 	ProfilePhoto string             `bson:"profile_photo,omitempty" json:"profile_photo,omitempty"`
 	CoverPhoto   string             `bson:"cover_photo,omitempty" json:"cover_photo,omitempty"`
 	Role         string             `bson:"role" json:"role"` // "owner", "customer", "admin"
@@ -27,6 +28,7 @@ type UserResponse struct {
 	LastName     string    `json:"last_name"`
 	Email        string    `json:"email"`
 	Phone        string    `json:"phone"`
+	Birthday     string    `json:"birthday"`
 	ProfilePhoto string    `json:"profile_photo"`
 	CoverPhoto   string    `json:"cover_photo"`
 	Role         string    `json:"role"`
@@ -63,5 +65,6 @@ type UpdateUserRequest struct {
 	FirstName *string `json:"first_name"`
 	LastName  *string `json:"last_name"`
 	Phone     *string `json:"phone"`
+	Birthday  *string `json:"birthday"`
 	IsActive  *bool   `json:"is_active"`
 }

@@ -1006,28 +1006,45 @@ func (r *mutationResolver) UpdateProfile(ctx context.Context, input UpdateProfil
 	firstName := ""
 	lastName := ""
 	phone := ""
-	if input.Name != nil {
-		firstName = *input.Name
+	birthday := ""
+	if input.FirstName != nil {
+		firstName = *input.FirstName
+	}
+	if input.LastName != nil {
+		lastName = *input.LastName
+	}
+	if input.Birthday != nil {
+		birthday = *input.Birthday
 	}
 
-	result, err := r.userResolver.UpdateProfile(ctx, userID, firstName, lastName, phone)
+	result, err := r.userResolver.UpdateProfile(ctx, userID, firstName, lastName, phone, birthday)
 	if err != nil {
 		return &UserPayload{
 			Success: false,
-			Message: result["message"].(string),
+			Message: err.Error(),
 		}, nil
 	}
 	data := result["data"].(map[string]interface{})
+
+	createdAtStr := data["createdAt"].(string)
+	updatedAtStr := data["updatedAt"].(string)
+	createdAt, _ := time.Parse(time.RFC3339, createdAtStr)
+	updatedAt, _ := time.Parse(time.RFC3339, updatedAtStr)
 
 	return &UserPayload{
 		Success: result["success"].(bool),
 		Message: result["message"].(string),
 		Data: &User{
-			ID:       data["id"].(string),
-			Name:     data["name"].(string),
-			Email:    data["email"].(string),
-			Role:     UserRole(data["role"].(string)),
-			IsActive: data["isActive"].(bool),
+			ID:        data["id"].(string),
+			Name:      data["name"].(string),
+			FirstName: firstName,
+			LastName:  lastName,
+			Email:     data["email"].(string),
+			Role:      UserRole(data["role"].(string)),
+			Birthday:  &birthday,
+			IsActive:  data["isActive"].(bool),
+			CreatedAt: createdAt,
+			UpdatedAt: &updatedAt,
 		},
 	}, nil
 }
@@ -1134,6 +1151,8 @@ func (r *queryResolver) Me(ctx context.Context) (*UserPayload, error) {
 			Email:        data["email"].(string),
 			FirstName:    data["firstName"].(string),
 			LastName:     data["lastName"].(string),
+			Phone:        getStringPtr(data["phone"]),
+			Birthday:     getStringPtr(data["birthday"]),
 			Role:         UserRole(data["role"].(string)),
 			IsActive:     data["isActive"].(bool),
 			ProfilePhoto: getStringPtr(data["profilePhoto"]),

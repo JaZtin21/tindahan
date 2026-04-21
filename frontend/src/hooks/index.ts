@@ -6,3 +6,12 @@ export type { UseShopManagementProps, UseShopManagementReturn } from './useShopM
 
 // MapPage hooks
 export { useMapPosts, useMapMarkers, useMapCenter } from './mappage';
+
+// User profile hooks
+export {
+  useGetMe,
+  useUpdateProfile,
+  useUploadProfilePhoto,
+  useUploadCoverPhoto,
+} from './userprofile';
+export type { User, UpdateProfileInput, UserPayload } from './userprofile';

@@ -2,6 +2,7 @@ package user
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"tindahan-backend/domain"
@@ -52,6 +53,7 @@ func (r *UserResolver) Me(ctx context.Context, userId string) (map[string]interf
 			"name":         user.FirstName + " " + user.LastName,
 			"email":        user.Email,
 			"phone":        user.Phone,
+			"birthday":     user.Birthday,
 			"role":         user.Role,
 			"profilePhoto": user.ProfilePhoto,
 			"coverPhoto":   user.CoverPhoto,
@@ -99,7 +101,7 @@ func (r *UserResolver) Users(ctx context.Context, page, limit int) (map[string]i
 }
 
 // UpdateProfile resolves the updateProfile mutation (real DB implementation)
-func (r *UserResolver) UpdateProfile(ctx context.Context, userId string, firstName, lastName, phone string) (map[string]interface{}, error) {
+func (r *UserResolver) UpdateProfile(ctx context.Context, userId string, firstName, lastName, phone, birthday string) (map[string]interface{}, error) {
 	// Convert userId to ObjectID
 	userObjectID, err := primitive.ObjectIDFromHex(userId)
 	if err != nil {
@@ -120,6 +122,9 @@ func (r *UserResolver) UpdateProfile(ctx context.Context, userId string, firstNa
 	if phone != "" {
 		updates.Phone = &phone
 	}
+	if birthday != "" {
+		updates.Birthday = &birthday
+	}
 
 	// Update in database
 	if err := r.userRepo.UpdateUser(ctx, userObjectID, updates); err != nil {
@@ -132,16 +137,11 @@ func (r *UserResolver) UpdateProfile(ctx context.Context, userId string, firstNa
 	// Fetch updated user
 	user, err := r.userRepo.GetUserByID(ctx, userObjectID)
 	if err != nil {
-		return map[string]interface{}{
-			"success": true,
-			"message": "Profile updated but failed to fetch updated data",
-			"data": map[string]interface{}{
-				"id":        userId,
-				"firstName": firstName,
-				"lastName":  lastName,
-				"phone":     phone,
-			},
-		}, nil
+		// Return actual error so resolver knows something went wrong
+		return nil, fmt.Errorf("failed to fetch updated user: %w", err)
+	}
+	if user == nil {
+		return nil, fmt.Errorf("user not found after update")
 	}
 
 	return map[string]interface{}{
@@ -154,10 +154,11 @@ func (r *UserResolver) UpdateProfile(ctx context.Context, userId string, firstNa
 			"name":      user.FirstName + " " + user.LastName,
 			"email":     user.Email,
 			"phone":     user.Phone,
+			"birthday":  user.Birthday,
 			"role":      user.Role,
 			"isActive":  user.IsActive,
-			"createdAt": user.CreatedAt,
-			"updatedAt": user.UpdatedAt,
+			"createdAt": user.CreatedAt.Format(time.RFC3339),
+			"updatedAt": user.UpdatedAt.Format(time.RFC3339),
 		},
 	}, nil
 }

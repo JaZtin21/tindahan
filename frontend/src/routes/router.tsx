@@ -6,6 +6,7 @@ import { MapPage } from '../pages/MapPage'
 import { OwnerPage } from '../pages/OwnerPage'
 import { LoginPage } from '../pages/LoginPage'
 import { SignupPage } from '../pages/SignupPage'
+import { ProfilePage } from '../pages/ProfilePage'
 
 export const router = createBrowserRouter([
   {
@@ -17,6 +18,7 @@ export const router = createBrowserRouter([
       { path: 'owner', element: <OwnerPage /> },
       { path: 'login', element: <LoginPage /> },
       { path: 'signup', element: <SignupPage /> },
+      { path: 'profile', element: <ProfilePage /> },
       { path: '*', element: <Navigate to="/" replace /> },
     ],
   },

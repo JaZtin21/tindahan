@@ -20,6 +20,7 @@ type User {
   lastName: String!
   role: UserRole!
   phone: String
+  birthday: String
   profilePhoto: String
   coverPhoto: String
   shops: [ObjectID!]
@@ -69,6 +70,8 @@ input GoogleLoginInput {
 }
 
 input UpdateProfileInput {
-  name: String
+  firstName: String
+  lastName: String
   phone: String
+  birthday: String
 }

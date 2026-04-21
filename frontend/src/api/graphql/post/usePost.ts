@@ -72,10 +72,22 @@ export const usePost = (id: string) => {
   });
 };
 
-export const useMyPosts = (page?: number, limit?: number) => {
-  return useQuery(MY_POSTS_QUERY, {
+interface MyPostsResponse {
+  myPosts: {
+    success: boolean;
+    message: string;
+    data: Post[];
+    total: number;
+    page: number;
+    limit: number;
+  };
+}
+
+export const useMyPosts = (page?: number, limit?: number, skip?: boolean) => {
+  return useQuery<MyPostsResponse>(MY_POSTS_QUERY, {
     variables: { page, limit },
     fetchPolicy: 'cache-and-network',
+    skip,
   });
 };
 

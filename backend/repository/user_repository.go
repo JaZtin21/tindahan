@@ -70,6 +70,9 @@ func (r *userRepository) UpdateUser(ctx context.Context, userID primitive.Object
 	if updates.Phone != nil {
 		updateDoc["phone"] = *updates.Phone
 	}
+	if updates.Birthday != nil {
+		updateDoc["birthday"] = *updates.Birthday
+	}
 	if updates.IsActive != nil {
 		updateDoc["is_active"] = *updates.IsActive
 	}

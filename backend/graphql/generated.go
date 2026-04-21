@@ -261,6 +261,7 @@ type ComplexityRoot struct {
 	}
 
 	User struct {
+		Birthday     func(childComplexity int) int
 		CoverPhoto   func(childComplexity int) int
 		CreatedAt    func(childComplexity int) int
 		Email        func(childComplexity int) int
@@ -1443,6 +1444,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.ComplexityRoot.Subscription.ShopStatusUpdates(childComplexity), true
 
+	case "User.birthday":
+		if e.ComplexityRoot.User.Birthday == nil {
+			break
+		}
+
+		return e.ComplexityRoot.User.Birthday(childComplexity), true
 	case "User.coverPhoto":
 		if e.ComplexityRoot.User.CoverPhoto == nil {
 			break
@@ -2346,6 +2353,8 @@ func (ec *executionContext) fieldContext_AuthResponse_user(_ context.Context, fi
 				return ec.fieldContext_User_role(ctx, field)
 			case "phone":
 				return ec.fieldContext_User_phone(ctx, field)
+			case "birthday":
+				return ec.fieldContext_User_birthday(ctx, field)
 			case "profilePhoto":
 				return ec.fieldContext_User_profilePhoto(ctx, field)
 			case "coverPhoto":
@@ -2606,6 +2615,8 @@ func (ec *executionContext) fieldContext_Comment_author(_ context.Context, field
 				return ec.fieldContext_User_role(ctx, field)
 			case "phone":
 				return ec.fieldContext_User_phone(ctx, field)
+			case "birthday":
+				return ec.fieldContext_User_birthday(ctx, field)
 			case "profilePhoto":
 				return ec.fieldContext_User_profilePhoto(ctx, field)
 			case "coverPhoto":
@@ -5345,6 +5356,8 @@ func (ec *executionContext) fieldContext_Post_author(_ context.Context, field gr
 				return ec.fieldContext_User_role(ctx, field)
 			case "phone":
 				return ec.fieldContext_User_phone(ctx, field)
+			case "birthday":
+				return ec.fieldContext_User_birthday(ctx, field)
 			case "profilePhoto":
 				return ec.fieldContext_User_profilePhoto(ctx, field)
 			case "coverPhoto":
@@ -6615,6 +6628,8 @@ func (ec *executionContext) fieldContext_Query_users(ctx context.Context, field 
 				return ec.fieldContext_User_role(ctx, field)
 			case "phone":
 				return ec.fieldContext_User_phone(ctx, field)
+			case "birthday":
+				return ec.fieldContext_User_birthday(ctx, field)
 			case "profilePhoto":
 				return ec.fieldContext_User_profilePhoto(ctx, field)
 			case "coverPhoto":
@@ -8177,6 +8192,35 @@ func (ec *executionContext) fieldContext_User_phone(_ context.Context, field gra
 	return fc, nil
 }
 
+func (ec *executionContext) _User_birthday(ctx context.Context, field graphql.CollectedField, obj *User) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_User_birthday,
+		func(ctx context.Context) (any, error) {
+			return obj.Birthday, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_User_birthday(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "User",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _User_profilePhoto(ctx context.Context, field graphql.CollectedField, obj *User) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -8447,6 +8491,8 @@ func (ec *executionContext) fieldContext_UserPayload_data(_ context.Context, fie
 				return ec.fieldContext_User_role(ctx, field)
 			case "phone":
 				return ec.fieldContext_User_phone(ctx, field)
+			case "birthday":
+				return ec.fieldContext_User_birthday(ctx, field)
 			case "profilePhoto":
 				return ec.fieldContext_User_profilePhoto(ctx, field)
 			case "coverPhoto":
@@ -11275,20 +11321,27 @@ func (ec *executionContext) unmarshalInputUpdateProfileInput(ctx context.Context
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"name", "phone"}
+	fieldsInOrder := [...]string{"firstName", "lastName", "phone", "birthday"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
 			continue
 		}
 		switch k {
-		case "name":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+		case "firstName":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("firstName"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}
-			it.Name = data
+			it.FirstName = data
+		case "lastName":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("lastName"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.LastName = data
 		case "phone":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("phone"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
@@ -11296,6 +11349,13 @@ func (ec *executionContext) unmarshalInputUpdateProfileInput(ctx context.Context
 				return it, err
 			}
 			it.Phone = data
+		case "birthday":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("birthday"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Birthday = data
 		}
 	}
 	return it, nil
@@ -13204,6 +13264,8 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 			}
 		case "phone":
 			out.Values[i] = ec._User_phone(ctx, field, obj)
+		case "birthday":
+			out.Values[i] = ec._User_birthday(ctx, field, obj)
 		case "profilePhoto":
 			out.Values[i] = ec._User_profilePhoto(ctx, field, obj)
 		case "coverPhoto":

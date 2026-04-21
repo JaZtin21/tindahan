@@ -10,8 +10,11 @@ export const ME_QUERY = gql`
       data {
         id
         name
+        firstName
+        lastName
         email
         phone
+        birthday
         role
         shops
         profilePhoto
@@ -31,9 +34,12 @@ export const UPDATE_PROFILE_MUTATION = gql`
       message
       data {
         id
+        firstName
+        lastName
         name
         email
         phone
+        birthday
         role
         shops
         createdAt
@@ -111,7 +117,8 @@ export const DELETE_USER_MUTATION = gql`
 
 // Types for GraphQL
 export interface UpdateProfileInput {
-  name?: string;
+  firstName?: string;
+  lastName?: string;
   phone?: string;
 }
 
@@ -126,8 +133,11 @@ export interface CreateUserInput {
 export interface User {
   id: string;
   name: string;
+  firstName?: string;
+  lastName?: string;
   email: string;
   phone?: string;
+  birthday?: string;
   role: 'CUSTOMER' | 'OWNER' | 'ADMIN';
   shops: string[];
   profilePhoto?: string;
