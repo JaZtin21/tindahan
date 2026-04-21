@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import type { PostPreviewModalProps } from '../../types/map';
+import { PhotoGallery } from '../common/PhotoGallery';
 
 export function PostPreviewModal({ post, isOpen, onClose }: PostPreviewModalProps) {
   // Close on escape key
@@ -110,23 +111,10 @@ export function PostPreviewModal({ post, isOpen, onClose }: PostPreviewModalProp
             </p>
           )}
 
-          {/* Photos Grid */}
+          {/* Photos Gallery - Facebook Style with Lightbox */}
           {post.photos && post.photos.length > 0 && (
-            <div className="grid grid-cols-2 gap-2 mb-4">
-              {post.photos.map((photo, index) => (
-                <div 
-                  key={index}
-                  className={`relative rounded-lg overflow-hidden bg-zinc-100 ${
-                    index === 0 && post.photos!.length === 1 ? 'col-span-2 aspect-video' : 'aspect-square'
-                  }`}
-                >
-                  <img 
-                    src={photo} 
-                    alt={`Post photo ${index + 1}`}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              ))}
+            <div className="mb-4">
+              <PhotoGallery photos={post.photos} size="large" />
             </div>
           )}
 

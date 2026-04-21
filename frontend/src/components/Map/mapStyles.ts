@@ -164,39 +164,6 @@ export function getMapMarkerStyles(): string {
       font-weight: 500;
     }
 
-    .post-bubble-photos {
-      margin-bottom: 4px;
-    }
-
-    .photo-grid {
-      display: flex;
-      gap: 6px;
-      height: 80px;
-    }
-
-    .photo-col {
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      flex: 1;
-    }
-
-    .photo-placeholder {
-      background: #e0e0e0;
-      border-radius: 8px;
-      flex: 1;
-    }
-
-    .photo-large {
-      flex: 1.2;
-      min-width: 60px;
-    }
-
-    .photo-small {
-      flex: 1;
-      min-height: 35px;
-    }
-
     .post-bubble-pointer-new {
       width: 0;
       height: 0;
@@ -370,8 +337,6 @@ export function getMapMarkerStyles(): string {
     /* Store popup styles */
     .store-popup-title {
       font-weight: 600;
-      color: #202124;
-      margin-bottom: 4px;
     }
 
     .store-popup-coords {

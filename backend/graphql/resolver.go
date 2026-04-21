@@ -2348,13 +2348,26 @@ func (r *Resolver) docToPost(doc bson.M) *Post {
 		post.Text = ""
 	}
 
-	// Photos
-	if photos, ok := doc["photos"].([]interface{}); ok {
-		post.Photos = make([]string, 0, len(photos))
-		for _, p := range photos {
-			if s, ok := p.(string); ok {
-				post.Photos = append(post.Photos, s)
+	// Photos - handle both []interface{} and primitive.A (bson array)
+	post.Photos = []string{}
+	if photosRaw, ok := doc["photos"]; ok {
+		switch photos := photosRaw.(type) {
+		case []interface{}:
+			post.Photos = make([]string, 0, len(photos))
+			for _, p := range photos {
+				if s, ok := p.(string); ok {
+					post.Photos = append(post.Photos, s)
+				}
 			}
+		case primitive.A:
+			post.Photos = make([]string, 0, len(photos))
+			for _, p := range photos {
+				if s, ok := p.(string); ok {
+					post.Photos = append(post.Photos, s)
+				}
+			}
+		case []string:
+			post.Photos = photos
 		}
 	}
 
