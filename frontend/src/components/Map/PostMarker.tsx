@@ -25,7 +25,7 @@ export function getPostBubbleHtml(post: Post): string {
   return `
     <div class="post-marker-wrapper">
       <div class="post-bubble-new">
-        <div class="post-bubble-description">${shortText}</div>
+        <div style="font-size: 13px; color: #333; line-height: 1.4; margin-bottom: 8px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis;">${shortText}</div>
         ${photosHtml}
       </div>
       <div class="post-bubble-pointer-new"></div>

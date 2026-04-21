@@ -86,7 +86,10 @@ export function CreatePostModal({ isOpen, onClose, onSubmit, isSubmitting: exter
       alert('Please enter a title');
       return;
     }
-    if (!text.trim() && photos.length === 0) return;
+    if (photos.length === 0) {
+      alert('Please add at least one photo');
+      return;
+    }
     if (!selectedLocation) {
       alert('Please select a location');
       return;
@@ -223,16 +226,24 @@ export function CreatePostModal({ isOpen, onClose, onSubmit, isSubmitting: exter
             </div>
           )}
 
-          {/* Add photo button */}
-          {photos.length < 4 && (
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="flex items-center gap-2 mt-4 px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors text-zinc-700 dark:text-zinc-300"
-            >
-              <ImageIcon className="w-5 h-5" />
-              <span className="text-sm font-medium">Add Photo</span>
-            </button>
-          )}
+          {/* Add photo button - Required */}
+          <div className="mt-4">
+            <label className="block text-sm font-medium mb-2 text-zinc-700 dark:text-zinc-300">
+              Photos <span className="text-red-500">*</span>
+            </label>
+            {photos.length < 4 && (
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="flex items-center gap-2 px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors text-zinc-700 dark:text-zinc-300"
+              >
+                <ImageIcon className="w-5 h-5" />
+                <span className="text-sm font-medium">Add Photo</span>
+              </button>
+            )}
+            {photos.length === 0 && (
+              <p className="text-xs text-red-500 mt-1">At least one photo is required</p>
+            )}
+          </div>
           <input
             ref={fileInputRef}
             type="file"
@@ -253,7 +264,7 @@ export function CreatePostModal({ isOpen, onClose, onSubmit, isSubmitting: exter
           </button>
           <button
             onClick={handleSubmit}
-            disabled={(!title.trim() && !text.trim() && photos.length === 0) || !selectedLocation || isLoading}
+            disabled={!title.trim() || photos.length === 0 || !selectedLocation || isLoading}
             className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-300 dark:disabled:bg-zinc-600 disabled:cursor-not-allowed rounded-lg transition-colors"
           >
             {isLoading ? 'Posting...' : 'Post'}
