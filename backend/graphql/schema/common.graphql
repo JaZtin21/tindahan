@@ -2,6 +2,7 @@
 
 scalar Time
 scalar ObjectID
+scalar Upload
 
 enum UserRole {
   CUSTOMER

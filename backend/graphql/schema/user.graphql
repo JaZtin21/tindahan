@@ -9,6 +9,8 @@ extend type Mutation {
   createUser(input: CreateUserInput!): UserPayload!
   deleteUser(id: ObjectID!): DeletePayload!
   updateUserStatus(id: ObjectID!, isActive: Boolean!): UserPayload!
+  uploadProfilePhoto(file: Upload!): UserPayload!
+  uploadCoverPhoto(file: Upload!): UserPayload!
 }
 
 input CreateUserInput {

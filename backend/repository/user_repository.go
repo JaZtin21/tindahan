@@ -20,6 +20,7 @@ type UserRepository interface {
 	DeleteUser(ctx context.Context, userID primitive.ObjectID) error
 	GetAllUsers(ctx context.Context, page, limit int) ([]*domain.User, int64, error)
 	UpdateUserStatus(ctx context.Context, userID primitive.ObjectID, isActive bool) error
+	UpdateUserPhotos(ctx context.Context, userID primitive.ObjectID, profilePhoto, coverPhoto *string) error
 }
 
 type userRepository struct {
@@ -133,5 +134,25 @@ func (r *userRepository) UpdateUserStatus(ctx context.Context, userID primitive.
 
 func (r *userRepository) DeleteUser(ctx context.Context, userID primitive.ObjectID) error {
 	_, err := r.collection.DeleteOne(ctx, bson.M{"_id": userID})
+	return err
+}
+
+func (r *userRepository) UpdateUserPhotos(ctx context.Context, userID primitive.ObjectID, profilePhoto, coverPhoto *string) error {
+	updateDoc := bson.M{
+		"updated_at": time.Now(),
+	}
+
+	if profilePhoto != nil {
+		updateDoc["profile_photo"] = *profilePhoto
+	}
+	if coverPhoto != nil {
+		updateDoc["cover_photo"] = *coverPhoto
+	}
+
+	_, err := r.collection.UpdateOne(
+		ctx,
+		bson.M{"_id": userID},
+		bson.M{"$set": updateDoc},
+	)
 	return err
 }

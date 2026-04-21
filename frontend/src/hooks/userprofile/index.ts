@@ -1,6 +1,54 @@
 import { useMutation, useQuery } from '@apollo/client/react';
+import { gql } from '@apollo/client';
 import { ME_QUERY, UPDATE_PROFILE_MUTATION } from '../../api/graphql/user/user-queries';
-import type { UpdateProfileInput, UserPayload } from '../../types/user';
+import type { UpdateProfileInput, UserPayload, User } from '../../types/user';
+
+// GraphQL mutations for photo uploads
+const UPLOAD_PROFILE_PHOTO_MUTATION = gql`
+  mutation UploadProfilePhoto($file: Upload!) {
+    uploadProfilePhoto(file: $file) {
+      success
+      message
+      data {
+        id
+        firstName
+        lastName
+        email
+        phone
+        birthday
+        role
+        profilePhoto
+        coverPhoto
+        isActive
+        createdAt
+        updatedAt
+      }
+    }
+  }
+`;
+
+const UPLOAD_COVER_PHOTO_MUTATION = gql`
+  mutation UploadCoverPhoto($file: Upload!) {
+    uploadCoverPhoto(file: $file) {
+      success
+      message
+      data {
+        id
+        firstName
+        lastName
+        email
+        phone
+        birthday
+        role
+        profilePhoto
+        coverPhoto
+        isActive
+        createdAt
+        updatedAt
+      }
+    }
+  }
+`;
 
 // Hook to get current user
 export const useGetMe = (skip?: boolean) => {
@@ -27,60 +75,70 @@ export const useUpdateProfile = () => {
   return { updateProfile, loading };
 };
 
-// Hook to upload profile photo
+// Hook to upload profile photo via GraphQL
 export const useUploadProfilePhoto = () => {
-  const uploadProfilePhoto = async (file: File): Promise<{ success: boolean; url?: string }> => {
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
+  const [mutate, { loading }] = useMutation<{ uploadProfilePhoto: UserPayload }>(UPLOAD_PROFILE_PHOTO_MUTATION);
 
-      const response = await fetch('/api/upload/profile-photo', {
-        method: 'POST',
-        body: formData,
-        credentials: 'include',
+  const uploadProfilePhoto = async (file: File): Promise<{ success: boolean; url?: string; user?: User }> => {
+    try {
+      const { data } = await mutate({
+        variables: { file },
+        context: {
+          headers: {
+            'Apollo-Require-Preflight': 'true',
+          },
+        },
       });
 
-      if (!response.ok) {
-        throw new Error('Upload failed');
+      if (data?.uploadProfilePhoto?.success) {
+        const userData = data.uploadProfilePhoto.data;
+        return {
+          success: true,
+          url: userData?.profilePhoto || undefined,
+          user: userData || undefined,
+        };
       }
-
-      const data = await response.json();
-      return { success: true, url: data.url };
+      return { success: false, url: undefined, user: undefined };
     } catch (error) {
       console.error('Upload profile photo error:', error);
       return { success: false };
     }
   };
 
-  return { uploadProfilePhoto, loading: false };
+  return { uploadProfilePhoto, loading };
 };
 
-// Hook to upload cover photo
+// Hook to upload cover photo via GraphQL
 export const useUploadCoverPhoto = () => {
-  const uploadCoverPhoto = async (file: File): Promise<{ success: boolean; url?: string }> => {
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
+  const [mutate, { loading }] = useMutation<{ uploadCoverPhoto: UserPayload }>(UPLOAD_COVER_PHOTO_MUTATION);
 
-      const response = await fetch('/api/upload/cover-photo', {
-        method: 'POST',
-        body: formData,
-        credentials: 'include',
+  const uploadCoverPhoto = async (file: File): Promise<{ success: boolean; url?: string; user?: User }> => {
+    try {
+      const { data } = await mutate({
+        variables: { file },
+        context: {
+          headers: {
+            'Apollo-Require-Preflight': 'true',
+          },
+        },
       });
 
-      if (!response.ok) {
-        throw new Error('Upload failed');
+      if (data?.uploadCoverPhoto?.success) {
+        const userData = data.uploadCoverPhoto.data;
+        return {
+          success: true,
+          url: userData?.coverPhoto || undefined,
+          user: userData || undefined,
+        };
       }
-
-      const data = await response.json();
-      return { success: true, url: data.url };
+      return { success: false, url: undefined, user: undefined };
     } catch (error) {
       console.error('Upload cover photo error:', error);
       return { success: false };
     }
   };
 
-  return { uploadCoverPhoto, loading: false };
+  return { uploadCoverPhoto, loading };
 };
 
 // Re-export types (Post type comes from '../map')

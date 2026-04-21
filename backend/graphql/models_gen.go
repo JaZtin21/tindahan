@@ -8,6 +8,8 @@ import (
 	"io"
 	"strconv"
 	"time"
+
+	"github.com/99designs/gqlgen/graphql"
 )
 
 type AuthPayload struct {
@@ -87,11 +89,11 @@ type CreateItemInput struct {
 }
 
 type CreatePostInput struct {
-	Title    string         `json:"title"`
-	Text     string         `json:"text"`
-	Photos   []string       `json:"photos,omitempty"`
-	Types    []string       `json:"types,omitempty"`
-	Location *LocationInput `json:"location,omitempty"`
+	Title    string            `json:"title"`
+	Text     string            `json:"text"`
+	Photos   []*graphql.Upload `json:"photos,omitempty"`
+	Types    []string          `json:"types,omitempty"`
+	Location *LocationInput    `json:"location,omitempty"`
 }
 
 type CreateShopInput struct {
@@ -150,6 +152,13 @@ type DiscountInput struct {
 type GoogleLoginInput struct {
 	Credential string    `json:"credential"`
 	Role       *UserRole `json:"role,omitempty"`
+}
+
+type ImageUploadPayload struct {
+	Success  bool    `json:"success"`
+	Message  string  `json:"message"`
+	URL      *string `json:"url,omitempty"`
+	PublicID *string `json:"publicID,omitempty"`
 }
 
 type Item struct {

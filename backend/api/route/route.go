@@ -15,11 +15,12 @@ import (
 )
 
 func Setup(router *gin.Engine, app *bootstrap.Application) {
+
 	// CORS middleware
 	router.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"*"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "Apollo-Require-Preflight", "X-Apollo-Operation-Name", "X-Apollo-Operation-Id"},
 		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
 	}))
@@ -48,7 +49,10 @@ func Setup(router *gin.Engine, app *bootstrap.Application) {
 	graphqlHandler.AddTransport(transport.Options{})
 	graphqlHandler.AddTransport(transport.GET{})
 	graphqlHandler.AddTransport(transport.POST{})
-	graphqlHandler.AddTransport(transport.MultipartForm{})
+	graphqlHandler.AddTransport(&transport.MultipartForm{
+		MaxMemory:     32 << 20, // 32 MB max memory for file parts
+		MaxUploadSize: 50 << 20, // 50 MB max upload size
+	})
 
 	// Health check
 	router.GET("/health", func(c *gin.Context) {

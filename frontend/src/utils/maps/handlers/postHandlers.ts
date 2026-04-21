@@ -1,20 +1,16 @@
-import { fileToBase64 } from '../../file';
 import type { CreatePostInput, PostHandlersOptions } from '../../../types/map';
 
 export function createPostHandlers({ createPost }: PostHandlersOptions) {
 
   const handleCreatePost = async (post: CreatePostInput) => {
     try {
-      // Convert photos to base64
-      const photoPromises = post.photos.map(file => fileToBase64(file));
-      const base64Photos = await Promise.all(photoPromises);
-
+      // Send files directly - uploadLink handles multipart upload
       const result = await createPost({
         variables: {
           input: {
             title: post.title,
             text: post.text,
-            photos: base64Photos,
+            photos: post.photos, // File[] - handled by createUploadLink
             types: post.types,
             location: post.location
           }
@@ -28,7 +24,7 @@ export function createPostHandlers({ createPost }: PostHandlersOptions) {
       }
     } catch (error) {
       console.error('Error creating post:', error);
-      alert('Failed to create post. Please try again.');
+      alert('Error creating post. Please try again.');
     }
   };
 

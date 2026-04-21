@@ -13,6 +13,7 @@ extend type Mutation {
   deletePost(id: ObjectID!): DeletePayload!
   likePost(id: ObjectID!): PostPayload!
   unlikePost(id: ObjectID!): PostPayload!
+  uploadImage(file: Upload!, folder: String): ImageUploadPayload!
 }
 
 type Post {
@@ -63,7 +64,7 @@ type PostsPayload {
 input CreatePostInput {
   title: String!
   text: String!
-  photos: [String!]
+  photos: [Upload!]
   types: [String!]
   location: LocationInput
 }
@@ -80,4 +81,11 @@ input LocationInput {
   lat: Float!
   lng: Float!
   name: String!
+}
+
+type ImageUploadPayload {
+  success: Boolean!
+  message: String!
+  url: String
+  publicID: String
 }

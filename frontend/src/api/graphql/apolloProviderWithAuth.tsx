@@ -1,10 +1,11 @@
-import { ApolloClient, InMemoryCache, HttpLink, from, split } from '@apollo/client';
+import { ApolloClient, InMemoryCache, from, split } from '@apollo/client';
 import { ApolloProvider } from '@apollo/client/react';
 import { setContext } from '@apollo/client/link/context';
 import { onError } from '@apollo/client/link/error';
 import { GraphQLWsLink } from '@apollo/client/link/subscriptions';
 import { createClient } from 'graphql-ws';
 import { getMainDefinition } from '@apollo/client/utilities';
+import { createUploadLink } from './createUploadLink';
 import { useGoogleLogin } from '@react-oauth/google';
 import { useEffect, useMemo, useState, createContext, useContext, useRef, useCallback } from 'react';
 import { Observable } from '@apollo/client/utilities';
@@ -17,7 +18,7 @@ const GRAPHQL_ENDPOINT = import.meta.env.VITE_GRAPHQL_URL || 'http://localhost:8
 
 // Create a basic Apollo client for auth operations (without auth link)
 const authClient = new ApolloClient({
-  link: new HttpLink({ uri: GRAPHQL_ENDPOINT }),
+  link: createUploadLink({ uri: GRAPHQL_ENDPOINT }),
   cache: new InMemoryCache(),
 });
 
@@ -309,7 +310,7 @@ const ApolloProviderWithAuth = ({ children }: any) => {
     }, []);
 
     const client = useMemo(() => {
-        const httpLink = new HttpLink({
+        const uploadLink = createUploadLink({
             uri: GRAPHQL_ENDPOINT,
         });
 
@@ -464,7 +465,7 @@ const ApolloProviderWithAuth = ({ children }: any) => {
                 );
             },
             wsLink,
-            from([errorLink, authLink, httpLink])
+            from([errorLink, authLink, uploadLink])
         );
 
         return new ApolloClient({

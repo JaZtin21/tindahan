@@ -5,7 +5,6 @@ package graphql
 import (
 	"context"
 	"fmt"
-	"log"
 	"sync"
 	"time"
 	"tindahan-backend/api/handlers/auth"
@@ -15,9 +14,12 @@ import (
 	"tindahan-backend/api/handlers/product"
 	"tindahan-backend/api/handlers/shop"
 	"tindahan-backend/api/handlers/user"
+	"tindahan-backend/bootstrap"
 	"tindahan-backend/domain"
+	"tindahan-backend/internal/imageutil"
 	"tindahan-backend/repository"
 
+	"github.com/99designs/gqlgen/graphql"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -279,7 +281,46 @@ func (r *mutationResolver) CreatePost(ctx context.Context, input CreatePostInput
 		}
 	}
 
-	result, err := r.postResolver.CreatePost(ctx, userID, input.Title, input.Text, input.Photos, input.Types, location)
+	// Upload photos to Cloudinary if provided
+	var photoURLs []string
+	if len(input.Photos) > 0 {
+		env := bootstrap.LoadEnv()
+		if env.CloudinaryCloudName == "" || env.CloudinaryAPIKey == "" || env.CloudinaryAPISecret == "" {
+			return &PostPayload{
+				Success: false,
+				Message: "Image upload service not configured",
+			}, nil
+		}
+
+		uploader, err := imageutil.NewImageUploader(
+			env.CloudinaryCloudName,
+			env.CloudinaryAPIKey,
+			env.CloudinaryAPISecret,
+			env.CloudinaryFolder,
+		)
+		if err != nil {
+			return &PostPayload{
+				Success: false,
+				Message: "Failed to initialize upload service",
+			}, nil
+		}
+
+		folder := env.CloudinaryFolder + "/" + userID + "/posts"
+		userUploader := uploader.WithFolder(folder)
+
+		for _, file := range input.Photos {
+			result, err := userUploader.UploadImage(ctx, file.File, file.Filename)
+			if err != nil {
+				return &PostPayload{
+					Success: false,
+					Message: "Failed to upload image: " + err.Error(),
+				}, nil
+			}
+			photoURLs = append(photoURLs, result.URL)
+		}
+	}
+
+	result, err := r.postResolver.CreatePost(ctx, userID, input.Title, input.Text, photoURLs, input.Types, location)
 	if err != nil {
 		return &PostPayload{
 			Success: false,
@@ -289,7 +330,6 @@ func (r *mutationResolver) CreatePost(ctx context.Context, input CreatePostInput
 
 	// Notify all subscribers that a new post was created
 	r.postNotifier.NotifyAll()
-	log.Println("🔴 LIVE POSTS: Notified subscribers of new post")
 
 	data := result["data"].(map[string]interface{})
 	return &PostPayload{
@@ -1107,6 +1147,232 @@ func (r *mutationResolver) UpdateUserStatus(ctx context.Context, id string, isAc
 			ID:       data["id"].(string),
 			IsActive: data["isActive"].(bool),
 		},
+	}, nil
+}
+
+// UploadProfilePhoto is the resolver for the uploadProfilePhoto field.
+func (r *mutationResolver) UploadProfilePhoto(ctx context.Context, file graphql.Upload) (*UserPayload, error) {
+	userID := middleware.GetUserID(ctx)
+	if userID == "" {
+		return &UserPayload{
+			Success: false,
+			Message: "Authentication required",
+		}, nil
+	}
+
+	env := bootstrap.LoadEnv()
+	if env.CloudinaryCloudName == "" || env.CloudinaryAPIKey == "" || env.CloudinaryAPISecret == "" {
+		return &UserPayload{
+			Success: false,
+			Message: "Image upload service not configured",
+		}, nil
+	}
+
+	uploader, err := imageutil.NewImageUploader(
+		env.CloudinaryCloudName,
+		env.CloudinaryAPIKey,
+		env.CloudinaryAPISecret,
+		env.CloudinaryFolder,
+	)
+	if err != nil {
+		return &UserPayload{
+			Success: false,
+			Message: "Failed to initialize upload service",
+		}, nil
+	}
+
+	folder := env.CloudinaryFolder + "/" + userID + "/profile"
+	userUploader := uploader.WithFolder(folder)
+
+	result, err := userUploader.UploadImage(ctx, file.File, file.Filename)
+	if err != nil {
+		return &UserPayload{
+			Success: false,
+			Message: "Upload failed: " + err.Error(),
+		}, nil
+	}
+
+	userRepo := repository.NewUserRepository(r.db)
+	userObjectID, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		return &UserPayload{
+			Success: false,
+			Message: "Invalid user ID",
+		}, nil
+	}
+
+	err = userRepo.UpdateUserPhotos(ctx, userObjectID, &result.URL, nil)
+	if err != nil {
+		return &UserPayload{
+			Success: false,
+			Message: "Failed to update user: " + err.Error(),
+		}, nil
+	}
+
+	user, err := userRepo.GetUserByID(ctx, userObjectID)
+	if err != nil {
+		return &UserPayload{
+			Success: false,
+			Message: "Failed to fetch updated user: " + err.Error(),
+		}, nil
+	}
+	return &UserPayload{
+		Success: true,
+		Message: "Profile photo uploaded successfully",
+		Data: &User{
+			ID:           user.ID.Hex(),
+			FirstName:    user.FirstName,
+			LastName:     user.LastName,
+			Email:        user.Email,
+			Phone:        &user.Phone,
+			Birthday:     &user.Birthday,
+			Role:         UserRole(user.Role),
+			ProfilePhoto: &user.ProfilePhoto,
+			CoverPhoto:   &user.CoverPhoto,
+			IsActive:     user.IsActive,
+			CreatedAt:    user.CreatedAt,
+			UpdatedAt:    &user.UpdatedAt,
+		},
+	}, nil
+}
+
+// UploadCoverPhoto is the resolver for the uploadCoverPhoto field.
+func (r *mutationResolver) UploadCoverPhoto(ctx context.Context, file graphql.Upload) (*UserPayload, error) {
+	userID := middleware.GetUserID(ctx)
+	if userID == "" {
+		return &UserPayload{
+			Success: false,
+			Message: "Authentication required",
+		}, nil
+	}
+
+	env := bootstrap.LoadEnv()
+	if env.CloudinaryCloudName == "" || env.CloudinaryAPIKey == "" || env.CloudinaryAPISecret == "" {
+		return &UserPayload{
+			Success: false,
+			Message: "Image upload service not configured",
+		}, nil
+	}
+
+	uploader, err := imageutil.NewImageUploader(
+		env.CloudinaryCloudName,
+		env.CloudinaryAPIKey,
+		env.CloudinaryAPISecret,
+		env.CloudinaryFolder,
+	)
+	if err != nil {
+		return &UserPayload{
+			Success: false,
+			Message: "Failed to initialize upload service",
+		}, nil
+	}
+
+	folder := env.CloudinaryFolder + "/" + userID + "/cover"
+	userUploader := uploader.WithFolder(folder)
+
+	result, err := userUploader.UploadImage(ctx, file.File, file.Filename)
+	if err != nil {
+		return &UserPayload{
+			Success: false,
+			Message: "Upload failed: " + err.Error(),
+		}, nil
+	}
+
+	userRepo := repository.NewUserRepository(r.db)
+	userObjectID, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		return &UserPayload{
+			Success: false,
+			Message: "Invalid user ID",
+		}, nil
+	}
+
+	err = userRepo.UpdateUserPhotos(ctx, userObjectID, nil, &result.URL)
+	if err != nil {
+		return &UserPayload{
+			Success: false,
+			Message: "Failed to update user: " + err.Error(),
+		}, nil
+	}
+
+	user, err := userRepo.GetUserByID(ctx, userObjectID)
+	if err != nil {
+		return &UserPayload{
+			Success: false,
+			Message: "Failed to fetch updated user: " + err.Error(),
+		}, nil
+	}
+	return &UserPayload{
+		Success: true,
+		Message: "Cover photo uploaded successfully",
+		Data: &User{
+			ID:           user.ID.Hex(),
+			FirstName:    user.FirstName,
+			LastName:     user.LastName,
+			Email:        user.Email,
+			Phone:        &user.Phone,
+			Birthday:     &user.Birthday,
+			Role:         UserRole(user.Role),
+			ProfilePhoto: &user.ProfilePhoto,
+			CoverPhoto:   &user.CoverPhoto,
+			IsActive:     user.IsActive,
+			CreatedAt:    user.CreatedAt,
+			UpdatedAt:    &user.UpdatedAt,
+		},
+	}, nil
+}
+
+// UploadImage is a generic image upload resolver for posts and other content.
+func (r *mutationResolver) UploadImage(ctx context.Context, file graphql.Upload, folder *string) (*ImageUploadPayload, error) {
+	userID := middleware.GetUserID(ctx)
+	if userID == "" {
+		return &ImageUploadPayload{
+			Success: false,
+			Message: "Authentication required",
+		}, nil
+	}
+
+	env := bootstrap.LoadEnv()
+	if env.CloudinaryCloudName == "" || env.CloudinaryAPIKey == "" || env.CloudinaryAPISecret == "" {
+		return &ImageUploadPayload{
+			Success: false,
+			Message: "Image upload service not configured",
+		}, nil
+	}
+
+	uploader, err := imageutil.NewImageUploader(
+		env.CloudinaryCloudName,
+		env.CloudinaryAPIKey,
+		env.CloudinaryAPISecret,
+		env.CloudinaryFolder,
+	)
+	if err != nil {
+		return &ImageUploadPayload{
+			Success: false,
+			Message: "Failed to initialize upload service",
+		}, nil
+	}
+
+	// Use provided folder or default to user-specific uploads folder
+	uploadFolder := env.CloudinaryFolder + "/" + userID + "/uploads"
+	if folder != nil && *folder != "" {
+		uploadFolder = env.CloudinaryFolder + "/" + userID + "/" + *folder
+	}
+	userUploader := uploader.WithFolder(uploadFolder)
+
+	result, err := userUploader.UploadImage(ctx, file.File, file.Filename)
+	if err != nil {
+		return &ImageUploadPayload{
+			Success: false,
+			Message: "Upload failed: " + err.Error(),
+		}, nil
+	}
+
+	return &ImageUploadPayload{
+		Success:  true,
+		Message:  "Image uploaded successfully",
+		URL:      &result.URL,
+		PublicID: &result.PublicID,
 	}, nil
 }
 
@@ -1941,7 +2207,6 @@ func (r *subscriptionResolver) LivePosts(ctx context.Context) (<-chan []*Post, e
 		// Watch the posts collection for changes
 		changeStream, err := r.postResolver.GetDB().Collection("posts").Watch(ctx, pipeline)
 		if err != nil {
-			log.Printf("LIVE POSTS ERROR: Failed to create change stream: %v", err)
 			return
 		}
 		defer changeStream.Close(ctx)
