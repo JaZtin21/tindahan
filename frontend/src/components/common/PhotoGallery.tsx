@@ -118,20 +118,20 @@ export function PhotoGallery({ photos, className = '', maxDisplay = 6, size = 'l
   return (
     <div className={className}>
       <div className={`grid gap-1 rounded-xl overflow-hidden ${
-        photos.length === 1 ? `grid-cols-1 ${size === 'large' ? 'h-72' : size === 'medium' ? 'h-48' : 'h-20'}` :
-        photos.length === 2 ? `grid-cols-2 ${size === 'large' ? 'h-72' : size === 'medium' ? 'h-48' : 'h-20'}` :
-        photos.length === 3 ? `grid-cols-2 grid-rows-2 ${size === 'large' ? 'h-72' : size === 'medium' ? 'h-48' : 'h-20'}` :
-        photos.length === 4 ? `grid-cols-2 grid-rows-2 ${size === 'large' ? 'h-72' : size === 'medium' ? 'h-48' : 'h-20'}` :
-        `grid-cols-3 grid-rows-2 ${size === 'large' ? 'h-72' : size === 'medium' ? 'h-48' : 'h-20'}`
+        photos.length === 1 ? `grid-cols-1 ${size === 'large' ? 'h-72 lg:h-96' : size === 'medium' ? 'h-48 lg:h-64' : 'h-20'}` :
+        photos.length === 2 ? `grid-cols-2 ${size === 'large' ? 'h-72 lg:h-96' : size === 'medium' ? 'h-48 lg:h-64' : 'h-20'}` :
+        photos.length === 3 ? `grid-cols-2 grid-rows-2 ${size === 'large' ? 'h-72 lg:h-96' : size === 'medium' ? 'h-48 lg:h-64' : 'h-20'}` :
+        photos.length === 4 ? `grid-cols-2 grid-rows-2 ${size === 'large' ? 'h-72 lg:h-96' : size === 'medium' ? 'h-48 lg:h-64' : 'h-20'}` :
+        `grid-cols-3 grid-rows-2 ${size === 'large' ? 'h-72 lg:h-96' : size === 'medium' ? 'h-48 lg:h-64' : 'h-20'}`
       }`}>
         {photos.slice(0, Math.min(maxDisplay, 4)).map((photo, index) => {
           const isLastVisible = index === 3 && photos.length > 4;
           const remainingCount = photos.length - 4;
 
-          // Optimize thumbnail size based on grid position
-          const thumbWidth = photos.length === 1 ? 800 : 
-                            photos.length <= 2 ? 600 : 
-                            photos.length <= 4 ? 400 : 300;
+          // Optimize thumbnail size based on grid position - larger for better quality on big screens
+          const thumbWidth = photos.length === 1 ? 1200 : 
+                            photos.length <= 2 ? 800 : 
+                            photos.length <= 4 ? 600 : 400;
 
           return (
             <div
@@ -143,7 +143,7 @@ export function PhotoGallery({ photos, className = '', maxDisplay = 6, size = 'l
                 src={optimizeCloudinaryUrl(photo, {
                   width: thumbWidth,
                   crop: 'fill',
-                  quality: 'auto:eco'
+                  quality: 'auto:best'
                 })}
                 alt={`Photo ${index + 1}`}
                 className="w-full h-full object-cover"
