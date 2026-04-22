@@ -42,12 +42,7 @@ export function getCurrentLocationHtml(): string {
 export function getMapMarkerStyles(): string {
   return `
     /* Post bubble marker styles */
-    .post-bubble-container {
-      position: relative;
-      display: flex;
-      flex-direction: row;
-      align-items: flex-end;
-    }
+
 
     .post-bubble-avatar {
       width: 40px;
@@ -143,6 +138,15 @@ export function getMapMarkerStyles(): string {
       flex-direction: column;
       align-items: flex-start;
       width: 200px;
+      /* Avatar is the anchor - positioned at bottom */
+      height: auto;
+    }
+
+    .post-bubble-container {
+      position: absolute;
+      bottom: 46px; /* Position above avatar (44px + 8px gap) */
+      left: 0;
+      z-index: 10;
     }
 
     .post-bubble-new {
@@ -153,7 +157,7 @@ export function getMapMarkerStyles(): string {
       border: 1px solid #e0e0e0;
       width: 180px;
       position: relative;
-      margin-bottom: 8px;
+      margin-bottom: 0;
     }
 
     .post-bubble-description {
@@ -170,9 +174,9 @@ export function getMapMarkerStyles(): string {
       border-left: 8px solid transparent;
       border-right: 8px solid transparent;
       border-top: 8px solid white;
-      margin-left: 16px;
-      margin-top: -10px;
-      margin-bottom: -6px;
+      margin-left: 17px; /* Center on avatar: 17 + 8 = 25px (avatar center) */
+      margin-top: -2px;
+      margin-bottom: 0;
       position: relative;
       z-index: 1;
     }
@@ -191,10 +195,12 @@ export function getMapMarkerStyles(): string {
       border: 3px solid white;
       box-shadow: 0 2px 8px rgba(0,0,0,0.3);
       flex-shrink: 0;
-      margin-top: 7px;
+      margin-top: 0;
       margin-left: 3px;
-      z-index: 2;
+      z-index: 5;
       overflow: hidden;
+      /* This is the anchor point - positioned at bottom of marker */
+      position: relative;
     }
 
     .post-bubble-avatar-new .post-bubble-avatar-img {

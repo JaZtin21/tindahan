@@ -1,9 +1,12 @@
+import type { Shop as ShopType } from '../shop';
+import type { Item as ItemType } from '../item';
+
 // Owner-specific types and interfaces
 export type ActiveTab = 'shops' | 'add-item' | 'inventory' | 'add-shop' | 'inquiries' | 'edit-shop' | 'edit-item';
 
 // Re-export Shop and Item types for convenience
-export type { Shop } from '../shop';
-export type { Item } from '../item';
+export type { ShopType as Shop };
+export type { ItemType as Item };
 
 export interface NewItemForm {
   name: string;
@@ -22,4 +25,55 @@ export interface Owner {
   createdAt: string;
   updatedAt?: string;
   isActive: boolean;
+}
+
+// Component Props Interfaces
+export interface AddItemFormProps {
+  onAddItem: (item: ItemType) => void;
+  item?: ItemType | null;
+  onCancel?: () => void;
+}
+
+export interface Inquiry {
+  id: string;
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string;
+  message: string;
+  timestamp: string;
+  status: 'pending' | 'responded' | 'resolved';
+}
+
+export interface InquiriesProps {
+  shop: ShopType;
+}
+
+export interface InventoryTableProps {
+  shops: ShopType[];
+  onEditItem: (shopId: string, itemId: string) => void;
+  onDeleteItem: (shopId: string, itemId: string) => void;
+}
+
+export interface LocationPickerProps {
+  onLocationSelect: (coordinates: { lat: number; lng: number }, address: string) => void;
+  initialLocation?: { lat: number; lng: number };
+  initialAddress?: string;
+}
+
+export interface ShopCardProps {
+  shop: ShopType;
+  onManageShop: (shopId: string) => void;
+  onDeleteShop?: (shopId: string) => void;
+}
+
+export interface ShopFormProps {
+  shop?: ShopType | null;
+  onSaveShop: (shop: ShopType) => void;
+  onCancel: () => void;
+}
+
+export interface TabsProps {
+  activeTab: ActiveTab;
+  onTabChange: (tab: ActiveTab) => void;
+  isShopView?: boolean;
 }

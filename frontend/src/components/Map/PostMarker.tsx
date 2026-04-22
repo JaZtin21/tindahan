@@ -24,13 +24,15 @@ export function getPostBubbleHtml(post: Post): string {
 
   return `
     <div class="post-marker-wrapper">
-      <div class="post-bubble-new">
-        <div style="font-size: 13px; color: #333; line-height: 1.4; margin-bottom: 8px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis;">${shortText}</div>
-        ${photosHtml}
-      </div>
-      <div class="post-bubble-pointer-new"></div>
       <div class="post-bubble-avatar-new">
         ${avatarHtml}
+      </div>
+      <div class="post-bubble-container">
+        <div class="post-bubble-new">
+          <div style="font-size: 13px; font-weight: 500; color: #333; line-height: 1.4; margin-bottom: 8px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis;">${shortText}</div>
+          ${photosHtml}
+        </div>
+        <div class="post-bubble-pointer-new"></div>
       </div>
     </div>
   `;
@@ -84,12 +86,15 @@ export function getPostIcon(L: any, post: Post, animate: boolean = false) {
     ? 'post-bubble-marker animate-in' 
     : 'post-bubble-marker';
   
+  // Avatar is 44px wide, positioned at bottom left with 3px margin
+  // Center of avatar = 3 + 22 = 25px from left
+  // Center of avatar vertically = 44px / 2 = 22px
   return L.divIcon({
     html: getPostBubbleHtml(post),
-    iconSize: [200, 189],
-    iconAnchor: [25, 182],
-    popupAnchor: [0, -182],
-    className: className
+    className: className,
+    iconSize: [200, 44],     // Only the avatar height matters for anchor
+    iconAnchor: [25, 22],    // Center of the 44px avatar circle (x=25, y=22 from bottom)
+    popupAnchor: [0, -44]    // Popup above the avatar
   });
 }
 

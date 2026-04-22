@@ -65,15 +65,6 @@ export interface Store {
   rating?: number;
 }
 
-// Post creation input
-export interface CreatePostInput {
-  title: string;
-  text: string;
-  photos: File[];
-  types: string[];
-  location: { lat: number; lng: number; name: string };
-}
-
 // Handler option types
 export interface ProductHandlersOptions {
   setProductNameForSearch: (name: string | null) => void;

@@ -4,3 +4,5 @@ export * from './item';
 export * from './owner';
 export * from './map';
 export * from './user';
+export * from './post';
+export * from './profile';
