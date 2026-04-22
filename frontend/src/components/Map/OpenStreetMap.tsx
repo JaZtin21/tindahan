@@ -10,6 +10,104 @@ import {
   getPostIcon,
 } from './PostMarker';
 
+// IndexedDB-based tile caching for Leaflet
+class TileCache {
+  private db: IDBDatabase | null = null;
+  private dbName = 'map-tile-cache';
+  private storeName = 'tiles';
+  private maxAge = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+  async init(): Promise<void> {
+    return new Promise((resolve) => {
+      const request = indexedDB.open(this.dbName, 1);
+      
+      request.onerror = () => resolve();
+      request.onsuccess = () => {
+        this.db = request.result;
+        resolve();
+      };
+      
+      request.onupgradeneeded = (event) => {
+        const db = (event.target as IDBOpenDBRequest).result;
+        if (!db.objectStoreNames.contains(this.storeName)) {
+          db.createObjectStore(this.storeName);
+        }
+      };
+    });
+  }
+
+  private getKey(url: string): string {
+    // Extract x, y, z from URL for consistent key
+    const match = url.match(/(\d+)\/(\d+)\/(\d+)/);
+    return match ? `${match[1]}-${match[2]}-${match[3]}` : url;
+  }
+
+  async get(url: string): Promise<Blob | null> {
+    if (!this.db) return null;
+    
+    return new Promise((resolve) => {
+      const transaction = this.db!.transaction([this.storeName], 'readonly');
+      const store = transaction.objectStore(this.storeName);
+      const key = this.getKey(url);
+      const request = store.get(key);
+      
+      request.onsuccess = () => {
+        const result = request.result;
+        if (!result) {
+          resolve(null);
+          return;
+        }
+        
+        // Check if expired
+        if (Date.now() - result.timestamp > this.maxAge) {
+          this.delete(url);
+          resolve(null);
+          return;
+        }
+        
+        resolve(result.blob);
+      };
+      
+      request.onerror = () => resolve(null);
+    });
+  }
+
+  async set(url: string, blob: Blob): Promise<void> {
+    if (!this.db) return;
+    
+    return new Promise((resolve) => {
+      const transaction = this.db!.transaction([this.storeName], 'readwrite');
+      const store = transaction.objectStore(this.storeName);
+      const key = this.getKey(url);
+      
+      const request = store.put({
+        blob,
+        timestamp: Date.now(),
+        url
+      }, key);
+      
+      request.onsuccess = () => resolve();
+      request.onerror = () => resolve();
+    });
+  }
+
+  async delete(url: string): Promise<void> {
+    if (!this.db) return;
+    
+    return new Promise((resolve) => {
+      const transaction = this.db!.transaction([this.storeName], 'readwrite');
+      const store = transaction.objectStore(this.storeName);
+      const key = this.getKey(url);
+      const request = store.delete(key);
+      
+      request.onsuccess = () => resolve();
+      request.onerror = () => resolve();
+    });
+  }
+}
+
+const tileCache = new TileCache();
+
 export function OpenStreetMap({ center, zoom, onMapClick, onMarkerClick, onMapMoveEnd, onPostClick, onPostHover, markers = [], currentLocation }: MapProps & { onPostHover?: (clusterId: string | undefined, isHovering: boolean) => void }) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
@@ -42,8 +140,11 @@ export function OpenStreetMap({ center, zoom, onMapClick, onMarkerClick, onMapMo
     script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
     script.async = true;
 
-    script.onload = () => {
+    script.onload = async () => {
       const L = (window as any).L;
+      
+      // Initialize tile cache
+      await tileCache.init();
       
       // Check if container already has a map
       if (mapInstanceRef.current) {
@@ -55,18 +156,110 @@ export function OpenStreetMap({ center, zoom, onMapClick, onMarkerClick, onMapMo
         mapRef.current.innerHTML = '';
       }
       
-      // Initialize map
-      const map = L.map(mapRef.current).setView([center.lat, center.lng], zoom);
+      // Initialize map with animations enabled for smooth zooming
+      const map = L.map(mapRef.current, {
+        fadeAnimation: true,
+        zoomAnimation: true,
+        markerZoomAnimation: true,
+        preferCanvas: false,
+        zoomControl: false, // Remove zoom + - buttons
+      }).setView([center.lat, center.lng], zoom);
       mapInstanceRef.current = map;
 
-      // Use CartoDB Voyager tile layer (more Google Maps-like)
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-        attribution: 'OpenStreetMap contributors CARTO',
+      // Create custom tile layer with IndexedDB caching and edge buffer
+      const CachedTileLayer = L.TileLayer.extend({
+        _tileCache: tileCache,
+        _edgeBufferTiles: 2, // Number of tiles to preload outside viewport
+        
+        // Override to expand tile bounds for preloading
+        _getTiledPixelBounds: function(center: any) {
+          // Get pixel bounds from parent
+          const pixelBounds = L.GridLayer.prototype._getTiledPixelBounds.call(this, center);
+          
+          // Get tile size from options (256 is default)
+          const tileSize = this.options.tileSize || 256;
+          const buffer = this._edgeBufferTiles * tileSize;
+          
+          // Expand bounds by edge buffer tiles on each side
+          pixelBounds.min.x -= buffer;
+          pixelBounds.min.y -= buffer;
+          pixelBounds.max.x += buffer;
+          pixelBounds.max.y += buffer;
+          
+          return pixelBounds;
+        },
+        
+        _loadTile: function(tile: HTMLImageElement, tilePoint: any) {
+          (tile as any)._layer = this;
+          tile.onload = () => this._tileOnLoad(tile, tilePoint);
+          tile.onerror = () => this._tileOnError(tile, tilePoint);
+          
+          const url = this.getTileUrl(tilePoint);
+          
+          // Try to get from cache first
+          this._tileCache.get(url).then((cachedBlob: Blob | null) => {
+            if (cachedBlob) {
+              // Use cached blob
+              const objectUrl = URL.createObjectURL(cachedBlob);
+              tile.src = objectUrl;
+              
+              // Revoke object URL after image loads to prevent memory leaks
+              tile.onload = () => {
+                URL.revokeObjectURL(objectUrl);
+                this._tileOnLoad(tile, tilePoint);
+              };
+            } else {
+              // Fetch and cache
+              this._fetchAndCacheTile(url, tile, tilePoint);
+            }
+          }).catch(() => {
+            // Fallback to direct load on error
+            tile.src = url;
+          });
+        },
+        
+        _fetchAndCacheTile: function(url: string, tile: HTMLImageElement, tilePoint: any) {
+          fetch(url, {
+            mode: 'cors',
+            credentials: 'omit'
+          })
+          .then(response => {
+            if (!response.ok) throw new Error('Failed to fetch tile');
+            return response.blob();
+          })
+          .then(blob => {
+            // Cache the blob
+            this._tileCache.set(url, blob);
+            
+            // Use the blob for the tile
+            const objectUrl = URL.createObjectURL(blob);
+            tile.src = objectUrl;
+            
+            tile.onload = () => {
+              URL.revokeObjectURL(objectUrl);
+              this._tileOnLoad(tile, tilePoint);
+            };
+          })
+          .catch(() => {
+            tile.src = url;
+          });
+        }
+        // Note: Let Leaflet handle _removeTile normally for proper zoom behavior
+      });
+
+      // Create tile layer instance with CartoDB Voyager tiles and edge buffer for preloading
+      const tileLayer = new CachedTileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        attribution: '', // Remove attribution text
         subdomains: 'abcd',
         maxZoom: 20,
+        crossOrigin: 'anonymous',
+        keepBuffer: 50, // Keep many tiles in buffer for smooth zoom/pan
+        updateWhenZooming: false,
+        updateWhenIdle: true,
       }).addTo(map);
-
-      // Note: Leaflet custom styles are now included in getMapMarkerStyles()
+      
+      // Store reference for potential future use
+      (map as any)._cachedTileLayer = tileLayer;
 
       // Create markers layer group
       markersLayerRef.current = L.layerGroup().addTo(map);
@@ -99,7 +292,7 @@ export function OpenStreetMap({ center, zoom, onMapClick, onMarkerClick, onMapMo
     };
     
     // Helper function to render markers
-    function renderMarkers(markersData: PostMarker[], mapInstance: any, L: any, onMarkerClickHandler?: (store: { lat: number; lng: number; name: string; id?: string; location?: string; coverPhoto?: string; businessType?: string }) => void) {
+    function renderMarkers(markersData: PostMarker[], _map: any, L: any, onMarkerClickHandler?: (store: { lat: number; lng: number; name: string; id?: string; location?: string; coverPhoto?: string; businessType?: string }) => void) {
       if (!markersLayerRef.current) return;
       
       // Clear existing markers
@@ -153,10 +346,6 @@ export function OpenStreetMap({ center, zoom, onMapClick, onMarkerClick, onMapMo
                   location: (markerData as any).location,
                   coverPhoto: (markerData as any).coverPhoto,
                   businessType: (markerData as any).businessType,
-                  description: (markerData as any).description,
-                  phone: (markerData as any).phone,
-                  email: (markerData as any).email,
-                  hours: (markerData as any).hours
                 });
               }
             });
@@ -192,7 +381,7 @@ export function OpenStreetMap({ center, zoom, onMapClick, onMarkerClick, onMapMo
     };
   }, []);
 
-  // Handle center and zoom changes - only update when actually different
+  // Handle center and zoom changes
   useEffect(() => {
     if (mapInstanceRef.current && mapLoaded) {
       const map = mapInstanceRef.current;
@@ -301,10 +490,6 @@ export function OpenStreetMap({ center, zoom, onMapClick, onMarkerClick, onMapMo
                     location: (markerData as any).location,
                     coverPhoto: (markerData as any).coverPhoto,
                     businessType: (markerData as any).businessType,
-                    description: (markerData as any).description,
-                    phone: (markerData as any).phone,
-                    email: (markerData as any).email,
-                    hours: (markerData as any).hours
                   });
                 }
               });

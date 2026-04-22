@@ -6,7 +6,7 @@ import { MapPage } from '../pages/MapPage'
 import { OwnerPage } from '../pages/OwnerPage'
 import { LoginPage } from '../pages/LoginPage'
 import { SignupPage } from '../pages/SignupPage'
-import { ProfilePage } from '../pages/ProfilePage'
+import { ProfilePage } from '../pages/profile'
 
 export const router = createBrowserRouter([
   {

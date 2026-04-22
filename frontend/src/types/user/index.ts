@@ -16,6 +16,9 @@ export interface User {
   createdAt: string;
   updatedAt?: string;
   isActive: boolean;
+  postsCount?: number;
+  followers?: string[];
+  following?: string[];
 }
 
 export interface UpdateProfileInput {

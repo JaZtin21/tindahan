@@ -252,22 +252,15 @@ export function MapPage() {
           currentLocation={currentLocation}
         />
 
-        {/* Map Controls Info */}
-        <div className="absolute bottom-4 left-4 z-30">
-          <div className="bg-white dark:bg-zinc-900 rounded-xl shadow-xl border border-zinc-200 dark:border-zinc-700 px-3 py-2 text-xs text-zinc-600 dark:text-zinc-400">
-            🗺️ OpenStreetMap • Click to add store
-          </div>
-        </div>
+        {/* Create Post Modal */}
+        <CreatePostModal
+          isOpen={isCreatePostModalOpen}
+          onClose={() => setIsCreatePostModalOpen(false)}
+          onSubmit={handleCreatePost}
+          isSubmitting={isCreatingPost}
+          currentLocation={currentLocation}
+        />
       </div>
-
-      {/* Create Post Modal */}
-      <CreatePostModal
-        isOpen={isCreatePostModalOpen}
-        onClose={() => setIsCreatePostModalOpen(false)}
-        onSubmit={handleCreatePost}
-        isSubmitting={isCreatingPost}
-        currentLocation={currentLocation}
-      />
     </div>
   );
 }
