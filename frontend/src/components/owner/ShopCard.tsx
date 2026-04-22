@@ -1,10 +1,4 @@
-import type { Shop } from '../../types/owner';
-
-interface ShopCardProps {
-  shop: Shop;
-  onManageShop: (shopId: string) => void;
-  onDeleteShop?: (shopId: string) => void;
-}
+import type { ShopCardProps } from '../../types/owner';
 
 export function ShopCard({ shop, onManageShop, onDeleteShop }: ShopCardProps) {
   return (

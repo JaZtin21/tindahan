@@ -77,3 +77,38 @@ export interface TabsProps {
   onTabChange: (tab: ActiveTab) => void;
   isShopView?: boolean;
 }
+
+// Hook interfaces
+export interface UseItemManagementProps {
+  selectedShop: ShopType | null;
+  isAuthenticated: boolean;
+  onSuccess?: (title: string, message: string) => void;
+  onError?: (title: string, message: string) => void;
+  onConfirmDelete?: (item: ItemType, onConfirm: () => void) => void;
+}
+
+export interface UseItemManagementReturn {
+  items: any[];
+  itemsLoading: boolean;
+  handleAddItem: (item: ItemType) => Promise<void>;
+  handleEditItem: (shopId: string, itemId: string, itemData: ItemType) => Promise<void>;
+  handleDeleteItem: (shopId: string, itemId: string) => void;
+  refreshItems: () => Promise<void>;
+}
+
+export interface UseShopManagementProps {
+  isAuthenticated: boolean;
+  authLoading: boolean;
+  onSuccess?: (title: string, message: string) => void;
+  onError?: (title: string, message: string) => void;
+}
+
+export interface UseShopManagementReturn {
+  shops: ShopType[];
+  shopsLoading: boolean;
+  shopsError: Error | undefined;
+  createShop: (shop: ShopType) => Promise<{ success: boolean; message?: string }>;
+  updateShop: (shop: ShopType) => Promise<{ success: boolean; message?: string }>;
+  deleteShop: (shopId: string) => Promise<{ success: boolean; message?: string }>;
+  refreshShops: () => Promise<void>;
+}

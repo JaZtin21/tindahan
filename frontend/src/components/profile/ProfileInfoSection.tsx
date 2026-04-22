@@ -1,15 +1,7 @@
-import { useRef, useState, type ChangeEvent } from 'react'
+import { useRef, useState } from 'react'
 import { Camera, MapPin, Calendar, Edit3, Loader2 } from 'lucide-react'
-import type { User } from '../../types'
+import type { ProfileInfoSectionProps } from '../../types/profile'
 import { formatDate } from '../../utils/profile'
-
-interface ProfileInfoSectionProps {
-  profile: User | undefined
-  uploadingProfile: boolean
-  postsCount: number
-  onProfilePhotoChange: (e: ChangeEvent<HTMLInputElement>) => void
-  onEditClick: () => void
-}
 
 export function ProfileInfoSection({
   profile,

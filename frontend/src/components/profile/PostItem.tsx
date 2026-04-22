@@ -1,12 +1,7 @@
-import type { Post } from '../../types'
+import type { PostItemProps } from '../../types/profile'
 import { PhotoGallery } from '../common'
 import { PostAuthorAvatar } from './PostAuthorAvatar'
 import { formatDate } from '../../utils/profile'
-
-interface PostItemProps {
-  post: Post
-  profilePhoto?: string
-}
 
 export function PostItem({ post, profilePhoto }: PostItemProps) {
   return (

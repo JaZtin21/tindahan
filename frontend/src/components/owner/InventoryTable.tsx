@@ -1,10 +1,4 @@
-import type { Shop } from '../../types/owner';
-
-interface InventoryTableProps {
-  shops: Shop[];
-  onEditItem: (shopId: string, itemId: string) => void;
-  onDeleteItem: (shopId: string, itemId: string) => void;
-}
+import type { InventoryTableProps } from '../../types/owner';
 
 export function InventoryTable({ shops, onEditItem, onDeleteItem }: InventoryTableProps) {
   const getStockStatus = (stock: number) => {

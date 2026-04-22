@@ -1,26 +1,9 @@
 import { useCallback } from 'react';
 import { useMutation, useQuery } from '@apollo/client/react';
-import { CREATE_SHOP_MUTATION, UPDATE_SHOP_MUTATION, DELETE_SHOP_MUTATION } from '../api/graphql/shop/shop-queries';
-import { GET_OWNER_SHOPS_QUERY } from '../api/graphql/owner/owner-queries';
-import type { OwnerShop } from '../api/graphql/owner/owner-queries';
-import type { Shop } from '../types/owner';
-
-export interface UseShopManagementProps {
-  isAuthenticated: boolean;
-  authLoading: boolean;
-  onSuccess?: (title: string, message: string) => void;
-  onError?: (title: string, message: string) => void;
-}
-
-export interface UseShopManagementReturn {
-  shops: Shop[];
-  shopsLoading: boolean;
-  shopsError: Error | undefined;
-  createShop: (shop: Shop) => Promise<{ success: boolean; message?: string }>;
-  updateShop: (shop: Shop) => Promise<{ success: boolean; message?: string }>;
-  deleteShop: (shopId: string) => Promise<{ success: boolean; message?: string }>;
-  refreshShops: () => Promise<void>;
-}
+import { CREATE_SHOP_MUTATION, UPDATE_SHOP_MUTATION, DELETE_SHOP_MUTATION } from '../../api/graphql/shop/shop-queries';
+import { GET_OWNER_SHOPS_QUERY } from '../../api/graphql/owner/owner-queries';
+import type { OwnerShop } from '../../api/graphql/owner/owner-queries';
+import type { Shop, UseShopManagementProps, UseShopManagementReturn } from '../../types/owner';
 
 function convertOwnerShopToShop(ownerShop: OwnerShop): Shop {
   return {

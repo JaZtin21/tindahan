@@ -18,6 +18,7 @@ import (
 	"tindahan-backend/domain"
 	"tindahan-backend/internal/imageutil"
 	"tindahan-backend/repository"
+	"tindahan-backend/usecase"
 
 	"github.com/99designs/gqlgen/graphql"
 	"go.mongodb.org/mongo-driver/bson"
@@ -1322,6 +1323,136 @@ func (r *mutationResolver) UploadCoverPhoto(ctx context.Context, file graphql.Up
 	}, nil
 }
 
+// FollowUser is the resolver for the followUser field.
+func (r *mutationResolver) FollowUser(ctx context.Context, userID string) (*UserPayload, error) {
+	currentUserID := middleware.GetUserID(ctx)
+	if currentUserID == "" {
+		return &UserPayload{
+			Success: false,
+			Message: "Authentication required",
+		}, nil
+	}
+
+	currentUserObjID, err := primitive.ObjectIDFromHex(currentUserID)
+	if err != nil {
+		return &UserPayload{
+			Success: false,
+			Message: "Invalid current user ID",
+		}, nil
+	}
+
+	targetUserObjID, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		return &UserPayload{
+			Success: false,
+			Message: "Invalid target user ID",
+		}, nil
+	}
+
+	userRepo := repository.NewUserRepository(r.db)
+	userUseCase := usecase.NewUserUsecase(userRepo, "")
+
+	err = userUseCase.FollowUser(ctx, currentUserObjID, targetUserObjID)
+	if err != nil {
+		return &UserPayload{
+			Success: false,
+			Message: "Failed to follow user: " + err.Error(),
+		}, nil
+	}
+
+	user, err := userRepo.GetUserByID(ctx, targetUserObjID)
+	if err != nil {
+		return &UserPayload{
+			Success: false,
+			Message: "Failed to fetch user: " + err.Error(),
+		}, nil
+	}
+
+	return &UserPayload{
+		Success: true,
+		Message: "User followed successfully",
+		Data: &User{
+			ID:           user.ID.Hex(),
+			FirstName:    user.FirstName,
+			LastName:     user.LastName,
+			Email:        user.Email,
+			Phone:        &user.Phone,
+			Birthday:     &user.Birthday,
+			Role:         UserRole(user.Role),
+			ProfilePhoto: &user.ProfilePhoto,
+			CoverPhoto:   &user.CoverPhoto,
+			IsActive:     user.IsActive,
+			CreatedAt:    user.CreatedAt,
+			UpdatedAt:    &user.UpdatedAt,
+		},
+	}, nil
+}
+
+// UnfollowUser is the resolver for the unfollowUser field.
+func (r *mutationResolver) UnfollowUser(ctx context.Context, userID string) (*UserPayload, error) {
+	currentUserID := middleware.GetUserID(ctx)
+	if currentUserID == "" {
+		return &UserPayload{
+			Success: false,
+			Message: "Authentication required",
+		}, nil
+	}
+
+	currentUserObjID, err := primitive.ObjectIDFromHex(currentUserID)
+	if err != nil {
+		return &UserPayload{
+			Success: false,
+			Message: "Invalid current user ID",
+		}, nil
+	}
+
+	targetUserObjID, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		return &UserPayload{
+			Success: false,
+			Message: "Invalid target user ID",
+		}, nil
+	}
+
+	userRepo := repository.NewUserRepository(r.db)
+	userUseCase := usecase.NewUserUsecase(userRepo, "")
+
+	err = userUseCase.UnfollowUser(ctx, currentUserObjID, targetUserObjID)
+	if err != nil {
+		return &UserPayload{
+			Success: false,
+			Message: "Failed to unfollow user: " + err.Error(),
+		}, nil
+	}
+
+	user, err := userRepo.GetUserByID(ctx, targetUserObjID)
+	if err != nil {
+		return &UserPayload{
+			Success: false,
+			Message: "Failed to fetch user: " + err.Error(),
+		}, nil
+	}
+
+	return &UserPayload{
+		Success: true,
+		Message: "User unfollowed successfully",
+		Data: &User{
+			ID:           user.ID.Hex(),
+			FirstName:    user.FirstName,
+			LastName:     user.LastName,
+			Email:        user.Email,
+			Phone:        &user.Phone,
+			Birthday:     &user.Birthday,
+			Role:         UserRole(user.Role),
+			ProfilePhoto: &user.ProfilePhoto,
+			CoverPhoto:   &user.CoverPhoto,
+			IsActive:     user.IsActive,
+			CreatedAt:    user.CreatedAt,
+			UpdatedAt:    &user.UpdatedAt,
+		},
+	}, nil
+}
+
 // UploadImage is a generic image upload resolver for posts and other content.
 func (r *mutationResolver) UploadImage(ctx context.Context, file graphql.Upload, folder *string) (*ImageUploadPayload, error) {
 	userID := middleware.GetUserID(ctx)
@@ -2171,6 +2302,72 @@ func (r *queryResolver) Users(ctx context.Context, page *int, limit *int) ([]*Us
 		}
 	}
 
+	return users, nil
+}
+
+// Followers is the resolver for the followers field.
+func (r *queryResolver) Followers(ctx context.Context, userID string) ([]*User, error) {
+	targetUserObjID, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		return nil, err
+	}
+
+	userRepo := repository.NewUserRepository(r.db)
+	followers, err := userRepo.GetFollowers(ctx, targetUserObjID)
+	if err != nil {
+		return nil, err
+	}
+
+	users := make([]*User, len(followers))
+	for i, user := range followers {
+		users[i] = &User{
+			ID:           user.ID.Hex(),
+			FirstName:    user.FirstName,
+			LastName:     user.LastName,
+			Email:        user.Email,
+			Phone:        &user.Phone,
+			Birthday:     &user.Birthday,
+			Role:         UserRole(user.Role),
+			ProfilePhoto: &user.ProfilePhoto,
+			CoverPhoto:   &user.CoverPhoto,
+			IsActive:     user.IsActive,
+			CreatedAt:    user.CreatedAt,
+			UpdatedAt:    &user.UpdatedAt,
+		}
+	}
+	return users, nil
+}
+
+// Following is the resolver for the following field.
+func (r *queryResolver) Following(ctx context.Context, userID string) ([]*User, error) {
+	targetUserObjID, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		return nil, err
+	}
+
+	userRepo := repository.NewUserRepository(r.db)
+	following, err := userRepo.GetFollowing(ctx, targetUserObjID)
+	if err != nil {
+		return nil, err
+	}
+
+	users := make([]*User, len(following))
+	for i, user := range following {
+		users[i] = &User{
+			ID:           user.ID.Hex(),
+			FirstName:    user.FirstName,
+			LastName:     user.LastName,
+			Email:        user.Email,
+			Phone:        &user.Phone,
+			Birthday:     &user.Birthday,
+			Role:         UserRole(user.Role),
+			ProfilePhoto: &user.ProfilePhoto,
+			CoverPhoto:   &user.CoverPhoto,
+			IsActive:     user.IsActive,
+			CreatedAt:    user.CreatedAt,
+			UpdatedAt:    &user.UpdatedAt,
+		}
+	}
 	return users, nil
 }
 

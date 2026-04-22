@@ -20,10 +20,15 @@ type UserUsecase interface {
 	UpdateProfile(ctx context.Context, userID primitive.ObjectID, req *domain.UpdateUserRequest) (*domain.UserResponse, error)
 	GetAllUsers(ctx context.Context, page, limit int) ([]*domain.UserResponse, int64, error)
 	UpdateUserStatus(ctx context.Context, userID primitive.ObjectID, isActive bool) error
+	FollowUser(ctx context.Context, userID, targetUserID primitive.ObjectID) error
+	UnfollowUser(ctx context.Context, userID, targetUserID primitive.ObjectID) error
+	IsFollowing(ctx context.Context, userID, targetUserID primitive.ObjectID) (bool, error)
+	GetFollowers(ctx context.Context, userID primitive.ObjectID) ([]*domain.User, error)
+	GetFollowing(ctx context.Context, userID primitive.ObjectID) ([]*domain.User, error)
 }
 
 type userUsecase struct {
-	userRepo repository.UserRepository
+	userRepo  repository.UserRepository
 	jwtSecret string
 }
 
@@ -243,4 +248,24 @@ func (u *userUsecase) GetAllUsers(ctx context.Context, page, limit int) ([]*doma
 
 func (u *userUsecase) UpdateUserStatus(ctx context.Context, userID primitive.ObjectID, isActive bool) error {
 	return u.userRepo.UpdateUserStatus(ctx, userID, isActive)
+}
+
+func (u *userUsecase) FollowUser(ctx context.Context, userID, targetUserID primitive.ObjectID) error {
+	return u.userRepo.FollowUser(ctx, userID, targetUserID)
+}
+
+func (u *userUsecase) UnfollowUser(ctx context.Context, userID, targetUserID primitive.ObjectID) error {
+	return u.userRepo.UnfollowUser(ctx, userID, targetUserID)
+}
+
+func (u *userUsecase) IsFollowing(ctx context.Context, userID, targetUserID primitive.ObjectID) (bool, error) {
+	return u.userRepo.IsFollowing(ctx, userID, targetUserID)
+}
+
+func (u *userUsecase) GetFollowers(ctx context.Context, userID primitive.ObjectID) ([]*domain.User, error) {
+	return u.userRepo.GetFollowers(ctx, userID)
+}
+
+func (u *userUsecase) GetFollowing(ctx context.Context, userID primitive.ObjectID) ([]*domain.User, error) {
+	return u.userRepo.GetFollowing(ctx, userID)
 }

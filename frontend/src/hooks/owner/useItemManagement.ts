@@ -1,26 +1,9 @@
 import { useCallback } from 'react';
 import { useMutation, useQuery } from '@apollo/client/react';
-import { CREATE_ITEM_MUTATION, DELETE_ITEM_MUTATION, UPDATE_ITEM_MUTATION } from '../api/graphql/product/product-queries';
-import { GET_OWNER_ITEMS_QUERY } from '../api/graphql/owner/owner-queries';
-import type { Item as ProductItem, CreateItemInput, UpdateItemInput } from '../api/graphql/product/product-queries';
-import type { Item, Shop } from '../types/owner';
-
-export interface UseItemManagementProps {
-  selectedShop: Shop | null;
-  isAuthenticated: boolean;
-  onSuccess?: (title: string, message: string) => void;
-  onError?: (title: string, message: string) => void;
-  onConfirmDelete?: (item: Item, onConfirm: () => void) => void;
-}
-
-export interface UseItemManagementReturn {
-  items: ProductItem[];
-  itemsLoading: boolean;
-  handleAddItem: (item: Item) => Promise<void>;
-  handleEditItem: (shopId: string, itemId: string, itemData: Item) => Promise<void>;
-  handleDeleteItem: (shopId: string, itemId: string) => void;
-  refreshItems: () => Promise<void>;
-}
+import { CREATE_ITEM_MUTATION, DELETE_ITEM_MUTATION, UPDATE_ITEM_MUTATION } from '../../api/graphql/product/product-queries';
+import { GET_OWNER_ITEMS_QUERY } from '../../api/graphql/owner/owner-queries';
+import type { Item as ProductItem, CreateItemInput, UpdateItemInput } from '../../api/graphql/product/product-queries';
+import type { Item, UseItemManagementProps, UseItemManagementReturn } from '../../types/owner';
 
 export function useItemManagement({
   selectedShop,

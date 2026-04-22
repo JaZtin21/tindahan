@@ -1,10 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-
-interface LocationPickerProps {
-  onLocationSelect: (coordinates: { lat: number; lng: number }, address: string) => void;
-  initialLocation?: { lat: number; lng: number };
-  initialAddress?: string;
-}
+import type { LocationPickerProps } from '../../types/owner';
 
 export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5995, lng: 120.9842 }, initialAddress = '' }: LocationPickerProps) {
   const [selectedLocation, setSelectedLocation] = useState(initialLocation);

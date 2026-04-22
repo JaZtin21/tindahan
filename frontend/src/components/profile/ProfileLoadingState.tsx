@@ -1,8 +1,5 @@
 import { Loader2 } from 'lucide-react'
-
-interface ProfileLoadingStateProps {
-  message?: string
-}
+import type { ProfileLoadingStateProps } from '../../types/profile'
 
 export function ProfileLoadingState({ message = 'Loading...' }: ProfileLoadingStateProps) {
   return (

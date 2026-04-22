@@ -21,6 +21,11 @@ type UserRepository interface {
 	GetAllUsers(ctx context.Context, page, limit int) ([]*domain.User, int64, error)
 	UpdateUserStatus(ctx context.Context, userID primitive.ObjectID, isActive bool) error
 	UpdateUserPhotos(ctx context.Context, userID primitive.ObjectID, profilePhoto, coverPhoto *string) error
+	FollowUser(ctx context.Context, userID, targetUserID primitive.ObjectID) error
+	UnfollowUser(ctx context.Context, userID, targetUserID primitive.ObjectID) error
+	IsFollowing(ctx context.Context, userID, targetUserID primitive.ObjectID) (bool, error)
+	GetFollowers(ctx context.Context, userID primitive.ObjectID) ([]*domain.User, error)
+	GetFollowing(ctx context.Context, userID primitive.ObjectID) ([]*domain.User, error)
 }
 
 type userRepository struct {
@@ -155,4 +160,127 @@ func (r *userRepository) UpdateUserPhotos(ctx context.Context, userID primitive.
 		bson.M{"$set": updateDoc},
 	)
 	return err
+}
+
+func (r *userRepository) FollowUser(ctx context.Context, userID, targetUserID primitive.ObjectID) error {
+	// Add target to user's following list
+	_, err := r.collection.UpdateOne(
+		ctx,
+		bson.M{"_id": userID},
+		bson.M{
+			"$addToSet": bson.M{"following": targetUserID},
+			"$set":      bson.M{"updated_at": time.Now()},
+		},
+	)
+	if err != nil {
+		return err
+	}
+
+	// Add user to target's followers list
+	_, err = r.collection.UpdateOne(
+		ctx,
+		bson.M{"_id": targetUserID},
+		bson.M{
+			"$addToSet": bson.M{"followers": userID},
+			"$set":      bson.M{"updated_at": time.Now()},
+		},
+	)
+	return err
+}
+
+func (r *userRepository) UnfollowUser(ctx context.Context, userID, targetUserID primitive.ObjectID) error {
+	// Remove target from user's following list
+	_, err := r.collection.UpdateOne(
+		ctx,
+		bson.M{"_id": userID},
+		bson.M{
+			"$pull": bson.M{"following": targetUserID},
+			"$set":  bson.M{"updated_at": time.Now()},
+		},
+	)
+	if err != nil {
+		return err
+	}
+
+	// Remove user from target's followers list
+	_, err = r.collection.UpdateOne(
+		ctx,
+		bson.M{"_id": targetUserID},
+		bson.M{
+			"$pull": bson.M{"followers": userID},
+			"$set":  bson.M{"updated_at": time.Now()},
+		},
+	)
+	return err
+}
+
+func (r *userRepository) IsFollowing(ctx context.Context, userID, targetUserID primitive.ObjectID) (bool, error) {
+	var user domain.User
+	err := r.collection.FindOne(ctx, bson.M{"_id": userID}).Decode(&user)
+	if err != nil {
+		return false, err
+	}
+
+	for _, id := range user.Following {
+		if id == targetUserID {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+func (r *userRepository) GetFollowers(ctx context.Context, userID primitive.ObjectID) ([]*domain.User, error) {
+	var targetUser domain.User
+	err := r.collection.FindOne(ctx, bson.M{"_id": userID}).Decode(&targetUser)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(targetUser.Followers) == 0 {
+		return []*domain.User{}, nil
+	}
+
+	cursor, err := r.collection.Find(ctx, bson.M{"_id": bson.M{"$in": targetUser.Followers}})
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var users []*domain.User
+	for cursor.Next(ctx) {
+		var user domain.User
+		if err := cursor.Decode(&user); err != nil {
+			return nil, err
+		}
+		users = append(users, &user)
+	}
+	return users, nil
+}
+
+func (r *userRepository) GetFollowing(ctx context.Context, userID primitive.ObjectID) ([]*domain.User, error) {
+	var targetUser domain.User
+	err := r.collection.FindOne(ctx, bson.M{"_id": userID}).Decode(&targetUser)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(targetUser.Following) == 0 {
+		return []*domain.User{}, nil
+	}
+
+	cursor, err := r.collection.Find(ctx, bson.M{"_id": bson.M{"$in": targetUser.Following}})
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var users []*domain.User
+	for cursor.Next(ctx) {
+		var user domain.User
+		if err := cursor.Decode(&user); err != nil {
+			return nil, err
+		}
+		users = append(users, &user)
+	}
+	return users, nil
 }

@@ -1,12 +1,6 @@
 import { useState } from 'react';
 import { LocationPicker } from './LocationPicker';
-import type { Shop } from '../../types/owner';
-
-interface ShopFormProps {
-  shop?: Shop | null;
-  onSaveShop: (shop: Shop) => void;
-  onCancel: () => void;
-}
+import type { ShopFormProps, Shop } from '../../types/owner';
 
 const DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=400';
 

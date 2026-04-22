@@ -1,10 +1,4 @@
-import type { ActiveTab } from '../../types/owner';
-
-interface TabsProps {
-  activeTab: ActiveTab;
-  onTabChange: (tab: ActiveTab) => void;
-  isShopView?: boolean;
-}
+import type { TabsProps, ActiveTab } from '../../types/owner';
 
 export function Tabs({ activeTab, onTabChange, isShopView = false }: TabsProps) {
   const shopTabs: { id: ActiveTab; label: string }[] = [

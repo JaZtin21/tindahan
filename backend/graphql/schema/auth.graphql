@@ -24,6 +24,11 @@ type User {
   profilePhoto: String
   coverPhoto: String
   shops: [ObjectID!]
+  followers: [ObjectID!]
+  following: [ObjectID!]
+  followersCount: Int!
+  followingCount: Int!
+  isFollowing: Boolean!
   createdAt: Time!
   updatedAt: Time
   isActive: Boolean!

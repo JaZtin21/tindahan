@@ -1,32 +1,15 @@
 // Map types
+import type { Post as PostType } from '../post';
 
-export interface Post {
-  id: string;
-  title?: string;
-  text?: string;
-  photos?: string[];
-  author?: {
-    id: string;
-    name: string;
-    email: string;
-    firstName?: string;
-    lastName?: string;
-    role?: string;
-    profilePhoto?: string;
-  };
-  likes?: number;
-  commentCount?: number;
-  createdAt?: string;
-  location?: { lat: number; lng: number };
-  [key: string]: any;
-}
+// Re-export Post for backward compatibility
+export type { PostType as Post };
 
 export interface PostMarker {
   lat: number;
   lng: number;
   title?: string;
   type?: 'store' | 'post';
-  post?: Post;
+  post?: PostType;
   id?: string;
   // Rotation/clustering properties for posts
   rotationIndex?: number;
@@ -44,7 +27,7 @@ export interface MapProps {
   onMapClick?: (lat: number, lng: number) => void;
   onMarkerClick?: (store: { lat: number; lng: number; name: string; id?: string; location?: string; coverPhoto?: string; businessType?: string; description?: string; phone?: string; email?: string; hours?: string }) => void;
   onMapMoveEnd?: (center: { lat: number; lng: number }, zoom: number) => void;
-  onPostClick?: (post: Post, clusterId?: string) => void;
+  onPostClick?: (post: PostType, clusterId?: string) => void;
   markers?: PostMarker[];
   currentLocation?: { lat: number; lng: number; name?: string } | null;
 }
@@ -102,16 +85,10 @@ export interface LocationHandlersOptions {
 // Hook option types
 export interface UseMapPostsOptions {
   postsData?: any; // Legacy fetch data
-  livePosts?: Post[]; // Live subscription posts (last 24h)
+  livePosts?: PostType[]; // Live subscription posts (last 24h)
   pausedClusters?: Set<string>; // Cluster IDs to pause rotation for
 }
 
-// Post preview modal props
-export interface PostPreviewModalProps {
-  post: Post;
-  isOpen: boolean;
-  onClose: () => void;
-}
 
 export interface UseMapMarkersOptions {
   filteredStores: Store[];

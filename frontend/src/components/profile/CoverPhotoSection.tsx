@@ -1,14 +1,6 @@
-import { useRef, type ChangeEvent } from 'react'
+import { useRef } from 'react'
 import { Camera, Loader2, ImageIcon } from 'lucide-react'
-import type { User } from '../../types'
-
-interface CoverPhotoSectionProps {
-  profile: User | undefined
-  coverImgError: boolean
-  setCoverImgError: (value: boolean) => void
-  uploadingCover: boolean
-  onCoverPhotoChange: (e: ChangeEvent<HTMLInputElement>) => void
-}
+import type { CoverPhotoSectionProps } from '../../types/profile'
 
 export function CoverPhotoSection({
   profile,

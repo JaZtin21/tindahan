@@ -1,14 +1,5 @@
 import { X, Check, Loader2 } from 'lucide-react'
-import type { EditFormData } from '../../types/profile'
-
-interface EditProfileModalProps {
-  isOpen: boolean
-  editForm: EditFormData
-  updating: boolean
-  onClose: () => void
-  onSave: () => void
-  onChange: (form: EditFormData) => void
-}
+import type { EditProfileModalProps } from '../../types/profile'
 
 export function EditProfileModal({
   isOpen,

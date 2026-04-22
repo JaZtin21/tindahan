@@ -1,11 +1,5 @@
 import { useState, useEffect } from 'react';
-import type { NewItemForm, Item } from '../../types/owner';
-
-interface AddItemFormProps {
-  onAddItem: (item: Item) => void;
-  item?: Item | null;
-  onCancel?: () => void;
-}
+import type { NewItemForm, Item, AddItemFormProps } from '../../types/owner';
 
 export function AddItemForm({ onAddItem, item, onCancel }: AddItemFormProps) {
   const isEditMode = !!item;

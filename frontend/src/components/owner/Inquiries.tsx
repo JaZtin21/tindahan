@@ -1,18 +1,4 @@
-import type { Shop } from '../../types/owner';
-
-interface InquiriesProps {
-  shop: Shop;
-}
-
-interface Inquiry {
-  id: string;
-  customerName: string;
-  customerEmail: string;
-  customerPhone: string;
-  message: string;
-  timestamp: string;
-  status: 'pending' | 'responded' | 'resolved';
-}
+import type { Inquiry, InquiriesProps } from '../../types/owner';
 
 export function Inquiries({ shop }: InquiriesProps) {
   // Sample inquiries data

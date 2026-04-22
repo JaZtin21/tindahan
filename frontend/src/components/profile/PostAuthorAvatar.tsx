@@ -1,9 +1,5 @@
 import { useState } from 'react'
-
-interface PostAuthorAvatarProps {
-  profilePhoto?: string
-  authorName: string
-}
+import type { PostAuthorAvatarProps } from '../../types/profile'
 
 export function PostAuthorAvatar({ profilePhoto, authorName }: PostAuthorAvatarProps) {
   const [imgError, setImgError] = useState(false)

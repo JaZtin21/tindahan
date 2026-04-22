@@ -1,12 +1,6 @@
 import { Loader2 } from 'lucide-react'
-import type { Post } from '../../types'
+import type { PostsSectionProps } from '../../types/profile'
 import { PostItem } from './PostItem'
-
-interface PostsSectionProps {
-  posts: Post[]
-  postsLoading: boolean
-  profilePhoto?: string
-}
 
 export function PostsSection({ posts, postsLoading, profilePhoto }: PostsSectionProps) {
   return (
@@ -24,7 +18,7 @@ export function PostsSection({ posts, postsLoading, profilePhoto }: PostsSection
         </div>
       ) : (
         <div className="space-y-4">
-          {posts.map((post: Post) => (
+          {posts.map((post) => (
             <PostItem key={post.id} post={post} profilePhoto={profilePhoto} />
           ))}
         </div>

@@ -1,8 +1,23 @@
 import { useEffect } from 'react';
-import type { PostPreviewModalProps } from '../../types/map';
+import { useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
+import type { PostPreviewModalProps } from '../../types/post';
+import type { RootState } from '../../store';
 import { PhotoGallery } from '../common/PhotoGallery';
 
 export function PostPreviewModal({ post, isOpen, onClose }: PostPreviewModalProps) {
+  const navigate = useNavigate();
+  const currentUser = useSelector((state: RootState) => state.user);
+  
+  const isCurrentUser = post.author?.id === currentUser?.id;
+  
+  const handleProfileClick = () => {
+    if (post.author?.id && !isCurrentUser) {
+      navigate(`/profile/${post.author.id}`);
+      onClose();
+    }
+  };
+  
   // Close on escape key
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -79,18 +94,27 @@ export function PostPreviewModal({ post, isOpen, onClose }: PostPreviewModalProp
               </div>
             )}
             <div>
-              <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">
+              <h3 
+                className="font-semibold text-zinc-900 dark:text-zinc-100 hover:text-emerald-600 cursor-pointer transition-colors"
+                onClick={handleProfileClick}
+              >
                 {post.author?.name || 'Unknown User'}
               </h3>
               {formattedDate && (
                 <p className="text-xs text-zinc-400 mt-0.5">{formattedDate}</p>
               )}
-              <button 
-                className="mt-1 px-3 py-1 text-xs font-medium bg-emerald-600 hover:bg-emerald-700 text-white rounded-full transition-colors"
-                onClick={() => {/* TODO: Implement follow functionality */}}
-              >
-                Follow
-              </button>
+              {!isCurrentUser && post.author?.id && (
+                <button 
+                  className="mt-1 px-3 py-1 text-xs font-medium bg-emerald-600 hover:bg-emerald-700 text-white rounded-full transition-colors"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate(`/profile/${post.author!.id}`);
+                    onClose();
+                  }}
+                >
+                  Follow
+                </button>
+              )}
             </div>
           </div>
         </div>

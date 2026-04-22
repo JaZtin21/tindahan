@@ -11,6 +11,14 @@ extend type Mutation {
   updateUserStatus(id: ObjectID!, isActive: Boolean!): UserPayload!
   uploadProfilePhoto(file: Upload!): UserPayload!
   uploadCoverPhoto(file: Upload!): UserPayload!
+  followUser(userId: ObjectID!): UserPayload!
+  unfollowUser(userId: ObjectID!): UserPayload!
+}
+
+extend type Query {
+  user(id: ObjectID!): User
+  followers(userId: ObjectID!): [User!]!
+  following(userId: ObjectID!): [User!]!
 }
 
 input CreateUserInput {

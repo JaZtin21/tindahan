@@ -1,13 +1,7 @@
 import { useState, useRef, type ChangeEvent } from 'react';
 import { LocationPicker } from '../owner/LocationPicker';
-
-interface CreatePostModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSubmit: (post: { title: string; text: string; photos: File[]; types: string[]; location: { lat: number; lng: number; name: string } }) => void;
-  isSubmitting?: boolean;
-  currentLocation?: { lat: number; lng: number; name?: string } | null;
-}
+import { POST_TYPES } from '../../types/post';
+import type { CreatePostModalProps } from '../../types/post';
 
 // Inline SVG icons
 const XIcon = ({ className }: { className?: string }) => (
@@ -22,17 +16,6 @@ const ImageIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
-const POST_TYPES = [
-  'Looking for',
-  'Selling',
-  'Recommendation',
-  'Review',
-  'Question',
-  'Announcement',
-  'Event',
-  'Service',
-  'Other'
-] as const;
 
 export function CreatePostModal({ isOpen, onClose, onSubmit, isSubmitting: externalSubmitting, currentLocation }: CreatePostModalProps) {
   const [title, setTitle] = useState('');
