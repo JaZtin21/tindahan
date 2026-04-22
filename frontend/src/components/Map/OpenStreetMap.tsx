@@ -43,42 +43,56 @@ class TileCache {
   }
 
   async get(url: string): Promise<Blob | null> {
-    if (!this.db) return null;
+    if (!this.db) {
+      console.log('[CACHE] DB not initialized');
+      return null;
+    }
     
     return new Promise((resolve) => {
       const transaction = this.db!.transaction([this.storeName], 'readonly');
       const store = transaction.objectStore(this.storeName);
       const key = this.getKey(url);
+      console.log('[CACHE] Getting tile:', key);
       const request = store.get(key);
       
       request.onsuccess = () => {
         const result = request.result;
         if (!result) {
+          console.log('[CACHE] Tile not found:', key);
           resolve(null);
           return;
         }
         
         // Check if expired
         if (Date.now() - result.timestamp > this.maxAge) {
+          console.log('[CACHE] Tile expired:', key);
           this.delete(url);
           resolve(null);
           return;
         }
         
+        console.log('[CACHE] Tile found:', key, 'Size:', result.blob.size);
         resolve(result.blob);
       };
       
-      request.onerror = () => resolve(null);
+      request.onerror = (error) => {
+        console.error('[CACHE] Get error:', error, key);
+        resolve(null);
+      };
     });
   }
 
   async set(url: string, blob: Blob): Promise<void> {
-    if (!this.db) return;
+    if (!this.db) {
+      console.log('[CACHE] DB not initialized for set');
+      return;
+    }
     
     return new Promise((resolve) => {
       const transaction = this.db!.transaction([this.storeName], 'readwrite');
       const store = transaction.objectStore(this.storeName);
       const key = this.getKey(url);
+      console.log('[CACHE] Setting tile:', key, 'Size:', blob.size);
       
       const request = store.put({
         blob,
@@ -86,8 +100,14 @@ class TileCache {
         url
       }, key);
       
-      request.onsuccess = () => resolve();
-      request.onerror = () => resolve();
+      request.onsuccess = () => {
+        console.log('[CACHE] Tile saved:', key);
+        resolve();
+      };
+      request.onerror = (error) => {
+        console.error('[CACHE] Set error:', error, key);
+        resolve();
+      };
     });
   }
 
@@ -156,13 +176,19 @@ export function OpenStreetMap({ center, zoom, onMapClick, onMarkerClick, onMapMo
         mapRef.current.innerHTML = '';
       }
       
-      // Initialize map with animations enabled for smooth zooming
+      // Initialize map with animations enabled for smooth zooming and panning
       const map = L.map(mapRef.current, {
         fadeAnimation: true,
         zoomAnimation: true,
         markerZoomAnimation: true,
         preferCanvas: false,
         zoomControl: false, // Remove zoom + - buttons
+        // Ensure smooth panning regardless of tile loading
+        inertia: true,
+        inertiaDeceleration: 3000,
+        inertiaMaxSpeed: Infinity,
+        easeLinearity: 0.2,
+        worldCopyJump: true,
       }).setView([center.lat, center.lng], zoom);
       mapInstanceRef.current = map;
 
@@ -190,15 +216,24 @@ export function OpenStreetMap({ center, zoom, onMapClick, onMarkerClick, onMapMo
         },
         
         _loadTile: function(tile: HTMLImageElement, tilePoint: any) {
+          console.log('[MAP] Loading tile:', tilePoint);
           (tile as any)._layer = this;
-          tile.onload = () => this._tileOnLoad(tile, tilePoint);
-          tile.onerror = () => this._tileOnError(tile, tilePoint);
+          tile.onload = () => {
+            console.log('[MAP] Tile loaded:', tilePoint);
+            this._tileOnLoad(tile, tilePoint);
+          };
+          tile.onerror = () => {
+            console.error('[MAP] Tile error:', tilePoint);
+            this._tileOnError(tile, tilePoint);
+          };
           
           const url = this.getTileUrl(tilePoint);
+          console.log('[MAP] Tile URL:', url);
           
-          // Try to get from cache first
+          // Try to get from cache first - non-blocking
           this._tileCache.get(url).then((cachedBlob: Blob | null) => {
             if (cachedBlob) {
+              console.log('[MAP] Using cached tile:', tilePoint);
               // Use cached blob
               const objectUrl = URL.createObjectURL(cachedBlob);
               tile.src = objectUrl;
@@ -209,25 +244,37 @@ export function OpenStreetMap({ center, zoom, onMapClick, onMarkerClick, onMapMo
                 this._tileOnLoad(tile, tilePoint);
               };
             } else {
-              // Fetch and cache
+              console.log('[MAP] Fetching new tile:', tilePoint);
+              // Fetch and cache - non-blocking, don't wait for completion
               this._fetchAndCacheTile(url, tile, tilePoint);
             }
-          }).catch(() => {
+          }).catch((error) => {
+            console.error('[MAP] Cache error:', error, tilePoint);
             // Fallback to direct load on error
             tile.src = url;
           });
         },
         
         _fetchAndCacheTile: function(url: string, tile: HTMLImageElement, tilePoint: any) {
+          console.log('[MAP] Starting fetch for tile:', tilePoint);
+          // Set a timeout to ensure tile loads even if fetch fails
+          const timeoutId = setTimeout(() => {
+            console.log('[MAP] Timeout fallback for tile:', tilePoint);
+            tile.src = url; // Fallback to direct URL
+          }, 3000); // 3 second timeout
+          
           fetch(url, {
             mode: 'cors',
             credentials: 'omit'
           })
           .then(response => {
+            clearTimeout(timeoutId);
+            console.log('[MAP] Fetch response for tile:', tilePoint, response.status);
             if (!response.ok) throw new Error('Failed to fetch tile');
             return response.blob();
           })
           .then(blob => {
+            console.log('[MAP] Blob received for tile:', tilePoint, blob.size);
             // Cache the blob
             this._tileCache.set(url, blob);
             
@@ -236,12 +283,15 @@ export function OpenStreetMap({ center, zoom, onMapClick, onMarkerClick, onMapMo
             tile.src = objectUrl;
             
             tile.onload = () => {
+              console.log('[MAP] Blob tile loaded:', tilePoint);
               URL.revokeObjectURL(objectUrl);
               this._tileOnLoad(tile, tilePoint);
             };
           })
-          .catch(() => {
-            tile.src = url;
+          .catch((error) => {
+            clearTimeout(timeoutId);
+            console.error('[MAP] Fetch error for tile:', tilePoint, error);
+            tile.src = url; // Fallback to direct URL
           });
         }
         // Note: Let Leaflet handle _removeTile normally for proper zoom behavior
@@ -267,26 +317,7 @@ export function OpenStreetMap({ center, zoom, onMapClick, onMarkerClick, onMapMo
       // Render markers
       renderMarkers(markers, map, L, onMarkerClick);
 
-      // Add click listener
-      if (onMapClick) {
-        map.on('click', (event: any) => {
-          const lat = event.latlng.lat;
-          const lng = event.latlng.lng;
-          onMapClick(lat, lng);
-        });
-      }
-
-      // Add moveend listener to track map center and zoom
-      if (onMapMoveEnd) {
-        map.on('moveend', () => {
-          const mapCenter = map.getCenter();
-          const mapZoom = map.getZoom();
-          onMapMoveEnd(
-            { lat: mapCenter.lat, lng: mapCenter.lng },
-            mapZoom
-          );
-        });
-      }
+      // Remove all map event listeners to prevent blocking during panning
 
       setMapLoaded(true);
     };

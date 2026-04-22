@@ -182,7 +182,9 @@ export function PhotoGallery({ photos, className = '', maxDisplay = 6, size = 'l
           swipe: 300,
         }}
         styles={{
-          container: { backgroundColor: 'rgba(0, 0, 0, 0.95)' },
+          container: {
+            backgroundColor: 'rgba(0, 0, 0, 0.95)',
+          },
         }}
       />
     </div>
