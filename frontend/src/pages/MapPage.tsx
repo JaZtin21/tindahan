@@ -251,16 +251,16 @@ export function MapPage() {
           markers={allMarkers}
           currentLocation={currentLocation}
         />
-
-        {/* Create Post Modal */}
-        <CreatePostModal
-          isOpen={isCreatePostModalOpen}
-          onClose={() => setIsCreatePostModalOpen(false)}
-          onSubmit={handleCreatePost}
-          isSubmitting={isCreatingPost}
-          currentLocation={currentLocation}
-        />
       </div>
+
+      {/* Create Post Modal - Outside map container for proper z-index */}
+      <CreatePostModal
+        isOpen={isCreatePostModalOpen}
+        onClose={() => setIsCreatePostModalOpen(false)}
+        onSubmit={handleCreatePost}
+        isSubmitting={isCreatingPost}
+        currentLocation={currentLocation}
+      />
     </div>
   );
 }

@@ -1,6 +1,8 @@
 import { useRef, useState } from 'react'
-import { Camera, MapPin, Calendar, Edit3, Loader2 } from 'lucide-react'
+import { useSelector } from 'react-redux'
+import { Camera, MapPin, Calendar, Edit3, Loader2, UserPlus, UserMinus } from 'lucide-react'
 import type { ProfileInfoSectionProps } from '../../types/profile'
+import type { RootState } from '../../store'
 import { formatDate } from '../../utils/profile'
 
 export function ProfileInfoSection({
@@ -9,9 +11,23 @@ export function ProfileInfoSection({
   postsCount,
   onProfilePhotoChange,
   onEditClick,
+  isViewOnly = false,
+  onFollow,
+  onUnfollow,
+  followLoading = false,
 }: ProfileInfoSectionProps) {
+  const currentUser = useSelector((state: RootState) => state.user)
   const profilePhotoRef = useRef<HTMLInputElement>(null)
   const [profileImgError, setProfileImgError] = useState(false)
+
+  // Check if current user is in the followers array
+  const currentUserId = currentUser?.id || ''
+  const followers = profile?.followers || []
+  const isFollowing = followers.includes(currentUserId)
+  
+  // Derive counts from arrays
+  const followersCount = profile?.followers?.length || 0
+  const followingCount = profile?.following?.length || 0
 
   return (
     <div className="relative px-4 sm:px-6">
@@ -36,33 +52,63 @@ export function ProfileInfoSection({
             )}
           </div>
 
-          <button
-            onClick={() => profilePhotoRef.current?.click()}
-            disabled={uploadingProfile}
-            className="absolute bottom-2 right-2 flex h-8 w-8 items-center justify-center rounded-full bg-zinc-600 dark:bg-zinc-700 text-zinc-200 dark:text-zinc-300 transition-colors hover:bg-zinc-500 dark:hover:bg-zinc-600 disabled:opacity-50"
-          >
-            {uploadingProfile ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Camera className="h-4 w-4" />
-            )}
-          </button>
-          <input
-            ref={profilePhotoRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={onProfilePhotoChange}
-          />
+          {!isViewOnly && (
+            <>
+              <button
+                onClick={() => profilePhotoRef.current?.click()}
+                disabled={uploadingProfile}
+                className="absolute bottom-2 right-2 flex h-8 w-8 items-center justify-center rounded-full bg-zinc-600 dark:bg-zinc-700 text-zinc-200 dark:text-zinc-300 transition-colors hover:bg-zinc-500 dark:hover:bg-zinc-600 disabled:opacity-50"
+              >
+                {uploadingProfile ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Camera className="h-4 w-4" />
+                )}
+              </button>
+              <input
+                ref={profilePhotoRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={onProfilePhotoChange}
+              />
+            </>
+          )}
         </div>
 
-        <button
-          onClick={onEditClick}
-          className="flex items-center gap-2 rounded-lg bg-zinc-200 dark:bg-zinc-800 px-4 py-2 text-sm font-medium text-zinc-800 dark:text-zinc-100 transition-colors hover:bg-zinc-300 dark:hover:bg-zinc-700"
-        >
-          <Edit3 className="h-4 w-4" />
-          Edit Profile
-        </button>
+        {isViewOnly ? (
+          <button
+            onClick={isFollowing ? onUnfollow : onFollow}
+            disabled={followLoading}
+            className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+              isFollowing
+                ? 'bg-zinc-200 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-100 hover:bg-zinc-300 dark:hover:bg-zinc-700'
+                : 'bg-emerald-600 text-white hover:bg-emerald-700'
+            } disabled:opacity-50`}
+          >
+            {followLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : isFollowing ? (
+              <>
+                <UserMinus className="h-4 w-4" />
+                Unfollow
+              </>
+            ) : (
+              <>
+                <UserPlus className="h-4 w-4" />
+                Follow
+              </>
+            )}
+          </button>
+        ) : (
+          <button
+            onClick={onEditClick}
+            className="flex items-center gap-2 rounded-lg bg-zinc-200 dark:bg-zinc-800 px-4 py-2 text-sm font-medium text-zinc-800 dark:text-zinc-100 transition-colors hover:bg-zinc-300 dark:hover:bg-zinc-700"
+          >
+            <Edit3 className="h-4 w-4" />
+            Edit Profile
+          </button>
+        )}
       </div>
 
       <div className="space-y-4">
@@ -92,11 +138,15 @@ export function ProfileInfoSection({
             <span className="text-xs text-zinc-600 dark:text-zinc-500">Posts</span>
           </div>
           <div className="text-center">
-            <span className="block font-bold text-zinc-900 dark:text-white">{profile?.followers?.length || 0}</span>
+            <span className="block font-bold text-zinc-900 dark:text-white">
+              {followersCount !== undefined ? followersCount : (profile?.followers?.length || 0)}
+            </span>
             <span className="text-xs text-zinc-600 dark:text-zinc-500">Followers</span>
           </div>
           <div className="text-center">
-            <span className="block font-bold text-zinc-900 dark:text-white">{profile?.following?.length || 0}</span>
+            <span className="block font-bold text-zinc-900 dark:text-white">
+              {followingCount !== undefined ? followingCount : (profile?.following?.length || 0)}
+            </span>
             <span className="text-xs text-zinc-600 dark:text-zinc-500">Following</span>
           </div>
           <div className="text-center">

@@ -4,6 +4,7 @@ extend type Query {
   posts(page: Int, limit: Int): PostsPayload
   post(id: ObjectID!): PostPayload
   myPosts(page: Int, limit: Int): PostsPayload
+  userPosts(userId: ObjectID!, page: Int, limit: Int): PostsPayload
   postsNearLocation(lat: Float!, lng: Float!, radius: Float, page: Int, limit: Int): PostsPayload
 }
 

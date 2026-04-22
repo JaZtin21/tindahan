@@ -13,6 +13,7 @@ export interface Post {
     lastName?: string;
     role?: string;
     profilePhoto?: string;
+    followers?: string[];
   };
   likes?: number;
   commentCount?: number;

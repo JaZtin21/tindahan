@@ -117,6 +117,42 @@ export const MY_POSTS_QUERY = gql`
   }
 `;
 
+export const USER_POSTS_QUERY = gql`
+  query UserPosts($userId: ObjectID!, $page: Int, $limit: Int) {
+    userPosts(userId: $userId, page: $page, limit: $limit) {
+      success
+      message
+      data {
+        id
+        title
+        text
+        photos
+        types
+        author {
+          id
+          name
+          email
+          role
+          isActive
+        }
+        location {
+          lat
+          lng
+          name
+        }
+        likes
+        isLiked
+        commentCount
+        createdAt
+        updatedAt
+      }
+      total
+      page
+      limit
+    }
+  }
+`;
+
 export const POSTS_NEAR_LOCATION_QUERY = gql`
   query PostsNearLocation($lat: Float!, $lng: Float!, $radius: Float, $page: Int, $limit: Int) {
     postsNearLocation(lat: $lat, lng: $lng, radius: $radius, page: $page, limit: $limit) {

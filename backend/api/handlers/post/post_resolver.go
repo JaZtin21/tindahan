@@ -153,6 +153,11 @@ func (r *PostResolver) GetPosts(ctx context.Context, page, limit int, currentUse
 	}, nil
 }
 
+// GetPostsByUserID retrieves posts by a specific user ID (alias for GetMyPosts)
+func (r *PostResolver) GetPostsByUserID(ctx context.Context, userID string, page, limit int) (map[string]interface{}, error) {
+	return r.GetMyPosts(ctx, userID, page, limit)
+}
+
 // GetMyPosts retrieves posts by a specific author
 func (r *PostResolver) GetMyPosts(ctx context.Context, authorID string, page, limit int) (map[string]interface{}, error) {
 	authorObjectID, err := primitive.ObjectIDFromHex(authorID)

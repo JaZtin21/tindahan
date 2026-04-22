@@ -8,11 +8,11 @@ import { PhotoGallery } from '../common/PhotoGallery';
 export function PostPreviewModal({ post, isOpen, onClose }: PostPreviewModalProps) {
   const navigate = useNavigate();
   const currentUser = useSelector((state: RootState) => state.user);
-  
-  const isCurrentUser = post.author?.id === currentUser?.id;
+
+  const isCurrentUser = post?.author?.id === currentUser?.id;
   
   const handleProfileClick = () => {
-    if (post.author?.id && !isCurrentUser) {
+    if (post?.author?.id && !isCurrentUser) {
       navigate(`/profile/${post.author.id}`);
       onClose();
     }
@@ -50,6 +50,9 @@ export function PostPreviewModal({ post, isOpen, onClose }: PostPreviewModalProp
   const hasProfilePhoto = !!post.author?.profilePhoto;
   const profilePhotoUrl = post.author?.profilePhoto;
 
+  // Check if user is following this author
+  const isFollowing = post.author?.followers?.includes(currentUser?.id || '') || false;
+
   return (
     <div 
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
@@ -80,23 +83,35 @@ export function PostPreviewModal({ post, isOpen, onClose }: PostPreviewModalProp
               <img 
                 src={profilePhotoUrl}
                 alt={post.author?.name || 'User'}
-                className="w-12 h-12 rounded-full object-cover border-2 border-emerald-400"
+                className={`w-12 h-12 rounded-full object-cover border-2 border-emerald-400 ${
+                  isCurrentUser ? '' : 'cursor-pointer hover:opacity-80'
+                }`}
                 crossOrigin="anonymous"
                 referrerPolicy="no-referrer"
+                onClick={isCurrentUser ? undefined : handleProfileClick}
                 onError={(e) => {
                   // Fallback to initials if image fails to load
                   (e.target as HTMLImageElement).style.display = 'none';
                 }}
               />
             ) : (
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-400 to-blue-500 flex items-center justify-center text-white font-semibold text-lg">
+              <div 
+                className={`w-12 h-12 rounded-full bg-gradient-to-br from-emerald-400 to-blue-500 flex items-center justify-center text-white font-semibold text-lg ${
+                  isCurrentUser ? '' : 'cursor-pointer hover:opacity-80'
+                }`}
+                onClick={isCurrentUser ? undefined : handleProfileClick}
+              >
                 {authorInitial}
               </div>
             )}
             <div>
               <h3 
-                className="font-semibold text-zinc-900 dark:text-zinc-100 hover:text-emerald-600 cursor-pointer transition-colors"
-                onClick={handleProfileClick}
+                className={`font-semibold text-zinc-900 dark:text-zinc-100 transition-colors ${
+                  isCurrentUser 
+                    ? '' 
+                    : 'hover:text-emerald-600 cursor-pointer'
+                }`}
+                onClick={isCurrentUser ? undefined : handleProfileClick}
               >
                 {post.author?.name || 'Unknown User'}
               </h3>
@@ -105,14 +120,18 @@ export function PostPreviewModal({ post, isOpen, onClose }: PostPreviewModalProp
               )}
               {!isCurrentUser && post.author?.id && (
                 <button 
-                  className="mt-1 px-3 py-1 text-xs font-medium bg-emerald-600 hover:bg-emerald-700 text-white rounded-full transition-colors"
+                  className={`mt-1 px-3 py-1 text-xs font-medium rounded-full transition-colors ${
+                    isFollowing
+                      ? 'bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-600'
+                      : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                  }`}
                   onClick={(e) => {
                     e.stopPropagation();
                     navigate(`/profile/${post.author!.id}`);
                     onClose();
                   }}
                 >
-                  Follow
+                  {isFollowing ? 'Following' : 'Follow'}
                 </button>
               )}
             </div>

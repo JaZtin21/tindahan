@@ -8,10 +8,12 @@ import { getMainDefinition } from '@apollo/client/utilities';
 import { createUploadLink } from './createUploadLink';
 import { useGoogleLogin } from '@react-oauth/google';
 import { useEffect, useMemo, useState, createContext, useContext, useRef, useCallback } from 'react';
+import { useDispatch } from 'react-redux';
 import { Observable } from '@apollo/client/utilities';
 import { REFRESH_TOKEN_MUTATION, GOOGLE_LOGIN_MUTATION } from './auth/auth-queries';
 import { ME_QUERY } from './user/user-queries';
 import { TokenStorage } from '../../utils/tokenStorage';
+import { setUser } from '../../store';
 
 // GraphQL endpoint
 const GRAPHQL_ENDPOINT = import.meta.env.VITE_GRAPHQL_URL || 'http://localhost:8080/query';
@@ -65,9 +67,10 @@ export const useAuth = () => {
 };
 
 const ApolloProviderWithAuth = ({ children }: any) => {
+    const dispatch = useDispatch();
     const [jwt, setJwt] = useState('');
     const [isAuthenticated, setIsAuthenticated] = useState(false);
-    const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
+    const [userInfo, setUserInfoState] = useState<UserInfo | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     
     const jwtRef = useRef<string>('');
@@ -100,8 +103,20 @@ const ApolloProviderWithAuth = ({ children }: any) => {
         setIsAuthenticated(!!token);
     };
 
-    const updateUserInfo = (info: UserInfo) => {
-        setUserInfo(info);
+    const setUserInfo = (info: UserInfo | null) => {
+        setUserInfoState(info);
+        if (info) {
+            // Sync with Redux store
+            dispatch(setUser({
+                id: info.id,
+                role: info.role,
+                displayName: info.name,
+                email: info.email,
+            }));
+        } else {
+            // Clear Redux store
+            dispatch(setUser({ id: null, role: null, displayName: null, email: null }));
+        }
     };
 
     const refreshUserInfo = async (): Promise<void> => {
@@ -506,7 +521,7 @@ const ApolloProviderWithAuth = ({ children }: any) => {
         jwt,
         logoutAndClear,
         setUserJwt,
-        setUserInfo: updateUserInfo,
+        setUserInfo,
         refreshUserInfo,
         isLoading,
         googleLogin: () => googleLogin(),

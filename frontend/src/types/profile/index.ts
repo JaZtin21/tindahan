@@ -19,6 +19,7 @@ export interface CoverPhotoSectionProps {
   setCoverImgError: (value: boolean) => void
   uploadingCover: boolean
   onCoverPhotoChange: (e: React.ChangeEvent<HTMLInputElement>) => void
+  isViewOnly?: boolean
 }
 
 export interface ProfileInfoSectionProps {
@@ -27,6 +28,10 @@ export interface ProfileInfoSectionProps {
   postsCount: number
   onProfilePhotoChange: (e: React.ChangeEvent<HTMLInputElement>) => void
   onEditClick: () => void
+  isViewOnly?: boolean
+  onFollow?: () => void
+  onUnfollow?: () => void
+  followLoading?: boolean
 }
 
 export interface PostsSectionProps {

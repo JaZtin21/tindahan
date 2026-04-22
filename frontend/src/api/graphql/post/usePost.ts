@@ -3,6 +3,7 @@ import {
   POSTS_QUERY,
   POST_QUERY,
   MY_POSTS_QUERY,
+  USER_POSTS_QUERY,
   POSTS_NEAR_LOCATION_QUERY,
   CREATE_POST_MUTATION,
   UPDATE_POST_MUTATION,
@@ -24,6 +25,7 @@ export interface PostAuthor {
   email: string;
   role: string;
   isActive: boolean;
+  followers?: string[];
 }
 
 export interface Post {
@@ -88,6 +90,25 @@ export const useMyPosts = (page?: number, limit?: number, skip?: boolean) => {
     variables: { page, limit },
     fetchPolicy: 'cache-and-network',
     skip,
+  });
+};
+
+interface UserPostsResponse {
+  userPosts: {
+    success: boolean;
+    message: string;
+    data: Post[];
+    total: number;
+    page: number;
+    limit: number;
+  };
+}
+
+export const useGetUserPosts = (userId: string | null, page?: number, limit?: number, skip?: boolean) => {
+  return useQuery<UserPostsResponse>(USER_POSTS_QUERY, {
+    variables: { userId, page, limit },
+    fetchPolicy: 'cache-and-network',
+    skip: skip || !userId,
   });
 };
 

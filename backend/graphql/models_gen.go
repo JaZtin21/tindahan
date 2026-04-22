@@ -405,20 +405,25 @@ type UpdateShopInput struct {
 }
 
 type User struct {
-	ID           string     `json:"id"`
-	Name         string     `json:"name"`
-	Email        string     `json:"email"`
-	FirstName    string     `json:"firstName"`
-	LastName     string     `json:"lastName"`
-	Role         UserRole   `json:"role"`
-	Phone        *string    `json:"phone,omitempty"`
-	Birthday     *string    `json:"birthday,omitempty"`
-	ProfilePhoto *string    `json:"profilePhoto,omitempty"`
-	CoverPhoto   *string    `json:"coverPhoto,omitempty"`
-	Shops        []string   `json:"shops,omitempty"`
-	CreatedAt    time.Time  `json:"createdAt"`
-	UpdatedAt    *time.Time `json:"updatedAt,omitempty"`
-	IsActive     bool       `json:"isActive"`
+	ID             string     `json:"id"`
+	Name           string     `json:"name"`
+	Email          string     `json:"email"`
+	FirstName      string     `json:"firstName"`
+	LastName       string     `json:"lastName"`
+	Role           UserRole   `json:"role"`
+	Phone          *string    `json:"phone,omitempty"`
+	Birthday       *string    `json:"birthday,omitempty"`
+	ProfilePhoto   *string    `json:"profilePhoto,omitempty"`
+	CoverPhoto     *string    `json:"coverPhoto,omitempty"`
+	Shops          []string   `json:"shops,omitempty"`
+	Followers      []string   `json:"followers,omitempty"`
+	Following      []string   `json:"following,omitempty"`
+	FollowersCount int        `json:"followersCount"`
+	FollowingCount int        `json:"followingCount"`
+	IsFollowing    bool       `json:"isFollowing"`
+	CreatedAt      time.Time  `json:"createdAt"`
+	UpdatedAt      *time.Time `json:"updatedAt,omitempty"`
+	IsActive       bool       `json:"isActive"`
 }
 
 type UserPayload struct {

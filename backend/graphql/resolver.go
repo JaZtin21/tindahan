@@ -1539,23 +1539,46 @@ func (r *queryResolver) Me(ctx context.Context) (*UserPayload, error) {
 		}
 	}
 
+	// Extract followers and following arrays
+	var followers, following []string
+	if f, ok := data["followers"].([]string); ok {
+		followers = f
+	}
+	if f, ok := data["following"].([]string); ok {
+		following = f
+	}
+
+	// Get follower/following counts
+	followersCount := 0
+	followingCount := 0
+	if fc, ok := data["followersCount"].(int); ok {
+		followersCount = fc
+	}
+	if fc, ok := data["followingCount"].(int); ok {
+		followingCount = fc
+	}
+
 	return &UserPayload{
 		Success: result["success"].(bool),
 		Message: result["message"].(string),
 		Data: &User{
-			ID:           data["id"].(string),
-			Name:         data["name"].(string),
-			Email:        data["email"].(string),
-			FirstName:    data["firstName"].(string),
-			LastName:     data["lastName"].(string),
-			Phone:        getStringPtr(data["phone"]),
-			Birthday:     getStringPtr(data["birthday"]),
-			Role:         UserRole(data["role"].(string)),
-			IsActive:     data["isActive"].(bool),
-			ProfilePhoto: getStringPtr(data["profilePhoto"]),
-			CoverPhoto:   getStringPtr(data["coverPhoto"]),
-			CreatedAt:    createdAt,
-			UpdatedAt:    &updatedAt,
+			ID:             data["id"].(string),
+			Name:           data["name"].(string),
+			Email:          data["email"].(string),
+			FirstName:      data["firstName"].(string),
+			LastName:       data["lastName"].(string),
+			Phone:          getStringPtr(data["phone"]),
+			Birthday:       getStringPtr(data["birthday"]),
+			Role:           UserRole(data["role"].(string)),
+			IsActive:       data["isActive"].(bool),
+			ProfilePhoto:   getStringPtr(data["profilePhoto"]),
+			CoverPhoto:     getStringPtr(data["coverPhoto"]),
+			Followers:      followers,
+			Following:      following,
+			FollowersCount: followersCount,
+			FollowingCount: followingCount,
+			CreatedAt:      createdAt,
+			UpdatedAt:      &updatedAt,
 		},
 	}, nil
 }
@@ -1650,6 +1673,47 @@ func (r *queryResolver) MyPosts(ctx context.Context, page *int, limit *int) (*Po
 	}
 
 	result, err := r.postResolver.GetMyPosts(ctx, userID, pageVal, limitVal)
+	if err != nil {
+		return &PostsPayload{
+			Success: false,
+			Message: result["message"].(string),
+			Data:    []*Post{},
+			Total:   0,
+			Page:    pageVal,
+			Limit:   limitVal,
+		}, nil
+	}
+
+	postData := result["data"].([]map[string]interface{})
+	posts := make([]*Post, len(postData))
+	for i, postMap := range postData {
+		posts[i] = r.formatPostFromMap(postMap)
+	}
+
+	total := int(result["total"].(int64))
+
+	return &PostsPayload{
+		Success: result["success"].(bool),
+		Message: result["message"].(string),
+		Data:    posts,
+		Total:   total,
+		Page:    pageVal,
+		Limit:   limitVal,
+	}, nil
+}
+
+// UserPosts is the resolver for the userPosts field.
+func (r *queryResolver) UserPosts(ctx context.Context, userID string, page *int, limit *int) (*PostsPayload, error) {
+	pageVal := 1
+	limitVal := 10
+	if page != nil {
+		pageVal = *page
+	}
+	if limit != nil {
+		limitVal = *limit
+	}
+
+	result, err := r.postResolver.GetPostsByUserID(ctx, userID, pageVal, limitVal)
 	if err != nil {
 		return &PostsPayload{
 			Success: false,
@@ -2271,6 +2335,61 @@ func (r *queryResolver) ShopsByProduct(ctx context.Context, productName string) 
 		Success: true,
 		Message: fmt.Sprintf("Found %d shops with product '%s'", len(shops), productName),
 		Data:    shops,
+	}, nil
+}
+
+// User is the resolver for the user field.
+func (r *queryResolver) User(ctx context.Context, id string) (*User, error) {
+	userID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return nil, err
+	}
+
+	userRepo := repository.NewUserRepository(r.db)
+	currentUserID := middleware.GetUserID(ctx)
+
+	user, err := userRepo.GetUserByID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Check if current user is following this user
+	isFollowing := false
+	if currentUserID != "" {
+		currentUserObjID, err := primitive.ObjectIDFromHex(currentUserID)
+		if err == nil {
+			isFollowing, _ = userRepo.IsFollowing(ctx, currentUserObjID, userID)
+		}
+	}
+
+	// Convert followers and following ObjectIDs to string arrays
+	followers := make([]string, len(user.Followers))
+	for i, id := range user.Followers {
+		followers[i] = id.Hex()
+	}
+	following := make([]string, len(user.Following))
+	for i, id := range user.Following {
+		following[i] = id.Hex()
+	}
+
+	return &User{
+		ID:             user.ID.Hex(),
+		FirstName:      user.FirstName,
+		LastName:       user.LastName,
+		Email:          user.Email,
+		Phone:          &user.Phone,
+		Birthday:       &user.Birthday,
+		Role:           UserRole(user.Role),
+		ProfilePhoto:   &user.ProfilePhoto,
+		CoverPhoto:     &user.CoverPhoto,
+		IsActive:       user.IsActive,
+		Followers:      followers,
+		Following:      following,
+		FollowersCount: len(user.Followers),
+		FollowingCount: len(user.Following),
+		IsFollowing:    isFollowing,
+		CreatedAt:      user.CreatedAt,
+		UpdatedAt:      &user.UpdatedAt,
 	}, nil
 }
 

@@ -43,23 +43,37 @@ func (r *UserResolver) Me(ctx context.Context, userId string) (map[string]interf
 		}, err
 	}
 
+	// Convert followers and following ObjectIDs to string arrays
+	followers := make([]string, len(user.Followers))
+	for i, id := range user.Followers {
+		followers[i] = id.Hex()
+	}
+	following := make([]string, len(user.Following))
+	for i, id := range user.Following {
+		following[i] = id.Hex()
+	}
+
 	return map[string]interface{}{
 		"success": true,
 		"message": "Profile retrieved successfully",
 		"data": map[string]interface{}{
-			"id":           user.ID.Hex(),
-			"firstName":    user.FirstName,
-			"lastName":     user.LastName,
-			"name":         user.FirstName + " " + user.LastName,
-			"email":        user.Email,
-			"phone":        user.Phone,
-			"birthday":     user.Birthday,
-			"role":         user.Role,
-			"profilePhoto": user.ProfilePhoto,
-			"coverPhoto":   user.CoverPhoto,
-			"isActive":     user.IsActive,
-			"createdAt":    user.CreatedAt.Format(time.RFC3339),
-			"updatedAt":    user.UpdatedAt.Format(time.RFC3339),
+			"id":             user.ID.Hex(),
+			"firstName":      user.FirstName,
+			"lastName":       user.LastName,
+			"name":           user.FirstName + " " + user.LastName,
+			"email":          user.Email,
+			"phone":          user.Phone,
+			"birthday":       user.Birthday,
+			"role":           user.Role,
+			"profilePhoto":   user.ProfilePhoto,
+			"coverPhoto":     user.CoverPhoto,
+			"isActive":       user.IsActive,
+			"followers":      followers,
+			"following":      following,
+			"followersCount": len(user.Followers),
+			"followingCount": len(user.Following),
+			"createdAt":      user.CreatedAt.Format(time.RFC3339),
+			"updatedAt":      user.UpdatedAt.Format(time.RFC3339),
 		},
 	}, nil
 }

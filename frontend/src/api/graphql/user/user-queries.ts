@@ -2,6 +2,31 @@ import { gql } from '@apollo/client';
 
 // User GraphQL Queries and Mutations
 
+export const GET_USER = gql`
+  query GetUser($id: ObjectID!) {
+    user(id: $id) {
+      id
+      name
+      firstName
+      lastName
+      email
+      phone
+      birthday
+      profilePhoto
+      coverPhoto
+      role
+      isActive
+      followers
+      following
+      followersCount
+      followingCount
+      isFollowing
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
 export const ME_QUERY = gql`
   query Me {
     me {
@@ -19,6 +44,11 @@ export const ME_QUERY = gql`
         shops
         profilePhoto
         coverPhoto
+        followers
+        following
+        followersCount
+        followingCount
+        isFollowing
         createdAt
         updatedAt
         isActive
@@ -142,6 +172,11 @@ export interface User {
   shops: string[];
   profilePhoto?: string;
   coverPhoto?: string;
+  followers?: string[];
+  following?: string[];
+  followersCount?: number;
+  followingCount?: number;
+  isFollowing?: boolean;
   createdAt: string;
   updatedAt?: string;
   isActive: boolean;

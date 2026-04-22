@@ -8,6 +8,7 @@ export function CoverPhotoSection({
   setCoverImgError,
   uploadingCover,
   onCoverPhotoChange,
+  isViewOnly = false,
 }: CoverPhotoSectionProps) {
   const coverPhotoRef = useRef<HTMLInputElement>(null)
 
@@ -28,25 +29,29 @@ export function CoverPhotoSection({
         </div>
       )}
 
-      <button
-        onClick={() => coverPhotoRef.current?.click()}
-        disabled={uploadingCover}
-        className="absolute bottom-4 right-4 z-10 flex items-center gap-2 rounded-lg bg-black/60 px-3 py-2 text-sm font-medium text-white backdrop-blur-sm transition-colors hover:bg-black/80 disabled:opacity-50"
-      >
-        {uploadingCover ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
-        ) : (
-          <Camera className="h-4 w-4" />
-        )}
-        Change Cover
-      </button>
-      <input
-        ref={coverPhotoRef}
-        type="file"
-        accept="image/*"
-        className="hidden"
-        onChange={onCoverPhotoChange}
-      />
+      {!isViewOnly && (
+        <>
+          <button
+            onClick={() => coverPhotoRef.current?.click()}
+            disabled={uploadingCover}
+            className="absolute bottom-4 right-4 z-10 flex items-center gap-2 rounded-lg bg-black/60 px-3 py-2 text-sm font-medium text-white backdrop-blur-sm transition-colors hover:bg-black/80 disabled:opacity-50"
+          >
+            {uploadingCover ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Camera className="h-4 w-4" />
+            )}
+            Change Cover
+          </button>
+          <input
+            ref={coverPhotoRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={onCoverPhotoChange}
+          />
+        </>
+      )}
     </div>
   )
 }
