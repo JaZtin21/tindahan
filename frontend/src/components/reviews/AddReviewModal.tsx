@@ -61,8 +61,6 @@ export function AddReviewModal({ isOpen, onClose, storeId, storeName, existingRe
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    console.log('why is thsi triggering')
-
     if (rating === 0) {
       setError('Please select a rating');
       return;
@@ -71,22 +69,48 @@ export function AddReviewModal({ isOpen, onClose, storeId, storeName, existingRe
     setError('');
 
     try {
-      // Combine existing URLs and new File objects for upload
-      const existingUrls = existingReview?.photos || [];
-      const allPhotos = [...existingUrls, ...photoFiles];
-
       if (isEditing && existingReview) {
+        // For updates: Upload new files via REST first, then send all URLs
+        const existingUrls = existingReview?.photos || [];
+        let newUrls: string[] = [];
+
+        // Upload new files via REST endpoint
+        if (photoFiles.length > 0) {
+          const uploadPromises = photoFiles.map(async (file) => {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8080'}/api/upload/review-photo`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${localStorage.getItem('token')}`,
+              },
+              body: formData,
+            });
+
+            if (!response.ok) throw new Error('Upload failed');
+            const data = await response.json();
+            return data.url;
+          });
+
+          newUrls = await Promise.all(uploadPromises);
+        }
+
+        // Combine existing URLs with newly uploaded URLs
+        const allPhotoUrls = [...existingUrls, ...newUrls];
+
         await updateReview({
           variables: {
             id: existingReview.id,
             input: {
               rating,
               text: text || undefined,
-              photos: allPhotos,
+              photos: allPhotoUrls,
             },
           },
         });
       } else {
+        // For creates: Use GraphQL multipart upload directly
         await createReview({
           variables: {
             input: {

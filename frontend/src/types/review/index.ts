@@ -33,7 +33,7 @@ export interface CreateReviewInput {
   storeId: string;
   rating: number;
   text?: string;
-  photos: string[];
+  photos: File[];
 }
 
 export interface UpdateReviewInput {

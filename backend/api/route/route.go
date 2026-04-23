@@ -69,6 +69,7 @@ func Setup(router *gin.Engine, app *bootstrap.Application) {
 
 	// GraphQL endpoint handler - auth required for both WebSocket (subscriptions) and HTTP (queries/mutations)
 	graphqlEndpointHandler := func(c *gin.Context) {
+		// Log request details for debugging
 		// Check if it's a WebSocket upgrade request
 		isWebSocket := c.GetHeader("Upgrade") == "websocket"
 
