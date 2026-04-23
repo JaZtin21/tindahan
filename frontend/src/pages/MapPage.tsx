@@ -5,7 +5,7 @@ import { OpenStreetMap, SearchBar, LocationSearchBar } from '../components/Map';
 import { openSideNav } from '../store';
 import { CreatePostModal } from '../components/posts/CreatePostModal';
 import { PostPreviewModal } from '../components/posts/PostPreviewModal';
-import type { Post } from '../types/map';
+import type { Post, Store } from '../types/map';
 import { useCreatePost, usePostsNearLocation } from '../api/graphql/post/usePost';
 import { SHOPS_BY_PRODUCT_QUERY } from '../api/graphql/shop/shop-queries';
 import { LIVE_POSTS_SUBSCRIPTION } from '../api/graphql/subscriptions/live-posts';
@@ -42,9 +42,9 @@ export function MapPage() {
   }, [livePostsData, livePostsError]);
 
   // Store states
-  const [filteredStores, setFilteredStores] = useState<{ lat: number; lng: number; title: string; id?: string }[]>([]);
-  const [productSearchStores, setProductSearchStores] = useState<{ lat: number; lng: number; title: string; id?: string }[]>([]);
-  const [selectedStore, setSelectedStore] = useState<{ lat: number; lng: number; title: string; id?: string } | null>(null);
+  const [filteredStores, setFilteredStores] = useState<Store[]>([]);
+  const [productSearchStores, setProductSearchStores] = useState<Store[]>([]);
+  const [selectedStore, setSelectedStore] = useState<Store | null>(null);
   
   // Query to get shops by product name
   const [productNameForSearch, setProductNameForSearch] = useState<string | null>(null);

@@ -24,6 +24,11 @@ type PostRepository interface {
 	LikePost(ctx context.Context, postID, userID primitive.ObjectID) error
 	UnlikePost(ctx context.Context, postID, userID primitive.ObjectID) error
 	IsPostLikedByUser(ctx context.Context, postID, userID primitive.ObjectID) (bool, error)
+	// Comment operations
+	GetCommentsPaginated(ctx context.Context, postID primitive.ObjectID, page, limit int) ([]domain.Comment, int64, error)
+	AddComment(ctx context.Context, postID primitive.ObjectID, comment *domain.Comment) error
+	DeleteComment(ctx context.Context, postID, commentID primitive.ObjectID) error
+	GetCommentCount(ctx context.Context, postID primitive.ObjectID) (int64, error)
 }
 
 type postRepository struct {
@@ -224,7 +229,7 @@ func (r *postRepository) LikePost(ctx context.Context, postID, userID primitive.
 	filter := bson.M{"_id": postID}
 	update := bson.M{
 		"$addToSet": bson.M{"liked_by": userID},
-		"$inc":    bson.M{"likes": 1},
+		"$inc":      bson.M{"likes": 1},
 	}
 	_, err := r.collection.UpdateOne(ctx, filter, update)
 	return err
@@ -250,4 +255,107 @@ func (r *postRepository) IsPostLikedByUser(ctx context.Context, postID, userID p
 		return false, err
 	}
 	return count > 0, nil
+}
+
+// GetCommentsPaginated retrieves paginated comments from a post
+// Comments are stored with newest first (index 0), so we slice from the start
+func (r *postRepository) GetCommentsPaginated(ctx context.Context, postID primitive.ObjectID, page, limit int) ([]domain.Comment, int64, error) {
+	skip := (page - 1) * limit
+
+	// Get total count first
+	count, err := r.GetCommentCount(ctx, postID)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// Use aggregation pipeline with $slice to get paginated comments
+	// Since comments are stored newest-first, $slice from start gives us correct order
+	pipeline := mongo.Pipeline{
+		{{Key: "$match", Value: bson.M{"_id": postID}}},
+		{{Key: "$project", Value: bson.M{
+			"comments": bson.M{
+				"$slice": []interface{}{"$comments", skip, limit},
+			},
+		}}},
+	}
+
+	cursor, err := r.collection.Aggregate(ctx, pipeline)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer cursor.Close(ctx)
+
+	var result struct {
+		Comments []domain.Comment `bson:"comments"`
+	}
+
+	if cursor.Next(ctx) {
+		if err := cursor.Decode(&result); err != nil {
+			return nil, 0, err
+		}
+	}
+
+	// Comments are already in correct order (newest first) from $slice
+	// since we store them with $position: 0
+	return result.Comments, count, nil
+}
+
+// AddComment adds a new comment to a post
+func (r *postRepository) AddComment(ctx context.Context, postID primitive.ObjectID, comment *domain.Comment) error {
+	comment.ID = primitive.NewObjectID()
+	comment.CreatedAt = time.Now()
+	comment.UpdatedAt = time.Now()
+
+	filter := bson.M{"_id": postID}
+	update := bson.M{
+		"$push": bson.M{
+			"comments": bson.M{
+				"$each":     []domain.Comment{*comment},
+				"$position": 0, // Add to beginning (newest first)
+			},
+		},
+	}
+
+	_, err := r.collection.UpdateOne(ctx, filter, update)
+	return err
+}
+
+// DeleteComment removes a comment from a post
+func (r *postRepository) DeleteComment(ctx context.Context, postID, commentID primitive.ObjectID) error {
+	filter := bson.M{"_id": postID}
+	update := bson.M{
+		"$pull": bson.M{
+			"comments": bson.M{"_id": commentID},
+		},
+	}
+
+	_, err := r.collection.UpdateOne(ctx, filter, update)
+	return err
+}
+
+// GetCommentCount returns the total number of comments on a post
+func (r *postRepository) GetCommentCount(ctx context.Context, postID primitive.ObjectID) (int64, error) {
+	pipeline := mongo.Pipeline{
+		{{Key: "$match", Value: bson.M{"_id": postID}}},
+		{{Key: "$project", Value: bson.M{"count": bson.M{"$size": "$comments"}}}},
+	}
+
+	cursor, err := r.collection.Aggregate(ctx, pipeline)
+	if err != nil {
+		return 0, err
+	}
+	defer cursor.Close(ctx)
+
+	var result struct {
+		Count int64 `bson:"count"`
+	}
+
+	if cursor.Next(ctx) {
+		if err := cursor.Decode(&result); err != nil {
+			return 0, err
+		}
+		return result.Count, nil
+	}
+
+	return 0, nil
 }

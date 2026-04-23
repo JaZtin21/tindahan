@@ -19,6 +19,10 @@ export interface PostMarker {
   location?: string;
   coverPhoto?: string;
   businessType?: string;
+  description?: string;
+  phone?: string;
+  email?: string;
+  hours?: string;
 }
 
 export interface MapProps {

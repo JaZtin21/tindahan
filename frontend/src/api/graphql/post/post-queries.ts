@@ -287,3 +287,62 @@ export const UNLIKE_POST_MUTATION = gql`
     }
   }
 `;
+
+export const COMMENTS_QUERY = gql`
+  query Comments($postId: ObjectID!, $page: Int, $limit: Int) {
+    comments(postId: $postId, page: $page, limit: $limit) {
+      success
+      message
+      data {
+        id
+        text
+        author {
+          id
+          name
+          email
+          role
+          isActive
+          profilePhoto
+        }
+        createdAt
+        updatedAt
+      }
+      total
+      page
+      limit
+      hasMore
+    }
+  }
+`;
+
+export const ADD_COMMENT_MUTATION = gql`
+  mutation AddComment($postId: ObjectID!, $text: String!) {
+    addComment(postId: $postId, text: $text) {
+      success
+      message
+      data {
+        id
+        text
+        author {
+          id
+          name
+          email
+          role
+          isActive
+          profilePhoto
+        }
+        createdAt
+        updatedAt
+      }
+    }
+  }
+`;
+
+export const DELETE_COMMENT_MUTATION = gql`
+  mutation DeleteComment($commentId: ObjectID!, $postId: ObjectID!) {
+    deleteComment(commentId: $commentId, postId: $postId) {
+      success
+      message
+    }
+  }
+`;

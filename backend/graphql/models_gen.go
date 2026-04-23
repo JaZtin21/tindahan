@@ -44,6 +44,22 @@ type Comment struct {
 	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
 }
 
+type CommentPayload struct {
+	Success bool     `json:"success"`
+	Message string   `json:"message"`
+	Data    *Comment `json:"data,omitempty"`
+}
+
+type CommentsPayload struct {
+	Success bool       `json:"success"`
+	Message string     `json:"message"`
+	Data    []*Comment `json:"data"`
+	Total   int        `json:"total"`
+	Page    int        `json:"page"`
+	Limit   int        `json:"limit"`
+	HasMore bool       `json:"hasMore"`
+}
+
 type ContactDetails struct {
 	Phone   string `json:"phone"`
 	Email   string `json:"email"`

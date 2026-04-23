@@ -89,6 +89,15 @@ func getStringValue(m map[string]interface{}, key string) string {
 	return ""
 }
 
+func getStringPointerValue(m map[string]interface{}, key string) *string {
+	if val, ok := m[key]; ok {
+		if s, ok := val.(string); ok && s != "" {
+			return &s
+		}
+	}
+	return nil
+}
+
 func getBoolValue(m map[string]interface{}, key string) bool {
 	if val, ok := m[key]; ok {
 		if b, ok := val.(bool); ok {
@@ -1507,6 +1516,65 @@ func (r *mutationResolver) UploadImage(ctx context.Context, file graphql.Upload,
 	}, nil
 }
 
+// AddComment is the resolver for the addComment field.
+func (r *mutationResolver) AddComment(ctx context.Context, postID string, text string) (*CommentPayload, error) {
+	userID := middleware.GetUserID(ctx)
+	if userID == "" {
+		return &CommentPayload{
+			Success: false,
+			Message: "Authentication required",
+		}, nil
+	}
+
+	result, err := r.postResolver.AddComment(ctx, postID, userID, text)
+	if err != nil {
+		return &CommentPayload{
+			Success: false,
+			Message: result["message"].(string),
+		}, nil
+	}
+
+	if !result["success"].(bool) {
+		return &CommentPayload{
+			Success: false,
+			Message: result["message"].(string),
+		}, nil
+	}
+
+	commentData := result["data"].(map[string]interface{})
+	comment := r.Resolver.formatCommentData(commentData)
+
+	return &CommentPayload{
+		Success: true,
+		Message: result["message"].(string),
+		Data:    comment,
+	}, nil
+}
+
+// DeleteComment is the resolver for the deleteComment field.
+func (r *mutationResolver) DeleteComment(ctx context.Context, commentID string, postID string) (*DeletePayload, error) {
+	userID := middleware.GetUserID(ctx)
+	if userID == "" {
+		return &DeletePayload{
+			Success: false,
+			Message: "Authentication required",
+		}, nil
+	}
+
+	result, err := r.postResolver.DeleteComment(ctx, commentID, postID, userID)
+	if err != nil {
+		return &DeletePayload{
+			Success: false,
+			Message: result["message"].(string),
+		}, nil
+	}
+
+	return &DeletePayload{
+		Success: result["success"].(bool),
+		Message: result["message"].(string),
+	}, nil
+}
+
 // Me is the resolver for the me field.
 func (r *queryResolver) Me(ctx context.Context) (*UserPayload, error) {
 	userID := middleware.GetUserID(ctx)
@@ -1786,6 +1854,53 @@ func (r *queryResolver) PostsNearLocation(ctx context.Context, lat float64, lng 
 		Total:   total,
 		Page:    pageVal,
 		Limit:   limitVal,
+	}, nil
+}
+
+// Comments is the resolver for the comments field.
+func (r *queryResolver) Comments(ctx context.Context, postID string, page *int, limit *int) (*CommentsPayload, error) {
+	pageVal := 1
+	limitVal := 5 // Default to 5 comments per page
+	if page != nil {
+		pageVal = *page
+	}
+	if limit != nil {
+		limitVal = *limit
+	}
+
+	userID := middleware.GetUserID(ctx)
+	result, err := r.postResolver.GetCommentsPaginated(ctx, postID, pageVal, limitVal, userID)
+	if err != nil {
+		return &CommentsPayload{
+			Success: false,
+			Message: err.Error(),
+			Data:    []*Comment{},
+			Total:   0,
+			Page:    pageVal,
+			Limit:   limitVal,
+			HasMore: false,
+		}, nil
+	}
+
+	comments := make([]*Comment, 0)
+	if data, ok := result["data"].([]map[string]interface{}); ok {
+		for _, commentData := range data {
+			comment := r.formatCommentData(commentData)
+			comments = append(comments, comment)
+		}
+	}
+
+	total := int(result["total"].(int64))
+	hasMore := result["hasMore"].(bool)
+
+	return &CommentsPayload{
+		Success: result["success"].(bool),
+		Message: result["message"].(string),
+		Data:    comments,
+		Total:   total,
+		Page:    pageVal,
+		Limit:   limitVal,
+		HasMore: hasMore,
 	}, nil
 }
 
@@ -2883,4 +2998,50 @@ func toStringSlice(data interface{}) []string {
 		return result
 	}
 	return []string{}
+}
+
+// formatCommentData formats comment map data into Comment type
+func (r *Resolver) formatCommentData(data map[string]interface{}) *Comment {
+	comment := &Comment{
+		ID:   data["id"].(string),
+		Text: data["text"].(string),
+	}
+
+	if createdAtStr, ok := data["createdAt"].(string); ok {
+		createdAt, _ := time.Parse(time.RFC3339, createdAtStr)
+		comment.CreatedAt = createdAt
+	}
+	if updatedAtStr, ok := data["updatedAt"].(string); ok {
+		updatedAt, _ := time.Parse(time.RFC3339, updatedAtStr)
+		comment.UpdatedAt = &updatedAt
+	}
+
+	if authorData, ok := data["author"].(map[string]interface{}); ok {
+		comment.Author = r.formatUserData(authorData)
+	}
+
+	return comment
+}
+
+// formatUserData formats user map data into User type
+func (r *Resolver) formatUserData(data map[string]interface{}) *User {
+	user := &User{
+		ID:           getStringValue(data, "id"),
+		Name:         getStringValue(data, "name"),
+		Email:        getStringValue(data, "email"),
+		Role:         UserRole(getStringValue(data, "role")),
+		IsActive:     getBoolValue(data, "isActive"),
+		ProfilePhoto: getStringPointerValue(data, "profilePhoto"),
+	}
+
+	if createdAtStr, ok := data["createdAt"].(string); ok {
+		createdAt, _ := time.Parse(time.RFC3339, createdAtStr)
+		user.CreatedAt = createdAt
+	}
+	if updatedAtStr, ok := data["updatedAt"].(string); ok {
+		updatedAt, _ := time.Parse(time.RFC3339, updatedAtStr)
+		user.UpdatedAt = &updatedAt
+	}
+
+	return user
 }

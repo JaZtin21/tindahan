@@ -375,6 +375,210 @@ func (r *PostResolver) UnlikePost(ctx context.Context, postID, userID string) (m
 	return r.formatPostResponse(ctx, post, userID), nil
 }
 
+// GetCommentsPaginated retrieves paginated comments for a post
+func (r *PostResolver) GetCommentsPaginated(ctx context.Context, postID string, page, limit int, currentUserID string) (map[string]interface{}, error) {
+	postObjectID, err := primitive.ObjectIDFromHex(postID)
+	if err != nil {
+		return map[string]interface{}{
+			"success": false,
+			"message": "Invalid post ID format",
+		}, err
+	}
+
+	// Verify post exists
+	_, err = r.postRepo.GetPostByID(ctx, postObjectID)
+	if err != nil {
+		return map[string]interface{}{
+			"success": false,
+			"message": "Post not found",
+		}, err
+	}
+
+	comments, total, err := r.postRepo.GetCommentsPaginated(ctx, postObjectID, page, limit)
+	if err != nil {
+		return map[string]interface{}{
+			"success": false,
+			"message": "Failed to fetch comments: " + err.Error(),
+		}, err
+	}
+
+	// Format comments
+	formattedComments := make([]map[string]interface{}, len(comments))
+	for i, comment := range comments {
+		commentAuthor, _ := r.userRepo.GetUserByID(ctx, comment.AuthorID)
+		commentAuthorData := map[string]interface{}{}
+		if commentAuthor != nil {
+			commentAuthorData = map[string]interface{}{
+				"id":           commentAuthor.ID.Hex(),
+				"name":         commentAuthor.FirstName + " " + commentAuthor.LastName,
+				"email":        commentAuthor.Email,
+				"role":         commentAuthor.Role,
+				"isActive":     commentAuthor.IsActive,
+				"profilePhoto": commentAuthor.ProfilePhoto,
+				"createdAt":    commentAuthor.CreatedAt.Format(time.RFC3339),
+				"updatedAt":    commentAuthor.UpdatedAt.Format(time.RFC3339),
+			}
+		}
+		formattedComments[i] = map[string]interface{}{
+			"id":        comment.ID.Hex(),
+			"text":      comment.Text,
+			"author":    commentAuthorData,
+			"createdAt": comment.CreatedAt.Format(time.RFC3339),
+			"updatedAt": comment.UpdatedAt.Format(time.RFC3339),
+		}
+	}
+
+	hasMore := (page * limit) < int(total)
+
+	return map[string]interface{}{
+		"success": true,
+		"message": "Comments retrieved successfully",
+		"data":    formattedComments,
+		"total":   total,
+		"page":    page,
+		"limit":   limit,
+		"hasMore": hasMore,
+	}, nil
+}
+
+// AddComment adds a new comment to a post
+func (r *PostResolver) AddComment(ctx context.Context, postID, userID, text string) (map[string]interface{}, error) {
+	postObjectID, err := primitive.ObjectIDFromHex(postID)
+	if err != nil {
+		return map[string]interface{}{
+			"success": false,
+			"message": "Invalid post ID format",
+		}, err
+	}
+
+	userObjectID, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		return map[string]interface{}{
+			"success": false,
+			"message": "Invalid user ID format",
+		}, err
+	}
+
+	comment := &domain.Comment{
+		AuthorID: userObjectID,
+		Text:     text,
+	}
+
+	err = r.postRepo.AddComment(ctx, postObjectID, comment)
+	if err != nil {
+		return map[string]interface{}{
+			"success": false,
+			"message": "Failed to add comment: " + err.Error(),
+		}, err
+	}
+
+	// Get author info for response
+	author, _ := r.userRepo.GetUserByID(ctx, userObjectID)
+	authorData := map[string]interface{}{}
+	if author != nil {
+		authorData = map[string]interface{}{
+			"id":           author.ID.Hex(),
+			"name":         author.FirstName + " " + author.LastName,
+			"email":        author.Email,
+			"role":         author.Role,
+			"isActive":     author.IsActive,
+			"profilePhoto": author.ProfilePhoto,
+			"createdAt":    author.CreatedAt.Format(time.RFC3339),
+			"updatedAt":    author.UpdatedAt.Format(time.RFC3339),
+		}
+	}
+
+	return map[string]interface{}{
+		"success": true,
+		"message": "Comment added successfully",
+		"data": map[string]interface{}{
+			"id":        comment.ID.Hex(),
+			"text":      comment.Text,
+			"author":    authorData,
+			"createdAt": comment.CreatedAt.Format(time.RFC3339),
+			"updatedAt": comment.UpdatedAt.Format(time.RFC3339),
+		},
+	}, nil
+}
+
+// DeleteComment removes a comment from a post
+func (r *PostResolver) DeleteComment(ctx context.Context, commentID, postID, userID string) (map[string]interface{}, error) {
+	postObjectID, err := primitive.ObjectIDFromHex(postID)
+	if err != nil {
+		return map[string]interface{}{
+			"success": false,
+			"message": "Invalid post ID format",
+		}, err
+	}
+
+	commentObjectID, err := primitive.ObjectIDFromHex(commentID)
+	if err != nil {
+		return map[string]interface{}{
+			"success": false,
+			"message": "Invalid comment ID format",
+		}, err
+	}
+
+	userObjectID, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		return map[string]interface{}{
+			"success": false,
+			"message": "Invalid user ID format",
+		}, err
+	}
+
+	// Get the post to verify the comment exists and check ownership
+	post, err := r.postRepo.GetPostByID(ctx, postObjectID)
+	if err != nil {
+		return map[string]interface{}{
+			"success": false,
+			"message": "Post not found",
+		}, err
+	}
+
+	// Find the comment and verify ownership
+	var commentAuthorID primitive.ObjectID
+	commentFound := false
+	for _, comment := range post.Comments {
+		if comment.ID == commentObjectID {
+			commentAuthorID = comment.AuthorID
+			commentFound = true
+			break
+		}
+	}
+
+	if !commentFound {
+		return map[string]interface{}{
+			"success": false,
+			"message": "Comment not found",
+		}, nil
+	}
+
+	// Only comment author or post author can delete
+	isCommentAuthor := commentAuthorID == userObjectID
+	isPostAuthor := post.AuthorID == userObjectID
+
+	if !isCommentAuthor && !isPostAuthor {
+		return map[string]interface{}{
+			"success": false,
+			"message": "Unauthorized: you can only delete your own comments or comments on your posts",
+		}, nil
+	}
+
+	err = r.postRepo.DeleteComment(ctx, postObjectID, commentObjectID)
+	if err != nil {
+		return map[string]interface{}{
+			"success": false,
+			"message": "Failed to delete comment: " + err.Error(),
+		}, err
+	}
+
+	return map[string]interface{}{
+		"success": true,
+		"message": "Comment deleted successfully",
+	}, nil
+}
+
 // Helper methods
 
 func (r *PostResolver) formatPostResponse(ctx context.Context, post *domain.Post, currentUserID string) map[string]interface{} {
@@ -421,13 +625,14 @@ func (r *PostResolver) formatPostData(ctx context.Context, post *domain.Post, cu
 		commentAuthorData := map[string]interface{}{}
 		if commentAuthor != nil {
 			commentAuthorData = map[string]interface{}{
-				"id":        commentAuthor.ID.Hex(),
-				"name":      commentAuthor.FirstName + " " + commentAuthor.LastName,
-				"email":     commentAuthor.Email,
-				"role":      commentAuthor.Role,
-				"isActive":  commentAuthor.IsActive,
-				"createdAt": commentAuthor.CreatedAt.Format(time.RFC3339),
-				"updatedAt": commentAuthor.UpdatedAt.Format(time.RFC3339),
+				"id":           commentAuthor.ID.Hex(),
+				"name":         commentAuthor.FirstName + " " + commentAuthor.LastName,
+				"email":        commentAuthor.Email,
+				"role":         commentAuthor.Role,
+				"isActive":     commentAuthor.IsActive,
+				"profilePhoto": commentAuthor.ProfilePhoto,
+				"createdAt":    commentAuthor.CreatedAt.Format(time.RFC3339),
+				"updatedAt":    commentAuthor.UpdatedAt.Format(time.RFC3339),
 			}
 		}
 		comments[i] = map[string]interface{}{

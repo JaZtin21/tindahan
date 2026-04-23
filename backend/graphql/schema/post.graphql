@@ -6,6 +6,7 @@ extend type Query {
   myPosts(page: Int, limit: Int): PostsPayload
   userPosts(userId: ObjectID!, page: Int, limit: Int): PostsPayload
   postsNearLocation(lat: Float!, lng: Float!, radius: Float, page: Int, limit: Int): PostsPayload
+  comments(postId: ObjectID!, page: Int, limit: Int): CommentsPayload
 }
 
 extend type Mutation {
@@ -14,6 +15,8 @@ extend type Mutation {
   deletePost(id: ObjectID!): DeletePayload!
   likePost(id: ObjectID!): PostPayload!
   unlikePost(id: ObjectID!): PostPayload!
+  addComment(postId: ObjectID!, text: String!): CommentPayload!
+  deleteComment(commentId: ObjectID!, postId: ObjectID!): DeletePayload!
   uploadImage(file: Upload!, folder: String): ImageUploadPayload!
 }
 
@@ -89,4 +92,20 @@ type ImageUploadPayload {
   message: String!
   url: String
   publicID: String
+}
+
+type CommentsPayload {
+  success: Boolean!
+  message: String!
+  data: [Comment!]!
+  total: Int!
+  page: Int!
+  limit: Int!
+  hasMore: Boolean!
+}
+
+type CommentPayload {
+  success: Boolean!
+  message: String!
+  data: Comment
 }

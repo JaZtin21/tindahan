@@ -1,5 +1,20 @@
 // Post types - Source of truth for Post interface
 
+export interface Comment {
+  id: string;
+  text: string;
+  author: {
+    id: string;
+    name: string;
+    email: string;
+    role?: string;
+    isActive?: boolean;
+    profilePhoto?: string;
+  };
+  createdAt: string;
+  updatedAt?: string;
+}
+
 export interface Post {
   id: string;
   title?: string;

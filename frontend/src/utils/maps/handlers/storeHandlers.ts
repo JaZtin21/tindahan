@@ -27,7 +27,11 @@ export function createStoreHandlers({
       id: store.id || 'selected-store',
       location: store.location,
       coverPhoto: store.coverPhoto,
-      businessType: store.businessType
+      businessType: store.businessType,
+      description: store.description,
+      phone: store.phone,
+      email: store.email,
+      hours: store.hours
     });
     
     // Fetch posts immediately for store location
