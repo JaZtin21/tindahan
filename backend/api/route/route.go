@@ -5,6 +5,7 @@ import (
 	"tindahan-backend/api/handlers/middleware"
 	"tindahan-backend/bootstrap"
 	"tindahan-backend/graphql"
+	"tindahan-backend/repository"
 
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/handler/transport"
@@ -88,4 +89,7 @@ func Setup(router *gin.Engine, app *bootstrap.Application) {
 	// Register for both GET and POST (GraphQL supports both)
 	router.GET("/query", graphqlEndpointHandler)
 	router.POST("/query", graphqlEndpointHandler)
+
+	// Setup upload routes
+	SetupUploadRoutes(router, app.Env, repository.NewUserRepository(app.MongoDatabase))
 }

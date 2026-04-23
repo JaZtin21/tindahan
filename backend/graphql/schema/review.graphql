@@ -1,0 +1,63 @@
+# Review Schema - Store Reviews with Photos and Ratings
+
+extend type Query {
+  reviewsByStore(storeId: ObjectID!, page: Int, limit: Int): ReviewsPayload!
+  reviewsByUser(userId: ObjectID!, page: Int, limit: Int): ReviewsPayload!
+  reviewStats(storeId: ObjectID!): ReviewStats!
+  myReviewForStore(storeId: ObjectID!): ReviewPayload
+}
+
+extend type Mutation {
+  createReview(input: CreateReviewInput!): ReviewPayload!
+  updateReview(id: ObjectID!, input: UpdateReviewInput!): ReviewPayload!
+  deleteReview(id: ObjectID!): DeletePayload!
+}
+
+type Review {
+  id: ObjectID!
+  storeId: ObjectID!
+  userId: ObjectID!
+  user: User!
+  rating: Int!
+  text: String
+  photos: [String!]!
+  createdAt: Time!
+  updatedAt: Time
+}
+
+type ReviewStats {
+  averageRating: Float!
+  totalReviews: Int!
+  fiveStars: Int!
+  fourStars: Int!
+  threeStars: Int!
+  twoStars: Int!
+  oneStar: Int!
+}
+
+type ReviewPayload {
+  success: Boolean!
+  message: String!
+  data: Review
+}
+
+type ReviewsPayload {
+  success: Boolean!
+  message: String!
+  data: [Review!]!
+  total: Int!
+  hasMore: Boolean!
+}
+
+input CreateReviewInput {
+  storeId: ObjectID!
+  rating: Int!
+  text: String
+  photos: [Upload!]
+}
+
+input UpdateReviewInput {
+  rating: Int
+  text: String
+  photos: [String!]
+}

@@ -60,26 +60,38 @@ export function PostPreviewModal({ post, isOpen, onClose }: PostPreviewModalProp
     fetchPolicy: 'network-only',
   });
   
-  // Clear comments when post changes, then load new comments
+  // Clear comments when post changes
   useEffect(() => {
     if (post?.id) {
       setComments([]);
       setCommentPage(1);
       setHasMoreComments(false);
-      if (isOpen) {
-        fetchComments({ variables: { postId: post.id, page: 1, limit: 5 } });
-      }
     }
-  }, [post?.id, isOpen, fetchComments]);
+  }, [post?.id]);
   
-  // Update comments when data changes (initial load only, not for pagination)
+  // Load comments when modal opens
   useEffect(() => {
-    if (commentsData?.comments?.data && commentPage === 1) {
+    if (isOpen && post?.id) {
+      fetchComments({ variables: { postId: post.id, page: 1, limit: 5 } });
+    }
+  }, [isOpen, post?.id, fetchComments]);
+  
+  // Track current post to prevent race conditions
+  const currentPostIdRef = useRef(post?.id);
+  
+  useEffect(() => {
+    currentPostIdRef.current = post?.id;
+  }, [post?.id]);
+  
+  // Update comments when data changes - ONLY for current post
+  useEffect(() => {
+    // Only update if data is for current post and we're on page 1
+    if (commentsData?.comments?.data && commentPage === 1 && currentPostIdRef.current === post?.id) {
       setComments(commentsData.comments.data);
       setHasMoreComments(commentsData.comments.hasMore);
       setLocalCommentCount(commentsData.comments.total || commentsData.comments.data.length);
     }
-  }, [commentsData, commentPage]);
+  }, [commentsData, commentPage, post?.id]);
 
   const isCurrentUser = post?.author?.id === currentUser?.id;
   

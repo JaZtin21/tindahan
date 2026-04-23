@@ -57,7 +57,8 @@ export function createStoreHandlers({
       image: store.coverPhoto,
       phone: store.phone,
       email: store.email,
-      hours: store.hours
+      hours: store.hours,
+      storeId: store.id
     }));
   };
 

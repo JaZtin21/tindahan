@@ -112,6 +112,13 @@ type CreatePostInput struct {
 	Location *LocationInput    `json:"location,omitempty"`
 }
 
+type CreateReviewInput struct {
+	StoreID string            `json:"storeId"`
+	Rating  int               `json:"rating"`
+	Text    *string           `json:"text,omitempty"`
+	Photos  []*graphql.Upload `json:"photos,omitempty"`
+}
+
 type CreateShopInput struct {
 	Name           string                `json:"name"`
 	Description    *string               `json:"description,omitempty"`
@@ -299,6 +306,42 @@ type RefreshTokenInput struct {
 	RefreshToken string `json:"refreshToken"`
 }
 
+type Review struct {
+	ID        string     `json:"id"`
+	StoreID   string     `json:"storeId"`
+	UserID    string     `json:"userId"`
+	User      *User      `json:"user"`
+	Rating    int        `json:"rating"`
+	Text      *string    `json:"text,omitempty"`
+	Photos    []string   `json:"photos"`
+	CreatedAt time.Time  `json:"createdAt"`
+	UpdatedAt *time.Time `json:"updatedAt,omitempty"`
+}
+
+type ReviewPayload struct {
+	Success bool    `json:"success"`
+	Message string  `json:"message"`
+	Data    *Review `json:"data,omitempty"`
+}
+
+type ReviewStats struct {
+	AverageRating float64 `json:"averageRating"`
+	TotalReviews  int     `json:"totalReviews"`
+	FiveStars     int     `json:"fiveStars"`
+	FourStars     int     `json:"fourStars"`
+	ThreeStars    int     `json:"threeStars"`
+	TwoStars      int     `json:"twoStars"`
+	OneStar       int     `json:"oneStar"`
+}
+
+type ReviewsPayload struct {
+	Success bool      `json:"success"`
+	Message string    `json:"message"`
+	Data    []*Review `json:"data"`
+	Total   int       `json:"total"`
+	HasMore bool      `json:"hasMore"`
+}
+
 type Shop struct {
 	ID             string           `json:"id"`
 	Name           string           `json:"name"`
@@ -401,6 +444,12 @@ type UpdateProfileInput struct {
 	LastName  *string `json:"lastName,omitempty"`
 	Phone     *string `json:"phone,omitempty"`
 	Birthday  *string `json:"birthday,omitempty"`
+}
+
+type UpdateReviewInput struct {
+	Rating *int     `json:"rating,omitempty"`
+	Text   *string  `json:"text,omitempty"`
+	Photos []string `json:"photos,omitempty"`
 }
 
 type UpdateShopInput struct {

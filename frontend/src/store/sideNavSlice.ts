@@ -12,6 +12,7 @@ interface SideNavState {
     address?: string;
     phone?: string;
     hours?: string;
+    storeId?: string;
   };
 }
 

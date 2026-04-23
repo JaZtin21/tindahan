@@ -1,6 +1,9 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { clearSideNavContent } from '../../store';
+import { ReviewsList } from '../reviews/ReviewsList';
+import { AddReviewModal } from '../reviews/AddReviewModal';
+import type { Review } from '../../types/review';
 
 interface SideNavProps {
   isOpen: boolean;
@@ -16,12 +19,32 @@ interface SideNavProps {
     phone?: string;
     email?: string;
     hours?: string;
+    storeId?: string;
   };
 }
 
 export function SideNav({ isOpen, onClose, selectedLocation }: SideNavProps) {
   const dispatch = useDispatch();
   const sideNavRef = useRef<HTMLDivElement>(null);
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+  const [editingReview, setEditingReview] = useState<Review | null>(null);
+
+  console.log(isReviewModalOpen)
+
+  const handleAddReview = () => {
+    setEditingReview(null);
+    setIsReviewModalOpen(true);
+  };
+
+  const handleEditReview = (review: Review) => {
+    setEditingReview(review);
+    setIsReviewModalOpen(true);
+  };
+
+  const handleCloseReviewModal = () => {
+    setIsReviewModalOpen(false);
+    setEditingReview(null);
+  };
 
   useEffect(() => {
     if (!isOpen && selectedLocation) {
@@ -148,6 +171,17 @@ export function SideNav({ isOpen, onClose, selectedLocation }: SideNavProps) {
                 )}
               </div>
 
+              {/* Reviews Section - Only for stores */}
+              {selectedLocation.type === 'store' && selectedLocation.storeId && (
+                <div className="pt-4 border-t border-zinc-200 dark:border-zinc-700">
+                  <ReviewsList
+                    storeId={selectedLocation.storeId}
+                    onAddReview={handleAddReview}
+                    onEditReview={handleEditReview}
+                  />
+                </div>
+              )}
+
               {/* Action Buttons */}
               <div className="space-y-3 pt-4 mt-auto">
                 <button className="w-full py-3 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors font-medium">
@@ -169,6 +203,20 @@ export function SideNav({ isOpen, onClose, selectedLocation }: SideNavProps) {
           )}
         </div>
       </div>
+
+      {/* Review Modal */}
+      {selectedLocation?.storeId && isReviewModalOpen && (
+        <AddReviewModal
+          isOpen={isReviewModalOpen}
+          onClose={handleCloseReviewModal}
+          storeId={selectedLocation.storeId}
+          storeName={selectedLocation.name}
+          existingReview={editingReview}
+          onSuccess={() => {
+            // Refetch reviews will happen automatically via Apollo cache
+          }}
+        />
+      )}
     </>
   );
 }

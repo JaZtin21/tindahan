@@ -12,6 +12,7 @@ import (
 	"tindahan-backend/api/handlers/owner"
 	"tindahan-backend/api/handlers/post"
 	"tindahan-backend/api/handlers/product"
+	"tindahan-backend/api/handlers/review"
 	"tindahan-backend/api/handlers/shop"
 	"tindahan-backend/api/handlers/user"
 	"tindahan-backend/bootstrap"
@@ -114,6 +115,7 @@ type Resolver struct {
 	productResolver *product.ProductResolver
 	ownerResolver   *owner.OwnerResolver
 	postResolver    *post.PostResolver
+	reviewResolver  *review.ReviewResolver
 	storeRepo       repository.StoreRepository
 	productRepo     repository.ProductRepository
 	userRepo        repository.UserRepository
@@ -2932,6 +2934,7 @@ func NewResolver(db *mongo.Database, jwtSecret string) *Resolver {
 		productResolver: product.NewProductResolver(repository.NewProductRepository(db)),
 		ownerResolver:   owner.NewOwnerResolver(db),
 		postResolver:    post.NewPostResolver(db),
+		reviewResolver:  review.NewReviewResolver(db),
 		storeRepo:       repository.NewStoreRepository(db),
 		productRepo:     repository.NewProductRepository(db),
 		userRepo:        repository.NewUserRepository(db),
@@ -3044,4 +3047,319 @@ func (r *Resolver) formatUserData(data map[string]interface{}) *User {
 	}
 
 	return user
+}
+
+// Review query resolvers
+
+// ReviewsByStore is the resolver for the reviewsByStore field
+func (r *queryResolver) ReviewsByStore(ctx context.Context, storeID string, page *int, limit *int) (*ReviewsPayload, error) {
+	pageNum := 1
+	limitNum := 10
+	if page != nil {
+		pageNum = *page
+	}
+	if limit != nil {
+		limitNum = *limit
+	}
+
+	result, err := r.reviewResolver.ReviewsByStore(ctx, storeID, pageNum, limitNum)
+	if err != nil {
+		return &ReviewsPayload{
+			Success: false,
+			Message: err.Error(),
+			Data:    []*Review{},
+			Total:   0,
+			HasMore: false,
+		}, err
+	}
+
+	reviews := make([]*Review, 0)
+	if data, ok := result["data"].([]map[string]interface{}); ok {
+		for _, reviewData := range data {
+			reviews = append(reviews, r.formatReviewData(reviewData))
+		}
+	}
+
+	total := int64(0)
+	if t, ok := result["total"].(int64); ok {
+		total = t
+	}
+	hasMore := false
+	if hm, ok := result["hasMore"].(bool); ok {
+		hasMore = hm
+	}
+
+	return &ReviewsPayload{
+		Success: result["success"].(bool),
+		Message: result["message"].(string),
+		Data:    reviews,
+		Total:   int(total),
+		HasMore: hasMore,
+	}, nil
+}
+
+// ReviewStats is the resolver for the reviewStats field
+func (r *queryResolver) ReviewStats(ctx context.Context, storeID string) (*ReviewStats, error) {
+	result, err := r.reviewResolver.ReviewStats(ctx, storeID)
+	if err != nil {
+		return &ReviewStats{
+			AverageRating: 0,
+			TotalReviews:  0,
+			FiveStars:     0,
+			FourStars:     0,
+			ThreeStars:    0,
+			TwoStars:      0,
+			OneStar:       0,
+		}, err
+	}
+
+	return &ReviewStats{
+		AverageRating: result["averageRating"].(float64),
+		TotalReviews:  int(result["totalReviews"].(int64)),
+		FiveStars:     int(result["fiveStars"].(int64)),
+		FourStars:     int(result["fourStars"].(int64)),
+		ThreeStars:    int(result["threeStars"].(int64)),
+		TwoStars:      int(result["twoStars"].(int64)),
+		OneStar:       int(result["oneStar"].(int64)),
+	}, nil
+}
+
+// MyReviewForStore is the resolver for the myReviewForStore field
+func (r *queryResolver) MyReviewForStore(ctx context.Context, storeID string) (*ReviewPayload, error) {
+	userID := middleware.GetUserID(ctx)
+	if userID == "" {
+		return &ReviewPayload{
+			Success: false,
+			Message: "Authentication required",
+		}, nil
+	}
+
+	result, err := r.reviewResolver.MyReviewForStore(ctx, userID, storeID)
+	if err != nil {
+		return &ReviewPayload{
+			Success: false,
+			Message: err.Error(),
+		}, err
+	}
+
+	var review *Review
+	if result["data"] != nil {
+		review = r.formatReviewData(result["data"].(map[string]interface{}))
+	}
+
+	return &ReviewPayload{
+		Success: result["success"].(bool),
+		Message: result["message"].(string),
+		Data:    review,
+	}, nil
+}
+
+// ReviewsByUser is the resolver for the reviewsByUser field
+func (r *queryResolver) ReviewsByUser(ctx context.Context, userID string, page *int, limit *int) (*ReviewsPayload, error) {
+	pageNum := 1
+	limitNum := 10
+	if page != nil {
+		pageNum = *page
+	}
+	if limit != nil {
+		limitNum = *limit
+	}
+
+	result, err := r.reviewResolver.ReviewsByUser(ctx, userID, pageNum, limitNum)
+	if err != nil {
+		return &ReviewsPayload{
+			Success: false,
+			Message: err.Error(),
+			Data:    []*Review{},
+			Total:   0,
+			HasMore: false,
+		}, err
+	}
+
+	reviews := make([]*Review, 0)
+	if data, ok := result["data"].([]map[string]interface{}); ok {
+		for _, reviewData := range data {
+			reviews = append(reviews, r.formatReviewData(reviewData))
+		}
+	}
+
+	total := int64(0)
+	if t, ok := result["total"].(int64); ok {
+		total = t
+	}
+	hasMore := false
+	if hm, ok := result["hasMore"].(bool); ok {
+		hasMore = hm
+	}
+
+	return &ReviewsPayload{
+		Success: result["success"].(bool),
+		Message: result["message"].(string),
+		Data:    reviews,
+		Total:   int(total),
+		HasMore: hasMore,
+	}, nil
+}
+
+// Review mutation resolvers
+
+// CreateReview is the resolver for the createReview field
+func (r *mutationResolver) CreateReview(ctx context.Context, input CreateReviewInput) (*ReviewPayload, error) {
+	userID := middleware.GetUserID(ctx)
+	if userID == "" {
+		return &ReviewPayload{
+			Success: false,
+			Message: "Authentication required",
+		}, nil
+	}
+
+	// Upload photos to Cloudinary if provided
+	var photoURLs []string
+	if input.Photos != nil && len(input.Photos) > 0 {
+		env := bootstrap.LoadEnv()
+		uploader, err := imageutil.NewImageUploader(
+			env.CloudinaryCloudName,
+			env.CloudinaryAPIKey,
+			env.CloudinaryAPISecret,
+			env.CloudinaryFolder,
+		)
+		if err != nil {
+			return &ReviewPayload{
+				Success: false,
+				Message: "Failed to initialize image uploader: " + err.Error(),
+			}, nil
+		}
+
+		// Upload to user-specific reviews folder
+		uploadFolder := env.CloudinaryFolder + "/" + userID + "/reviews"
+		userUploader := uploader.WithFolder(uploadFolder)
+
+		for _, upload := range input.Photos {
+			if upload != nil {
+				result, err := userUploader.UploadImage(ctx, upload.File, upload.Filename)
+				if err != nil {
+					return &ReviewPayload{
+						Success: false,
+						Message: "Failed to upload image: " + err.Error(),
+					}, nil
+				}
+				photoURLs = append(photoURLs, result.URL)
+			}
+		}
+	}
+
+	inputMap := map[string]interface{}{
+		"storeId": input.StoreID,
+		"rating":  input.Rating,
+		"text":    input.Text,
+		"photos":  photoURLs,
+	}
+
+	result, err := r.reviewResolver.CreateReview(ctx, userID, inputMap)
+	if err != nil {
+		return &ReviewPayload{
+			Success: false,
+			Message: err.Error(),
+		}, err
+	}
+
+	return &ReviewPayload{
+		Success: result["success"].(bool),
+		Message: result["message"].(string),
+		Data:    r.formatReviewData(result["data"].(map[string]interface{})),
+	}, nil
+}
+
+// UpdateReview is the resolver for the updateReview field
+func (r *mutationResolver) UpdateReview(ctx context.Context, id string, input UpdateReviewInput) (*ReviewPayload, error) {
+	userID := middleware.GetUserID(ctx)
+	ok := userID != ""
+	if !ok {
+		return &ReviewPayload{
+			Success: false,
+			Message: "Authentication required",
+		}, nil
+	}
+
+	inputMap := map[string]interface{}{}
+	if input.Rating != nil {
+		inputMap["rating"] = *input.Rating
+	}
+	if input.Text != nil {
+		inputMap["text"] = *input.Text
+	}
+	if input.Photos != nil {
+		inputMap["photos"] = input.Photos
+	}
+
+	result, err := r.reviewResolver.UpdateReview(ctx, userID, id, inputMap)
+	if err != nil {
+		return &ReviewPayload{
+			Success: false,
+			Message: err.Error(),
+		}, err
+	}
+
+	return &ReviewPayload{
+		Success: result["success"].(bool),
+		Message: result["message"].(string),
+		Data:    r.formatReviewData(result["data"].(map[string]interface{})),
+	}, nil
+}
+
+// DeleteReview is the resolver for the deleteReview field
+func (r *mutationResolver) DeleteReview(ctx context.Context, id string) (*DeletePayload, error) {
+	userID := middleware.GetUserID(ctx)
+	ok := userID != ""
+	if !ok {
+		return &DeletePayload{
+			Success: false,
+			Message: "Authentication required",
+		}, nil
+	}
+
+	result, err := r.reviewResolver.DeleteReview(ctx, userID, id)
+	if err != nil {
+		return &DeletePayload{
+			Success: false,
+			Message: err.Error(),
+		}, err
+	}
+
+	return &DeletePayload{
+		Success: result["success"].(bool),
+		Message: result["message"].(string),
+	}, nil
+}
+
+// formatReviewData formats review map data into Review type
+func (r *Resolver) formatReviewData(data map[string]interface{}) *Review {
+	review := &Review{
+		ID:     data["id"].(string),
+		Text:   getStringPtr(data["text"]),
+		Rating: data["rating"].(int),
+		Photos: toStringSlice(data["photos"]),
+	}
+
+	if storeID, ok := data["storeId"].(string); ok {
+		review.StoreID = storeID
+	}
+	if userID, ok := data["userId"].(string); ok {
+		review.UserID = userID
+	}
+
+	if createdAtStr, ok := data["createdAt"].(string); ok {
+		createdAt, _ := time.Parse(time.RFC3339, createdAtStr)
+		review.CreatedAt = createdAt
+	}
+	if updatedAtStr, ok := data["updatedAt"].(string); ok {
+		updatedAt, _ := time.Parse(time.RFC3339, updatedAtStr)
+		review.UpdatedAt = &updatedAt
+	}
+
+	if userData, ok := data["user"].(map[string]interface{}); ok {
+		review.User = r.formatUserData(userData)
+	}
+
+	return review
 }
