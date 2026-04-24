@@ -10,6 +10,7 @@ interface EditPostModalProps {
   onClose: () => void;
   post: Post | null;
   onSuccess?: (updatedPost?: Post) => void;
+  onError?: (message: string) => void;
 }
 
 // Inline SVG icons
@@ -25,7 +26,7 @@ const XIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
-export function EditPostModal({ isOpen, onClose, post, onSuccess }: EditPostModalProps) {
+export function EditPostModal({ isOpen, onClose, post, onSuccess, onError }: EditPostModalProps) {
   const [title, setTitle] = useState('');
   const [text, setText] = useState('');
   const [types, setTypes] = useState<string[]>([]);
@@ -107,7 +108,9 @@ export function EditPostModal({ isOpen, onClose, post, onSuccess }: EditPostModa
       onSuccess?.(updatedPost);
       handleClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update post');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to update post';
+      setError(errorMessage);
+      onError?.(errorMessage);
     }
   };
 

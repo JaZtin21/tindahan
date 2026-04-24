@@ -77,6 +77,22 @@ export function MapPage() {
   // Delete confirmation modal state
   const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; post: Post | null }>({ isOpen: false, post: null });
   
+  // Success/Error feedback modal state
+  const [feedbackModal, setFeedbackModal] = useState<{ 
+    isOpen: boolean; 
+    title: string; 
+    message: string; 
+    type: 'success' | 'error' 
+  }>({ isOpen: false, title: '', message: '', type: 'success' });
+  
+  const showSuccess = (title: string, message: string) => {
+    setFeedbackModal({ isOpen: true, title, message, type: 'success' });
+  };
+  
+  const showError = (title: string, message: string) => {
+    setFeedbackModal({ isOpen: true, title, message, type: 'error' });
+  };
+  
   // Track deleted post IDs to filter from map
   const [deletedPostIds, setDeletedPostIds] = useState<Set<string>>(new Set());
   
@@ -153,7 +169,27 @@ export function MapPage() {
     refetchShopsByProduct
   });
 
-  const { handleCreatePost } = createPostHandlers({ createPost });
+  const { handleCreatePost } = createPostHandlers({ createPost, showSuccess, showError });
+
+  // Handle delete post
+  const handleDeletePost = async () => {
+    if (!deleteModal.post) return;
+    
+    try {
+      const result = await deletePost({ variables: { id: deleteModal.post.id } });
+      if (result.data?.deletePost?.success) {
+        setDeletedPostIds(prev => new Set(prev).add(deleteModal.post!.id));
+        setDeleteModal({ isOpen: false, post: null });
+        setIsPostPreviewOpen(false);
+        showSuccess('Post Deleted', 'Your post has been deleted successfully.');
+      } else {
+        showError('Delete Failed', result.data?.deletePost?.message || 'Failed to delete post. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error deleting post:', error);
+      showError('Error', 'An error occurred while deleting the post. Please try again.');
+    }
+  };
 
   // handleSearch is required by SearchBar but actual search happens through suggestions
   const handleSearch = (query: string) => {
@@ -281,9 +317,9 @@ export function MapPage() {
         isOpen={isEditPostOpen}
         onClose={() => setIsEditPostOpen(false)}
         onSuccess={() => {
-          // WebSocket will automatically update everything - no manual state updates needed
-          console.log('Post updated successfully - WebSocket will handle UI updates');
+          showSuccess('Post Updated', 'Your post has been updated successfully.');
         }}
+        onError={(message) => showError('Update Failed', message)}
       />
 
       {/* Main Content */}
@@ -318,24 +354,16 @@ export function MapPage() {
         message="Are you sure you want to delete this post? This action cannot be undone."
         type="error"
         showCancel
-        onConfirm={async () => {
-          if (deleteModal.post) {
-            try {
-              await deletePost({ 
-                variables: { id: deleteModal.post.id }
-              });
-              // Add post ID to deleted set to remove from map
-              setDeletedPostIds(prev => new Set([...Array.from(prev), deleteModal.post!.id]));
-              setDeleteModal({ isOpen: false, post: null });
-              // Close post preview if the deleted post was being viewed
-              if (selectedPost?.id === deleteModal.post.id) {
-                handleClosePostPreview();
-              }
-            } catch (error) {
-              console.error('Failed to delete post:', error);
-            }
-          }
-        }}
+        onConfirm={handleDeletePost}
+      />
+
+      {/* Success/Error Feedback Modal */}
+      <Modal
+        isOpen={feedbackModal.isOpen}
+        onClose={() => setFeedbackModal(prev => ({ ...prev, isOpen: false }))}
+        title={feedbackModal.title}
+        message={feedbackModal.message}
+        type={feedbackModal.type}
       />
     </div>
   );

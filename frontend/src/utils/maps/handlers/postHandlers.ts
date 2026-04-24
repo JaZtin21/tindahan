@@ -1,6 +1,6 @@
 import type { CreatePostInput, PostHandlersOptions } from '../../../types/map';
 
-export function createPostHandlers({ createPost }: PostHandlersOptions) {
+export function createPostHandlers({ createPost, showSuccess, showError }: PostHandlersOptions) {
 
   const handleCreatePost = async (post: CreatePostInput) => {
     try {
@@ -18,13 +18,13 @@ export function createPostHandlers({ createPost }: PostHandlersOptions) {
       });
 
       if (result.data?.createPost?.success) {
-        alert('Post created successfully!');
+        showSuccess('Post Created', 'Your post has been created successfully!');
       } else {
-        alert('Failed to create post: ' + result.data?.createPost?.message);
+        showError('Create Failed', result.data?.createPost?.message || 'Failed to create post. Please try again.');
       }
     } catch (error) {
       console.error('Error creating post:', error);
-      alert('Error creating post. Please try again.');
+      showError('Error', 'An error occurred while creating the post. Please try again.');
     }
   };
 

@@ -62,6 +62,8 @@ export interface ProductHandlersOptions {
 
 export interface PostHandlersOptions {
   createPost: (options: { variables: { input: any } }) => Promise<any>;
+  showSuccess: (title: string, message: string) => void;
+  showError: (title: string, message: string) => void;
 }
 
 export interface StoreHandlersOptions {

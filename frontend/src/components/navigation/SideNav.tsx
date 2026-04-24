@@ -38,6 +38,22 @@ export function SideNav({ isOpen, onClose, selectedLocation }: SideNavProps) {
   // Delete confirmation modal state
   const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; review: Review | null }>({ isOpen: false, review: null });
   
+  // Success/Error feedback modal state
+  const [feedbackModal, setFeedbackModal] = useState<{ 
+    isOpen: boolean; 
+    title: string; 
+    message: string; 
+    type: 'success' | 'error' 
+  }>({ isOpen: false, title: '', message: '', type: 'success' });
+  
+  const showSuccess = (title: string, message: string) => {
+    setFeedbackModal({ isOpen: true, title, message, type: 'success' });
+  };
+  
+  const showError = (title: string, message: string) => {
+    setFeedbackModal({ isOpen: true, title, message, type: 'error' });
+  };
+  
   // Store ref to reviews cache actions
   const reviewsCacheRef = useRef<{
     refetchReviews: () => void;
@@ -307,14 +323,17 @@ export function SideNav({ isOpen, onClose, selectedLocation }: SideNavProps) {
               if (editingReview) {
                 // For edits, refetch to get updated data
                 reviewsCacheRef.current.refetchReviews();
+                showSuccess('Review Updated', 'Your review has been updated successfully.');
               } else {
                 // For new reviews, add directly to cache
                 reviewsCacheRef.current.addReviewToCache(review);
+                showSuccess('Review Added', 'Your review has been added successfully.');
               }
               // Always refetch stats to update averages
               reviewsCacheRef.current.refetchStats();
             }
           }}
+          onError={(message: string) => showError('Error', message)}
         />
       )}
       
@@ -329,19 +348,34 @@ export function SideNav({ isOpen, onClose, selectedLocation }: SideNavProps) {
         onConfirm={async () => {
           if (deleteModal.review) {
             try {
-              await deleteReview({ variables: { id: deleteModal.review.id } });
-              // Remove from cache directly without refetching the list
-              if (reviewsCacheRef.current) {
-                reviewsCacheRef.current.removeReviewFromCache(deleteModal.review.id);
-                // Refetch stats to update averages
-                reviewsCacheRef.current.refetchStats();
+              const result = await deleteReview({ variables: { id: deleteModal.review.id } });
+              if (result.data?.deleteReview?.success) {
+                // Remove from cache directly without refetching the list
+                if (reviewsCacheRef.current) {
+                  reviewsCacheRef.current.removeReviewFromCache(deleteModal.review.id);
+                  // Refetch stats to update averages
+                  reviewsCacheRef.current.refetchStats();
+                }
+                setDeleteModal({ isOpen: false, review: null });
+                showSuccess('Review Deleted', 'Your review has been deleted successfully.');
+              } else {
+                showError('Delete Failed', result.data?.deleteReview?.message || 'Failed to delete review. Please try again.');
               }
-              setDeleteModal({ isOpen: false, review: null });
             } catch (error) {
               console.error('Failed to delete review:', error);
+              setFeedbackModal({ isOpen: true, title: 'Error', message: 'An error occurred while deleting the review. Please try again.', type: 'error' });
             }
           }
         }}
+      />
+
+      {/* Success/Error Feedback Modal */}
+      <Modal
+        isOpen={feedbackModal.isOpen}
+        onClose={() => setFeedbackModal(prev => ({ ...prev, isOpen: false }))}
+        title={feedbackModal.title}
+        message={feedbackModal.message}
+        type={feedbackModal.type}
       />
     </>
   );

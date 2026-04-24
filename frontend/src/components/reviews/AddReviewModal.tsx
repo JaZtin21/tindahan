@@ -18,7 +18,7 @@ const ImageIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
-export function AddReviewModal({ isOpen, onClose, storeId, storeName, existingReview, onSuccess }: AddReviewModalProps) {
+export function AddReviewModal({ isOpen, onClose, storeId, storeName, existingReview, onSuccess, onError }: AddReviewModalProps) {
   const [rating, setRating] = useState(existingReview?.rating || 0);
   const [text, setText] = useState(existingReview?.text || '');
   // Track existing URLs separately from new files
@@ -111,7 +111,9 @@ export function AddReviewModal({ isOpen, onClose, storeId, storeName, existingRe
       onSuccess(reviewData);
       handleClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to submit review');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to submit review';
+      setError(errorMessage);
+      onError?.(errorMessage);
     }
   };
 

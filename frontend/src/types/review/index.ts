@@ -36,6 +36,7 @@ export interface AddReviewModalProps {
   storeName: string;
   existingReview?: Review | null;
   onSuccess: (review?: Review) => void;
+  onError?: (message: string) => void;
 }
 
 export interface CreateReviewInput {
