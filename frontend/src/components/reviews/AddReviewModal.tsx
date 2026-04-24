@@ -3,7 +3,7 @@ import { useMutation } from '@apollo/client/react';
 import { CREATE_REVIEW_MUTATION, UPDATE_REVIEW_MUTATION } from '../../api/graphql/review/review-queries';
 import { StarRating } from './StarRating';
 import { Modal } from '../common/Modal';
-import type { AddReviewModalProps } from '../../types/review';
+import type { AddReviewModalProps, Review } from '../../types/review';
 
 // Inline SVG icons
 const XIcon = ({ className }: { className?: string }) => (
@@ -79,8 +79,10 @@ export function AddReviewModal({ isOpen, onClose, storeId, storeName, existingRe
     setError('');
 
     try {
+      let reviewData: Review | undefined;
+
       if (isEditing && existingReview) {
-        await updateReview({
+        const result = await updateReview({
           variables: {
             id: existingReview.id,
             input: {
@@ -91,8 +93,9 @@ export function AddReviewModal({ isOpen, onClose, storeId, storeName, existingRe
             },
           },
         });
+        reviewData = (result.data as { updateReview?: { data?: Review } } | undefined)?.updateReview?.data;
       } else {
-        await createReview({
+        const result = await createReview({
           variables: {
             input: {
               storeId,
@@ -102,9 +105,10 @@ export function AddReviewModal({ isOpen, onClose, storeId, storeName, existingRe
             },
           },
         });
+        reviewData = (result.data as { createReview?: { data?: Review } } | undefined)?.createReview?.data;
       }
 
-      onSuccess();
+      onSuccess(reviewData);
       handleClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to submit review');

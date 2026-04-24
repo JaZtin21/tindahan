@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { useDispatch } from 'react-redux';
 import { useMutation } from '@apollo/client/react';
 import { clearSideNavContent } from '../../store';
@@ -38,7 +38,25 @@ export function SideNav({ isOpen, onClose, selectedLocation }: SideNavProps) {
   // Delete confirmation modal state
   const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; review: Review | null }>({ isOpen: false, review: null });
   
+  // Store ref to reviews cache actions
+  const reviewsCacheRef = useRef<{
+    refetchReviews: () => void;
+    refetchStats: () => void;
+    addReviewToCache: (review: Review) => void;
+    removeReviewFromCache: (reviewId: string) => void;
+  } | null>(null);
+  
   const [deleteReview] = useMutation(DELETE_REVIEW_MUTATION);
+
+  // Handle reviews change - store cache actions
+  const handleReviewsChange = useCallback((actions: {
+    refetchReviews: () => void;
+    refetchStats: () => void;
+    addReviewToCache: (review: Review) => void;
+    removeReviewFromCache: (reviewId: string) => void;
+  }) => {
+    reviewsCacheRef.current = actions;
+  }, []);
 
   // Reset to about tab when location changes
   useEffect(() => {
@@ -248,6 +266,7 @@ export function SideNav({ isOpen, onClose, selectedLocation }: SideNavProps) {
                     storeId={selectedLocation.storeId!}
                     onAddReview={handleAddReview}
                     onEditReview={handleEditReview}
+                    onReviewsChange={handleReviewsChange}
                   />
                 )}
 
@@ -282,8 +301,19 @@ export function SideNav({ isOpen, onClose, selectedLocation }: SideNavProps) {
           storeId={selectedLocation.storeId}
           storeName={selectedLocation.name}
           existingReview={editingReview}
-          onSuccess={() => {
-            // Refetch reviews will happen automatically via Apollo cache
+          onSuccess={(review?: Review) => {
+            // Update cache directly without refetching the list
+            if (review && reviewsCacheRef.current) {
+              if (editingReview) {
+                // For edits, refetch to get updated data
+                reviewsCacheRef.current.refetchReviews();
+              } else {
+                // For new reviews, add directly to cache
+                reviewsCacheRef.current.addReviewToCache(review);
+              }
+              // Always refetch stats to update averages
+              reviewsCacheRef.current.refetchStats();
+            }
           }}
         />
       )}
@@ -300,6 +330,12 @@ export function SideNav({ isOpen, onClose, selectedLocation }: SideNavProps) {
           if (deleteModal.review) {
             try {
               await deleteReview({ variables: { id: deleteModal.review.id } });
+              // Remove from cache directly without refetching the list
+              if (reviewsCacheRef.current) {
+                reviewsCacheRef.current.removeReviewFromCache(deleteModal.review.id);
+                // Refetch stats to update averages
+                reviewsCacheRef.current.refetchStats();
+              }
               setDeleteModal({ isOpen: false, review: null });
             } catch (error) {
               console.error('Failed to delete review:', error);

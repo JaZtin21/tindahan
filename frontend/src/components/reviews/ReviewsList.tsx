@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@apollo/client/react';
+import { gql } from '@apollo/client';
 import type { Review, ReviewStats } from '../../types/review';
 import { REVIEWS_BY_STORE_QUERY, REVIEW_STATS_QUERY } from '../../api/graphql/review/review-queries';
 import { StarRating } from './StarRating';
@@ -12,32 +13,114 @@ interface ReviewsListProps {
   storeId: string;
   onAddReview: () => void;
   onEditReview: (review: Review) => void;
+  onReviewsChange?: (actions: {
+    refetchReviews: () => void;
+    refetchStats: () => void;
+    addReviewToCache: (review: Review) => void;
+    removeReviewFromCache: (reviewId: string) => void;
+  }) => void;
 }
 
-export function ReviewsList({ storeId, onAddReview, onEditReview }: ReviewsListProps) {
+export function ReviewsList({ storeId, onAddReview, onEditReview, onReviewsChange }: ReviewsListProps) {
   const { isAuthenticated, user } = useAuth();
   const currentUser = useSelector((state: RootState) => state.user);
   const [page, setPage] = useState(1);
   const limit = 5;
 
   // Fetch reviews
-  const { data: reviewsData, loading: reviewsLoading } = useQuery(REVIEWS_BY_STORE_QUERY, {
+  const { data: reviewsData, loading: reviewsLoading, refetch: refetchReviews, client } = useQuery(REVIEWS_BY_STORE_QUERY, {
     variables: { storeId, page, limit },
     skip: !storeId,
     fetchPolicy: 'network-only',
   });
 
   // Fetch review stats
-  const { data: statsData } = useQuery(REVIEW_STATS_QUERY, {
+  const { data: statsData, refetch: refetchStats } = useQuery(REVIEW_STATS_QUERY, {
     variables: { storeId },
     skip: !storeId,
     fetchPolicy: 'network-only',
   });
 
-  const reviews: Review[] = reviewsData?.reviewsByStore?.data || [];
-  const stats: ReviewStats | null = statsData?.reviewStats || null;
-  const hasMore = reviewsData?.reviewsByStore?.hasMore || false;
-  const total = reviewsData?.reviewsByStore?.total || 0;
+  // Expose cache update functions to parent
+  const addReviewToCache = (review: Review) => {
+    client.cache.modify({
+      fields: {
+        reviewsByStore(existing: unknown) {
+          const existingData = (existing as { data?: Array<{ __ref: string }>; total?: number } || {}).data || [];
+          const newReviewRef = client.cache.writeFragment({
+            data: review,
+            fragment: gql`
+              fragment NewReview on Review {
+                id
+                storeId
+                userId
+                user {
+                  id
+                  name
+                  profilePhoto
+                }
+                rating
+                text
+                photos
+                createdAt
+                updatedAt
+              }
+            `,
+          });
+          return {
+            ...(existing as object),
+            data: [newReviewRef, ...existingData],
+            total: ((existing as { total?: number })?.total || 0) + 1,
+          };
+        },
+      },
+    });
+  };
+
+  const removeReviewFromCache = (reviewId: string) => {
+    client.cache.modify({
+      fields: {
+        reviewsByStore(existing: unknown) {
+          const existingData = (existing as { data?: Array<{ __ref: string }>; total?: number } || {}).data || [];
+          return {
+            ...(existing as object),
+            data: existingData.filter((ref: { __ref: string }) => {
+              const id = ref.__ref?.replace('Review:', '');
+              return id !== reviewId;
+            }),
+            total: Math.max(((existing as { total?: number })?.total || 0) - 1, 0),
+          };
+        },
+      },
+    });
+  };
+
+  // Register callbacks with parent
+  useEffect(() => {
+    onReviewsChange?.({
+      refetchReviews,
+      refetchStats,
+      addReviewToCache,
+      removeReviewFromCache,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Update callbacks when refetch functions change
+  useEffect(() => {
+    onReviewsChange?.({
+      refetchReviews,
+      refetchStats,
+      addReviewToCache,
+      removeReviewFromCache,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refetchReviews, refetchStats]);
+
+  const reviews: Review[] = (reviewsData as { reviewsByStore?: { data?: Review[] } } | undefined)?.reviewsByStore?.data || [];
+  const stats: ReviewStats | null = (statsData as { reviewStats?: ReviewStats } | undefined)?.reviewStats || null;
+  const hasMore = (reviewsData as { reviewsByStore?: { hasMore?: boolean } } | undefined)?.reviewsByStore?.hasMore || false;
+  const total = (reviewsData as { reviewsByStore?: { total?: number } } | undefined)?.reviewsByStore?.total || 0;
 
   // Check if user has already reviewed
   const myReview = reviews.find(r => r.userId === currentUser?.id);
