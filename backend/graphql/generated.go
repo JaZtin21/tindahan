@@ -14727,7 +14727,7 @@ func (ec *executionContext) unmarshalInputUpdateReviewInput(ctx context.Context,
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"rating", "text", "photos"}
+	fieldsInOrder := [...]string{"rating", "text", "photos", "newPhotos"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -14755,6 +14755,13 @@ func (ec *executionContext) unmarshalInputUpdateReviewInput(ctx context.Context,
 				return it, err
 			}
 			it.Photos = data
+		case "newPhotos":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("newPhotos"))
+			data, err := ec.unmarshalOUpload2ᚕᚖgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚐUploadᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.NewPhotos = data
 		}
 	}
 	return it, nil

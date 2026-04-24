@@ -1,28 +1,31 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, type ChangeEvent } from 'react';
 import { useMutation } from '@apollo/client/react';
 import { CREATE_REVIEW_MUTATION, UPDATE_REVIEW_MUTATION } from '../../api/graphql/review/review-queries';
 import { StarRating } from './StarRating';
-import type { Review } from '../../types/review';
+import type { AddReviewModalProps } from '../../types/review';
 
-interface AddReviewModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  storeId: string;
-  storeName: string;
-  existingReview?: Review | null;
-  onSuccess: () => void;
-}
+// Inline SVG icons
+const XIcon = ({ className }: { className?: string }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+  </svg>
+);
+
+const ImageIcon = ({ className }: { className?: string }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+  </svg>
+);
 
 export function AddReviewModal({ isOpen, onClose, storeId, storeName, existingReview, onSuccess }: AddReviewModalProps) {
   const [rating, setRating] = useState(existingReview?.rating || 0);
   const [text, setText] = useState(existingReview?.text || '');
-  // Store existing URLs as strings, new uploads as File objects
-  const [photoFiles, setPhotoFiles] = useState<File[]>([]);
-  const [photoPreviews, setPhotoPreviews] = useState<string[]>(existingReview?.photos || []);
+  // Track existing URLs separately from new files
+  const [existingPhotos, setExistingPhotos] = useState<string[]>(existingReview?.photos || []);
+  const [newFiles, setNewFiles] = useState<File[]>([]);
+  const [newPreviews, setNewPreviews] = useState<string[]>([]);
   const [error, setError] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  console.log( 'hello')
 
   const isEditing = !!existingReview;
 
@@ -31,36 +34,42 @@ export function AddReviewModal({ isOpen, onClose, storeId, storeName, existingRe
 
   const loading = creating || updating;
 
-  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
+  // Combined previews for display
+  const allPreviews = [...existingPhotos, ...newPreviews];
 
-    // Limit to 5 photos total
-    const remainingSlots = 5 - photoFiles.length;
+  if (!isOpen) return null;
+
+  const handlePhotoSelect = (e: ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+
+    const remainingSlots = 5 - allPreviews.length;
     if (remainingSlots <= 0) {
       setError('Maximum 5 photos allowed');
       return;
     }
 
-    const newFiles = Array.from(files).slice(0, remainingSlots);
-    const newPreviews = newFiles.map(file => URL.createObjectURL(file));
+    const filesArray = Array.from(files).slice(0, remainingSlots);
+    const previews = filesArray.map(file => URL.createObjectURL(file));
 
-    setPhotoFiles(prev => [...prev, ...newFiles]);
-    setPhotoPreviews(prev => [...prev, ...newPreviews]);
+    setNewFiles(prev => [...prev, ...filesArray]);
+    setNewPreviews(prev => [...prev, ...previews]);
   };
 
-  const handleRemovePhoto = (index: number) => {
-    // Revoke object URL if it's a new file
-    if (index >= (existingReview?.photos?.length || 0)) {
-      URL.revokeObjectURL(photoPreviews[index]);
+  const removePhoto = (index: number) => {
+    if (index < existingPhotos.length) {
+      // Removing an existing photo
+      setExistingPhotos(prev => prev.filter((_, i) => i !== index));
+    } else {
+      // Removing a new file
+      const newIndex = index - existingPhotos.length;
+      URL.revokeObjectURL(newPreviews[newIndex]);
+      setNewFiles(prev => prev.filter((_, i) => i !== newIndex));
+      setNewPreviews(prev => prev.filter((_, i) => i !== newIndex));
     }
-    setPhotoFiles(prev => prev.filter((_, i) => i !== index));
-    setPhotoPreviews(prev => prev.filter((_, i) => i !== index));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
+  const handleSubmit = async () => {
     if (rating === 0) {
       setError('Please select a rating');
       return;
@@ -70,82 +79,53 @@ export function AddReviewModal({ isOpen, onClose, storeId, storeName, existingRe
 
     try {
       if (isEditing && existingReview) {
-        // For updates: Upload new files via REST first, then send all URLs
-        const existingUrls = existingReview?.photos || [];
-        let newUrls: string[] = [];
-
-        // Upload new files via REST endpoint
-        if (photoFiles.length > 0) {
-          const uploadPromises = photoFiles.map(async (file) => {
-            const formData = new FormData();
-            formData.append('file', file);
-
-            const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8080'}/api/upload/review-photo`, {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${localStorage.getItem('token')}`,
-              },
-              body: formData,
-            });
-
-            if (!response.ok) throw new Error('Upload failed');
-            const data = await response.json();
-            return data.url;
-          });
-
-          newUrls = await Promise.all(uploadPromises);
-        }
-
-        // Combine existing URLs with newly uploaded URLs
-        const allPhotoUrls = [...existingUrls, ...newUrls];
-
         await updateReview({
           variables: {
             id: existingReview.id,
             input: {
               rating,
               text: text || undefined,
-              photos: allPhotoUrls,
+              photos: existingPhotos,
+              newPhotos: newFiles,
             },
           },
         });
       } else {
-        // For creates: Use GraphQL multipart upload directly
         await createReview({
           variables: {
             input: {
               storeId,
               rating,
               text: text || undefined,
-              photos: photoFiles,
+              photos: newFiles,
             },
           },
         });
       }
 
       onSuccess();
-      onClose();
-      // Reset form and cleanup previews
-      photoPreviews.forEach(url => {
-        if (url.startsWith('blob:')) {
-          URL.revokeObjectURL(url);
-        }
-      });
-      setRating(0);
-      setText('');
-      setPhotoFiles([]);
-      setPhotoPreviews([]);
+      handleClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to submit review');
     }
   };
 
-  if (!isOpen) return null;
+  const handleClose = () => {
+    // Revoke only new file blob URLs
+    newPreviews.forEach(url => URL.revokeObjectURL(url));
+    setRating(0);
+    setText('');
+    setExistingPhotos([]);
+    setNewFiles([]);
+    setNewPreviews([]);
+    setError('');
+    onClose();
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={handleClose} />
 
       {/* Modal */}
       <div className="relative bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
@@ -158,17 +138,15 @@ export function AddReviewModal({ isOpen, onClose, storeId, storeName, existingRe
             <p className="text-sm text-zinc-500 dark:text-zinc-400">for {storeName}</p>
           </div>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="p-2 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
           >
-            <svg className="w-5 h-5 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            <XIcon className="w-5 h-5 text-zinc-500 dark:text-zinc-400" />
           </button>
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+        <div className="p-6 space-y-5">
           {error && (
             <div className="p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg text-sm">
               {error}
@@ -221,10 +199,10 @@ export function AddReviewModal({ isOpen, onClose, storeId, storeName, existingRe
             </label>
             
             {/* Photo Gallery */}
-            {photoPreviews.length > 0 && (
+            {allPreviews.length > 0 && (
               <div className="mb-3">
                 <div className="flex flex-wrap gap-2">
-                  {photoPreviews.map((photo, index) => (
+                  {allPreviews.map((photo, index) => (
                     <div key={index} className="relative">
                       <img
                         src={photo}
@@ -233,10 +211,10 @@ export function AddReviewModal({ isOpen, onClose, storeId, storeName, existingRe
                       />
                       <button
                         type="button"
-                        onClick={() => handleRemovePhoto(index)}
+                        onClick={() => removePhoto(index)}
                         className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600"
                       >
-                        ×
+                        <XIcon className="w-4 h-4" />
                       </button>
                     </div>
                   ))}
@@ -252,7 +230,7 @@ export function AddReviewModal({ isOpen, onClose, storeId, storeName, existingRe
                 accept="image/*"
                 multiple
                 onChange={handlePhotoSelect}
-                disabled={loading || photoPreviews.length >= 5}
+                disabled={loading || allPreviews.length >= 5}
                 className="hidden"
               />
               {loading ? (
@@ -265,9 +243,7 @@ export function AddReviewModal({ isOpen, onClose, storeId, storeName, existingRe
                 </>
               ) : (
                 <>
-                  <svg className="w-5 h-5 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
+                  <ImageIcon className="w-5 h-5 text-zinc-500" />
                   <span className="text-zinc-600 dark:text-zinc-400 font-medium">Add Photos</span>
                 </>
               )}
@@ -279,20 +255,21 @@ export function AddReviewModal({ isOpen, onClose, storeId, storeName, existingRe
           <div className="flex gap-3 pt-2">
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleClose}
               className="flex-1 py-2.5 px-4 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 font-medium rounded-lg transition-colors"
             >
               Cancel
             </button>
             <button
-              type="submit"
+              type="button"
+              onClick={handleSubmit}
               disabled={loading || rating === 0}
               className="flex-1 py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 disabled:bg-zinc-400 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors"
             >
               {loading ? 'Submitting...' : isEditing ? 'Update Review' : 'Post Review'}
             </button>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   );

@@ -271,6 +271,5 @@ func SetupUploadRoutes(router *gin.Engine, env *bootstrap.Env, userRepo reposito
 	{
 		api.POST("/upload/profile-photo", handler.UploadProfilePhoto)
 		api.POST("/upload/cover-photo", handler.UploadCoverPhoto)
-		api.POST("/upload/review-photo", handler.UploadReviewPhoto)
 	}
 }

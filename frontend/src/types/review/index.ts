@@ -29,6 +29,15 @@ export interface ReviewStats {
   oneStar: number;
 }
 
+export interface AddReviewModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  storeId: string;
+  storeName: string;
+  existingReview?: Review | null;
+  onSuccess: () => void;
+}
+
 export interface CreateReviewInput {
   storeId: string;
   rating: number;

@@ -447,9 +447,10 @@ type UpdateProfileInput struct {
 }
 
 type UpdateReviewInput struct {
-	Rating *int     `json:"rating,omitempty"`
-	Text   *string  `json:"text,omitempty"`
-	Photos []string `json:"photos,omitempty"`
+	Rating    *int              `json:"rating,omitempty"`
+	Text      *string           `json:"text,omitempty"`
+	Photos    []string          `json:"photos,omitempty"`
+	NewPhotos []*graphql.Upload `json:"newPhotos,omitempty"`
 }
 
 type UpdateShopInput struct {

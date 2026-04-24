@@ -60,4 +60,5 @@ input UpdateReviewInput {
   rating: Int
   text: String
   photos: [String!]
+  newPhotos: [Upload!]
 }

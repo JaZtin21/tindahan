@@ -3288,8 +3288,49 @@ func (r *mutationResolver) UpdateReview(ctx context.Context, id string, input Up
 	if input.Text != nil {
 		inputMap["text"] = *input.Text
 	}
+
+	// Handle photos - combine existing URLs with new uploads
+	var photoURLs []string
+
+	// Add existing photo URLs
 	if input.Photos != nil {
-		inputMap["photos"] = input.Photos
+		photoURLs = append(photoURLs, input.Photos...)
+	}
+
+	// Upload new photos
+	if input.NewPhotos != nil && len(input.NewPhotos) > 0 {
+		env := bootstrap.LoadEnv()
+		uploader, err := imageutil.NewImageUploader(
+			env.CloudinaryCloudName,
+			env.CloudinaryAPIKey,
+			env.CloudinaryAPISecret,
+			env.CloudinaryFolder,
+		)
+		if err != nil {
+			return &ReviewPayload{
+				Success: false,
+				Message: "Failed to initialize image uploader: " + err.Error(),
+			}, nil
+		}
+		uploadFolder := env.CloudinaryFolder + "/" + userID + "/reviews"
+		userUploader := uploader.WithFolder(uploadFolder)
+
+		for _, upload := range input.NewPhotos {
+			if upload != nil {
+				result, err := userUploader.UploadImage(ctx, upload.File, upload.Filename)
+				if err != nil {
+					return &ReviewPayload{
+						Success: false,
+						Message: "Failed to upload image: " + err.Error(),
+					}, nil
+				}
+				photoURLs = append(photoURLs, result.URL)
+			}
+		}
+	}
+
+	if len(photoURLs) > 0 {
+		inputMap["photos"] = photoURLs
 	}
 
 	result, err := r.reviewResolver.UpdateReview(ctx, userID, id, inputMap)
