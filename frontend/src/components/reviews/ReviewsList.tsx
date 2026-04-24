@@ -147,7 +147,9 @@ export function ReviewsList({ storeId, onAddReview, onEditReview }: ReviewsListP
                 review={review}
                 isMyReview={review.userId === currentUser?.id}
                 onEdit={() => onEditReview(review)}
-                onDelete={() => {/* Handle delete */}}
+                onDelete={() => {
+                  window.dispatchEvent(new CustomEvent('deleteReview', { detail: review }));
+                }}
               />
             ))}
 

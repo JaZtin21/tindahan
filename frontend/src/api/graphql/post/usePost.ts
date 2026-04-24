@@ -122,8 +122,16 @@ export const useCreatePost = () => {
   return useMutation(CREATE_POST_MUTATION);
 };
 
+interface UpdatePostResponse {
+  updatePost: {
+    success: boolean;
+    message: string;
+    data: Post;
+  };
+}
+
 export const useUpdatePost = () => {
-  return useMutation(UPDATE_POST_MUTATION);
+  return useMutation<UpdatePostResponse>(UPDATE_POST_MUTATION);
 };
 
 export const useDeletePost = () => {

@@ -2,6 +2,7 @@ import { useState, useRef, type ChangeEvent } from 'react';
 import { useMutation } from '@apollo/client/react';
 import { CREATE_REVIEW_MUTATION, UPDATE_REVIEW_MUTATION } from '../../api/graphql/review/review-queries';
 import { StarRating } from './StarRating';
+import { Modal } from '../common/Modal';
 import type { AddReviewModalProps } from '../../types/review';
 
 // Inline SVG icons
@@ -123,30 +124,14 @@ export function AddReviewModal({ isOpen, onClose, storeId, storeName, existingRe
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={handleClose} />
-
-      {/* Modal */}
-      <div className="relative bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-zinc-100 dark:border-zinc-800">
-          <div>
-            <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">
-              {isEditing ? 'Edit Your Review' : 'Write a Review'}
-            </h2>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400">for {storeName}</p>
-          </div>
-          <button
-            onClick={handleClose}
-            className="p-2 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-          >
-            <XIcon className="w-5 h-5 text-zinc-500 dark:text-zinc-400" />
-          </button>
-        </div>
-
-        {/* Form */}
-        <div className="p-6 space-y-5">
+    <Modal
+      isOpen={isOpen}
+      onClose={handleClose}
+      title={isEditing ? 'Edit Your Review' : 'Write a Review'}
+      subtitle={`for ${storeName}`}
+      maxWidth="md"
+    >
+      <div className="space-y-5">
           {error && (
             <div className="p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg text-sm">
               {error}
@@ -251,26 +236,25 @@ export function AddReviewModal({ isOpen, onClose, storeId, storeName, existingRe
             <p className="text-xs text-zinc-400 mt-1">Max 5 photos, 5MB each</p>
           </div>
 
-          {/* Submit Buttons */}
-          <div className="flex gap-3 pt-2">
-            <button
-              type="button"
-              onClick={handleClose}
-              className="flex-1 py-2.5 px-4 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 font-medium rounded-lg transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={handleSubmit}
-              disabled={loading || rating === 0}
-              className="flex-1 py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 disabled:bg-zinc-400 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors"
-            >
-              {loading ? 'Submitting...' : isEditing ? 'Update Review' : 'Post Review'}
-            </button>
-          </div>
+        {/* Submit Buttons */}
+        <div className="flex gap-3 pt-2">
+          <button
+            type="button"
+            onClick={handleClose}
+            className="flex-1 py-2.5 px-4 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 font-medium rounded-lg transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleSubmit}
+            disabled={loading || rating === 0}
+            className="flex-1 py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 disabled:bg-zinc-400 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors"
+          >
+            {loading ? 'Submitting...' : isEditing ? 'Update Review' : 'Post Review'}
+          </button>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }

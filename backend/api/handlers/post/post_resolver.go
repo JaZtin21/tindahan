@@ -4,9 +4,12 @@ import (
 	"context"
 	"time"
 
+	"tindahan-backend/bootstrap"
 	"tindahan-backend/domain"
+	"tindahan-backend/internal/imageutil"
 	"tindahan-backend/repository"
 
+	"github.com/99designs/gqlgen/graphql"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -217,7 +220,7 @@ func (r *PostResolver) GetPostsNearLocation(ctx context.Context, lat, lng, radiu
 }
 
 // UpdatePost updates an existing post
-func (r *PostResolver) UpdatePost(ctx context.Context, postID, authorID string, title *string, text *string, photos []string, types []string, location *domain.PostLocation) (map[string]interface{}, error) {
+func (r *PostResolver) UpdatePost(ctx context.Context, postID, authorID string, title *string, text *string, photos []string, newPhotos []*graphql.Upload, types []string, location *domain.PostLocation) (map[string]interface{}, error) {
 	postObjectID, err := primitive.ObjectIDFromHex(postID)
 	if err != nil {
 		return map[string]interface{}{
@@ -243,6 +246,38 @@ func (r *PostResolver) UpdatePost(ctx context.Context, postID, authorID string, 
 		}, nil
 	}
 
+	// Upload new photos to Cloudinary if provided
+	allPhotos := photos
+	if len(newPhotos) > 0 {
+		env := bootstrap.LoadEnv()
+		uploader, err := imageutil.NewImageUploader(
+			env.CloudinaryCloudName,
+			env.CloudinaryAPIKey,
+			env.CloudinaryAPISecret,
+			env.CloudinaryFolder,
+		)
+		if err != nil {
+			return map[string]interface{}{
+				"success": false,
+				"message": "Failed to initialize image uploader: " + err.Error(),
+			}, nil
+		}
+
+		// Upload to user-specific posts folder
+		uploadFolder := env.CloudinaryFolder + "/" + authorID + "/posts"
+		userUploader := uploader.WithFolder(uploadFolder)
+
+		for _, upload := range newPhotos {
+			if upload != nil && upload.File != nil {
+				result, err := userUploader.UploadImage(ctx, upload.File, upload.Filename)
+				if err != nil {
+					continue // Skip this file on error
+				}
+				allPhotos = append(allPhotos, result.URL)
+			}
+		}
+	}
+
 	// Build update document
 	updates := bson.M{}
 	if title != nil {
@@ -251,8 +286,8 @@ func (r *PostResolver) UpdatePost(ctx context.Context, postID, authorID string, 
 	if text != nil {
 		updates["text"] = *text
 	}
-	if photos != nil {
-		updates["photos"] = photos
+	if photos != nil || len(newPhotos) > 0 {
+		updates["photos"] = allPhotos
 	}
 	if types != nil {
 		updates["types"] = types

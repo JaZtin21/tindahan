@@ -13,7 +13,11 @@ import {
   useUnfollowUser,
 } from '../../hooks'
 import { useMyPosts, useGetUserPosts } from '../../api/graphql/post/usePost'
+import { DELETE_POST_MUTATION } from '../../api/graphql/post/post-queries'
 import { Modal } from '../../components'
+import { useMutation } from '@apollo/client/react'
+import { EditPostModal } from '../../components/posts/EditPostModal'
+import type { Post } from '../../types/map'
 import {
   CoverPhotoSection,
   ProfileInfoSection,
@@ -43,8 +47,8 @@ export function ProfilePage() {
   const profileData = isOwnProfile ? meData?.me?.data : userData?.user
   const profileLoading = isOwnProfile ? meLoading : userLoading
 
-  const { data: myPostsData, loading: myPostsLoading } = useMyPosts(1, 10, !isAuthenticated || !isOwnProfile)
-  const { data: userPostsData, loading: userPostsLoading } = useGetUserPosts(targetUserId || null, 1, 10, isOwnProfile || !targetUserId)
+  const { data: myPostsData, loading: myPostsLoading} = useMyPosts(1, 10, !isAuthenticated || !isOwnProfile)
+  const { data: userPostsData, loading: userPostsLoading} = useGetUserPosts(targetUserId || null, 1, 10, isOwnProfile || !targetUserId)
   const { updateProfile, loading: updating } = useUpdateProfile()
   const { uploadProfilePhoto, loading: uploadingProfile } = useUploadProfilePhoto()
   const { uploadCoverPhoto, loading: uploadingCover } = useUploadCoverPhoto()
@@ -61,6 +65,15 @@ export function ProfilePage() {
   })
 
   const [coverImgError, setCoverImgError] = useState(false)
+
+  // Edit post modal state
+  const [postToEdit, setPostToEdit] = useState<Post | null>(null)
+  const [isEditPostOpen, setIsEditPostOpen] = useState(false)
+  
+  // Delete confirmation modal state
+  const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; post: Post | null }>({ isOpen: false, post: null })
+  
+  const [deletePost] = useMutation(DELETE_POST_MUTATION)
 
   // Modal state for success/error messages
   const [modal, setModal] = useState<{
@@ -79,6 +92,16 @@ export function ProfilePage() {
     ? myPostsData?.myPosts?.data || [] 
     : userPostsData?.userPosts?.data || []
 
+  // Handle edit post
+  const handleEditPost = (post: Post) => {
+    setPostToEdit(post)
+    setIsEditPostOpen(true)
+  }
+
+  // Handle delete post
+  const handleDeletePost = (post: Post) => {
+    setDeleteModal({ isOpen: true, post })
+  }
 
   const handleEditClick = () => {
     if (profileData) {
@@ -250,6 +273,9 @@ export function ProfilePage() {
         posts={posts}
         postsLoading={isOwnProfile ? myPostsLoading : userPostsLoading}
         profilePhoto={profileData?.profilePhoto}
+        isMyPosts={isOwnProfile}
+        onEditPost={handleEditPost}
+        onDeletePost={handleDeletePost}
       />
 
       {isOwnProfile && (
@@ -262,6 +288,62 @@ export function ProfilePage() {
           onChange={setEditForm}
         />
       )}
+
+      {/* Edit Post Modal */}
+      <EditPostModal
+        post={postToEdit}
+        isOpen={isEditPostOpen}
+        onClose={() => setIsEditPostOpen(false)}
+        onSuccess={() => {
+          // Refetch posts after edit (not user data to avoid scroll)
+
+        }}
+      />
+
+      {/* Delete Post Confirmation Modal */}
+      <Modal
+        isOpen={deleteModal.isOpen}
+        onClose={() => setDeleteModal({ isOpen: false, post: null })}
+        title="Delete Post"
+        message="Are you sure you want to delete this post? This action cannot be undone."
+        type="error"
+        showCancel
+        onConfirm={async () => {
+          if (deleteModal.post) {
+            try {
+              await deletePost({ 
+                variables: { id: deleteModal.post.id },
+                update: (cache) => {
+                  // Remove the post from the cache without refetching
+                  cache.modify({
+                    fields: {
+                      myPosts(existingPosts = {}) {
+                        if (!existingPosts.data) return existingPosts
+                        return {
+                          ...existingPosts,
+                          data: existingPosts.data.filter((p: any) => p.__ref !== `Post:${deleteModal.post!.id}` && p.id !== deleteModal.post!.id),
+                          total: Math.max(0, (existingPosts.total || 0) - 1)
+                        }
+                      },
+                      userPosts(existingPosts = {}) {
+                        if (!existingPosts.data) return existingPosts
+                        return {
+                          ...existingPosts,
+                          data: existingPosts.data.filter((p: any) => p.__ref !== `Post:${deleteModal.post!.id}` && p.id !== deleteModal.post!.id),
+                          total: Math.max(0, (existingPosts.total || 0) - 1)
+                        }
+                      }
+                    }
+                  })
+                }
+              })
+              setDeleteModal({ isOpen: false, post: null })
+            } catch (error) {
+              console.error('Failed to delete post:', error)
+            }
+          }
+        }}
+      />
 
       <Modal
         isOpen={modal.isOpen}

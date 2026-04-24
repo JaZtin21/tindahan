@@ -370,7 +370,7 @@ func (r *mutationResolver) UpdatePost(ctx context.Context, id string, input Upda
 		}
 	}
 
-	result, err := r.postResolver.UpdatePost(ctx, id, userID, input.Title, input.Text, input.Photos, input.Types, location)
+	result, err := r.postResolver.UpdatePost(ctx, id, userID, input.Title, input.Text, input.Photos, input.NewPhotos, input.Types, location)
 	if err != nil {
 		return &PostPayload{
 			Success: false,

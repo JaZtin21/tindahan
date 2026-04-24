@@ -6,7 +6,7 @@ import type { UseMapPostsOptions, Post } from '../../types/map';
 const POST_DISPLAY_DURATION = 3000;
 const GAP_BETWEEN_POSTS = 500;
 
-export function useMapPosts({ postsData, livePosts, pausedClusters = new Set() }: UseMapPostsOptions) {
+export function useMapPosts({ postsData, livePosts, pausedClusters = new Set(), deletedPostIds = new Set() }: UseMapPostsOptions & { deletedPostIds?: Set<string> }) {
   // Cache for posts - stores posts from live subscription or legacy fetch
   const [cachedPosts, setCachedPosts] = useState<Post[]>([]);
 
@@ -24,10 +24,19 @@ export function useMapPosts({ postsData, livePosts, pausedClusters = new Set() }
         newPosts.forEach((newPost: Post) => {
           existingPostsMap.set(newPost.id, newPost);
         });
+        // Remove deleted posts
+        deletedPostIds.forEach(id => existingPostsMap.delete(id));
         return Array.from(existingPostsMap.values());
       });
     }
   }, [livePosts, postsData]);
+
+  // Remove deleted posts when deletedPostIds changes
+  useEffect(() => {
+    if (deletedPostIds.size > 0) {
+      setCachedPosts(prevPosts => prevPosts.filter(p => !deletedPostIds.has(p.id)));
+    }
+  }, [deletedPostIds]);
 
   // Group posts into clusters ONLY when posts change (NOT on zoom)
   useEffect(() => {

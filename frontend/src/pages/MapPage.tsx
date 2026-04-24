@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useDispatch } from 'react-redux';
-import { useQuery, useSubscription } from '@apollo/client/react';
+import { useQuery, useSubscription, useMutation } from '@apollo/client/react';
 import { OpenStreetMap, SearchBar, LocationSearchBar } from '../components/Map';
 import { openSideNav } from '../store';
 import { CreatePostModal } from '../components/posts/CreatePostModal';
 import { PostPreviewModal } from '../components/posts/PostPreviewModal';
+import { EditPostModal } from '../components/posts/EditPostModal';
+import { Modal } from '../components/Modal';
 import type { Post, Store } from '../types/map';
 import { useCreatePost, usePostsNearLocation } from '../api/graphql/post/usePost';
+import { DELETE_POST_MUTATION } from '../api/graphql/post/post-queries';
 import { SHOPS_BY_PRODUCT_QUERY } from '../api/graphql/shop/shop-queries';
 import { LIVE_POSTS_SUBSCRIPTION } from '../api/graphql/subscriptions/live-posts';
 import { useAuth } from '../api/graphql/apolloProviderWithAuth';
@@ -41,6 +44,14 @@ export function MapPage() {
     }
   }, [livePostsData, livePostsError]);
 
+  // Handle edit post
+  const handleEditPost = (post: Post) => {
+    setPostToEdit(post);
+    setIsEditPostOpen(true);
+    // Keep preview modal open - EditPostModal has higher z-index
+  };
+
+
   // Store states
   const [filteredStores, setFilteredStores] = useState<Store[]>([]);
   const [productSearchStores, setProductSearchStores] = useState<Store[]>([]);
@@ -58,6 +69,16 @@ export function MapPage() {
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [isPostPreviewOpen, setIsPostPreviewOpen] = useState(false);
   
+  // Edit post modal state
+  const [postToEdit, setPostToEdit] = useState<Post | null>(null);
+  const [isEditPostOpen, setIsEditPostOpen] = useState(false);
+  
+  // Delete confirmation modal state
+  const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; post: Post | null }>({ isOpen: false, post: null });
+  
+  // Track deleted post IDs to filter from map
+  const [deletedPostIds, setDeletedPostIds] = useState<Set<string>>(new Set());
+  
   // Paused clusters for rotation (when user hovers/clicks a post)
   const [pausedClusters, setPausedClusters] = useState<Set<string>>(new Set());
   const [isLocating, setIsLocating] = useState(false); // Loading state for My Location button
@@ -69,6 +90,7 @@ export function MapPage() {
   });
 
   const [createPost, { loading: isCreatingPost }] = useCreatePost();
+  const [deletePost] = useMutation(DELETE_POST_MUTATION);
 
   // Lazy query for fetching posts - does NOT auto-fetch on mount
   const [fetchPosts, { data: postsData, loading: postsLoading }] = usePostsNearLocation();
@@ -89,7 +111,7 @@ export function MapPage() {
   const { 
     clusterRotations, 
     groupedPostClusters 
-  } = useMapPosts({ livePosts, pausedClusters });
+  } = useMapPosts({ livePosts, pausedClusters, deletedPostIds });
 
   const { allMarkers } = useMapMarkers({
     filteredStores,
@@ -236,6 +258,25 @@ export function MapPage() {
         post={selectedPost!}
         isOpen={isPostPreviewOpen}
         onClose={handleClosePostPreview}
+        onEdit={handleEditPost}
+        onDelete={(post) => setDeleteModal({ isOpen: true, post })}
+      />
+
+      {/* Edit Post Modal */}
+      <EditPostModal
+        post={postToEdit}
+        isOpen={isEditPostOpen}
+        onClose={() => setIsEditPostOpen(false)}
+        onSuccess={(updatedPost) => {
+          // Update selected post in preview modal if it matches
+          if (updatedPost && selectedPost?.id === updatedPost.id) {
+            setSelectedPost(updatedPost);
+          }
+          // Update postToEdit to reflect changes
+          if (updatedPost && postToEdit?.id === updatedPost.id) {
+            setPostToEdit(updatedPost);
+          }
+        }}
       />
 
       {/* Main Content */}
@@ -260,6 +301,34 @@ export function MapPage() {
         onSubmit={handleCreatePost}
         isSubmitting={isCreatingPost}
         currentLocation={currentLocation}
+      />
+
+      {/* Delete Post Confirmation Modal */}
+      <Modal
+        isOpen={deleteModal.isOpen}
+        onClose={() => setDeleteModal({ isOpen: false, post: null })}
+        title="Delete Post"
+        message="Are you sure you want to delete this post? This action cannot be undone."
+        type="error"
+        showCancel
+        onConfirm={async () => {
+          if (deleteModal.post) {
+            try {
+              await deletePost({ 
+                variables: { id: deleteModal.post.id }
+              });
+              // Add post ID to deleted set to remove from map
+              setDeletedPostIds(prev => new Set([...Array.from(prev), deleteModal.post!.id]));
+              setDeleteModal({ isOpen: false, post: null });
+              // Close post preview if the deleted post was being viewed
+              if (selectedPost?.id === deleteModal.post.id) {
+                handleClosePostPreview();
+              }
+            } catch (error) {
+              console.error('Failed to delete post:', error);
+            }
+          }
+        }}
       />
     </div>
   );

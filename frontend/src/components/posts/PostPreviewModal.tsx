@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { useMutation, useQuery, useLazyQuery } from '@apollo/client/react';
-import type { PostPreviewModalProps, Comment } from '../../types/post';
+import type { PostPreviewModalProps, Comment, Post } from '../../types/post';
 import type { RootState } from '../../store';
 import { PhotoGallery } from '../common/PhotoGallery';
 import {
@@ -13,8 +13,9 @@ import {
   DELETE_COMMENT_MUTATION,
   POST_QUERY,
 } from '../../api/graphql/post/post-queries';
+import { DropdownMenu, DropdownItem } from '../common/Modal';
 
-export function PostPreviewModal({ post, isOpen, onClose }: PostPreviewModalProps) {
+export function PostPreviewModal({ post, isOpen, onClose, onEdit, onDelete }: PostPreviewModalProps & { onEdit?: (post: Post) => void; onDelete?: (post: Post) => void }) {
   const navigate = useNavigate();
   const currentUser = useSelector((state: RootState) => state.user);
   
@@ -38,6 +39,9 @@ export function PostPreviewModal({ post, isOpen, onClose }: PostPreviewModalProp
   const [unlikePost] = useMutation(UNLIKE_POST_MUTATION);
   const [addComment] = useMutation(ADD_COMMENT_MUTATION);
   const [deleteComment] = useMutation(DELETE_COMMENT_MUTATION);
+  
+  // Dropdown menu state
+  const [showMenu, setShowMenu] = useState(false);
   
   // Fetch fresh post details when modal opens (to get correct likes/isLiked)
   const { data: postData } = useQuery(POST_QUERY, {
@@ -286,16 +290,6 @@ export function PostPreviewModal({ post, isOpen, onClose }: PostPreviewModalProp
         className="relative bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Close Button */}
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 p-2 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors z-10"
-        >
-          <svg className="w-5 h-5 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-
         {/* Author Header */}
         <div className="p-6 pb-4 border-b border-zinc-100 dark:border-zinc-800">
           <div className="flex items-center gap-3">
@@ -324,7 +318,8 @@ export function PostPreviewModal({ post, isOpen, onClose }: PostPreviewModalProp
                 {authorInitial}
               </div>
             )}
-            <div>
+            {/* Author Info - takes remaining space */}
+            <div className="flex-1 min-w-0">
               <h3 
                 className={`font-semibold text-zinc-900 dark:text-zinc-100 transition-colors ${
                   isCurrentUser 
@@ -355,6 +350,64 @@ export function PostPreviewModal({ post, isOpen, onClose }: PostPreviewModalProp
                 </button>
               )}
             </div>
+            
+            {/* Action buttons - both on the right side */}
+            {isCurrentUser && (
+              <div className="relative">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowMenu(!showMenu);
+                  }}
+                  className="p-2 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                >
+                  <svg className="w-5 h-5 text-zinc-500 dark:text-zinc-400" fill="currentColor" viewBox="0 0 24 24">
+                    <circle cx="12" cy="6" r="2" />
+                    <circle cx="12" cy="12" r="2" />
+                    <circle cx="12" cy="18" r="2" />
+                  </svg>
+                </button>
+                <DropdownMenu isOpen={showMenu} onClose={() => setShowMenu(false)} align="right">
+                  <DropdownItem
+                    onClick={() => {
+                      setShowMenu(false);
+                      onEdit?.(post);
+                    }}
+                    icon={
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                    }
+                  >
+                    Edit
+                  </DropdownItem>
+                  <DropdownItem
+                    onClick={() => {
+                      setShowMenu(false);
+                      onDelete?.(post);
+                    }}
+                    variant="danger"
+                    icon={
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    }
+                  >
+                    Delete
+                  </DropdownItem>
+                </DropdownMenu>
+              </div>
+            )}
+            
+            {/* Close Button - on the far right */}
+            <button
+              onClick={onClose}
+              className="p-2 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors flex-shrink-0"
+            >
+              <svg className="w-5 h-5 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
           </div>
         </div>
 

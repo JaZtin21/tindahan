@@ -1,8 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useDispatch } from 'react-redux';
+import { useMutation } from '@apollo/client/react';
 import { clearSideNavContent } from '../../store';
 import { ReviewsList } from '../reviews/ReviewsList';
 import { AddReviewModal } from '../reviews/AddReviewModal';
+import { Modal } from '../Modal';
+import { DELETE_REVIEW_MUTATION } from '../../api/graphql/review/review-queries';
 import type { Review } from '../../types/review';
 
 interface SideNavProps {
@@ -31,11 +34,29 @@ export function SideNav({ isOpen, onClose, selectedLocation }: SideNavProps) {
   const [activeTab, setActiveTab] = useState<TabType>('about');
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [editingReview, setEditingReview] = useState<Review | null>(null);
+  
+  // Delete confirmation modal state
+  const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; review: Review | null }>({ isOpen: false, review: null });
+  
+  const [deleteReview] = useMutation(DELETE_REVIEW_MUTATION);
 
   // Reset to about tab when location changes
   useEffect(() => {
     setActiveTab('about');
   }, [selectedLocation?.storeId]);
+  
+  // Listen for delete review events
+  useEffect(() => {
+    const handleDeleteReview = (e: CustomEvent) => {
+      const review = e.detail as Review;
+      setDeleteModal({ isOpen: true, review });
+    };
+    
+    window.addEventListener('deleteReview', handleDeleteReview as EventListener);
+    return () => {
+      window.removeEventListener('deleteReview', handleDeleteReview as EventListener);
+    };
+  }, []);
 
   const handleAddReview = () => {
     setEditingReview(null);
@@ -266,6 +287,26 @@ export function SideNav({ isOpen, onClose, selectedLocation }: SideNavProps) {
           }}
         />
       )}
+      
+      {/* Delete Review Confirmation Modal */}
+      <Modal
+        isOpen={deleteModal.isOpen}
+        onClose={() => setDeleteModal({ isOpen: false, review: null })}
+        title="Delete Review"
+        message="Are you sure you want to delete this review? This action cannot be undone."
+        type="error"
+        showCancel
+        onConfirm={async () => {
+          if (deleteModal.review) {
+            try {
+              await deleteReview({ variables: { id: deleteModal.review.id } });
+              setDeleteModal({ isOpen: false, review: null });
+            } catch (error) {
+              console.error('Failed to delete review:', error);
+            }
+          }
+        }}
+      />
     </>
   );
 }

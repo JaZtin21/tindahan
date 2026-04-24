@@ -1,8 +1,14 @@
 import { Loader2 } from 'lucide-react'
-import type { PostsSectionProps } from '../../types/profile'
+import type { PostsSectionProps, Post } from '../../types/profile'
 import { PostItem } from './PostItem'
 
-export function PostsSection({ posts, postsLoading, profilePhoto }: PostsSectionProps) {
+interface ExtendedPostsSectionProps extends PostsSectionProps {
+  isMyPosts?: boolean;
+  onEditPost?: (post: Post) => void;
+  onDeletePost?: (post: Post) => void;
+}
+
+export function PostsSection({ posts, postsLoading, profilePhoto, isMyPosts, onEditPost, onDeletePost }: ExtendedPostsSectionProps) {
   return (
     <div className="mt-8 px-4 sm:px-6">
       <h2 className="mb-4 text-xl font-bold text-zinc-900 dark:text-white">Posts</h2>
@@ -19,7 +25,14 @@ export function PostsSection({ posts, postsLoading, profilePhoto }: PostsSection
       ) : (
         <div className="space-y-4">
           {posts.map((post) => (
-            <PostItem key={post.id} post={post} profilePhoto={profilePhoto} />
+            <PostItem 
+              key={post.id} 
+              post={post} 
+              profilePhoto={profilePhoto}
+              isMyPost={isMyPosts}
+              onEdit={() => onEditPost?.(post)}
+              onDelete={() => onDeletePost?.(post)}
+            />
           ))}
         </div>
       )}

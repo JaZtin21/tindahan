@@ -432,11 +432,12 @@ type UpdateItemInput struct {
 }
 
 type UpdatePostInput struct {
-	Title    *string        `json:"title,omitempty"`
-	Text     *string        `json:"text,omitempty"`
-	Photos   []string       `json:"photos,omitempty"`
-	Types    []string       `json:"types,omitempty"`
-	Location *LocationInput `json:"location,omitempty"`
+	Title     *string           `json:"title,omitempty"`
+	Text      *string           `json:"text,omitempty"`
+	Photos    []string          `json:"photos,omitempty"`
+	NewPhotos []*graphql.Upload `json:"newPhotos,omitempty"`
+	Types     []string          `json:"types,omitempty"`
+	Location  *LocationInput    `json:"location,omitempty"`
 }
 
 type UpdateProfileInput struct {
