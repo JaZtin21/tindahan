@@ -95,8 +95,8 @@ input CreateShopInput {
   description: String
   location: String!
   coordinates: CoordinatesInput!
-  coverPhoto: String!
-  otherPhotos: [String!]!
+  coverPhoto: Upload
+  otherPhotos: [Upload!]
   businessHours: BusinessHoursInput!
   businessType: BusinessType!
   paymentMethods: PaymentMethodsInput!
@@ -112,7 +112,9 @@ input UpdateShopInput {
   location: String
   coordinates: CoordinatesInput
   coverPhoto: String
+  newCoverPhoto: Upload
   otherPhotos: [String!]
+  newOtherPhotos: [Upload!]
   businessHours: BusinessHoursInput
   businessType: BusinessType
   paymentMethods: PaymentMethodsInput

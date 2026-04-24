@@ -1,8 +1,21 @@
-import { useState } from 'react';
+import { useState, useRef, type ChangeEvent } from 'react';
 import { LocationPicker } from './LocationPicker';
 import type { ShopFormProps, Shop } from '../../types/owner';
 
 const DEFAULT_IMAGE = 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=400';
+
+// Inline SVG icons
+const XIcon = ({ className }: { className?: string }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+  </svg>
+);
+
+const ImageIcon = ({ className }: { className?: string }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+  </svg>
+);
 
 export function ShopForm({ shop, onSaveShop, onCancel }: ShopFormProps) {
   const [formData, setFormData] = useState({
@@ -11,12 +24,21 @@ export function ShopForm({ shop, onSaveShop, onCancel }: ShopFormProps) {
     phone: shop?.contactDetails?.phone || '',
     email: shop?.contactDetails?.email || '',
     address: shop?.contactDetails?.address || '',
-    coverPhoto: shop?.coverPhoto || DEFAULT_IMAGE,
+    coverPhotoUrl: shop?.coverPhoto || DEFAULT_IMAGE,
     coordinates: shop?.coordinates || { lat: 14.5995, lng: 120.9842 },
     openTime: shop?.businessHours?.openTime || '08:00',
     closeTime: shop?.businessHours?.closeTime || '20:00',
     businessDays: shop?.businessHours?.days || ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
   });
+
+  // Cover photo upload state - track existing and new separately like EditPostModal
+  const [existingCoverPhoto, setExistingCoverPhoto] = useState<string>(shop?.coverPhoto || '');
+  const [newCoverFile, setNewCoverFile] = useState<File | null>(null);
+  const [newCoverPreview, setNewCoverPreview] = useState<string>('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Combined preview for display
+  const coverPhotoPreview = newCoverPreview || existingCoverPhoto;
 
   const handleLocationSelect = (coordinates: { lat: number; lng: number }, address: string) => {
     console.log('Location selected in ShopForm:', coordinates, address);
@@ -27,7 +49,40 @@ export function ShopForm({ shop, onSaveShop, onCancel }: ShopFormProps) {
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleCoverPhotoSelect = (e: ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const file = files[0];
+    
+    // Revoke previous preview URL if it was a blob URL
+    if (newCoverPreview && newCoverPreview.startsWith('blob:')) {
+      URL.revokeObjectURL(newCoverPreview);
+    }
+    
+    setNewCoverFile(file);
+    const preview = URL.createObjectURL(file);
+    setNewCoverPreview(preview);
+  };
+
+  const removeCoverPhoto = () => {
+    if (newCoverPreview && newCoverPreview.startsWith('blob:')) {
+      URL.revokeObjectURL(newCoverPreview);
+    }
+    // If there's a new file, remove it
+    if (newCoverFile) {
+      setNewCoverFile(null);
+      setNewCoverPreview('');
+    } else {
+      // Otherwise remove the existing
+      setExistingCoverPhoto('');
+    }
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!formData.name) {
@@ -47,7 +102,7 @@ export function ShopForm({ shop, onSaveShop, onCancel }: ShopFormProps) {
       description: formData.description,
       location: formData.address,
       coordinates: formData.coordinates,
-      coverPhoto: formData.coverPhoto || DEFAULT_IMAGE,
+      coverPhoto: formData.coverPhotoUrl || DEFAULT_IMAGE,
       otherPhotos: shop?.otherPhotos || [],
       contactDetails: {
         phone: formData.phone,
@@ -79,7 +134,9 @@ export function ShopForm({ shop, onSaveShop, onCancel }: ShopFormProps) {
       createdAt: shop?.createdAt || new Date().toISOString()
     };
 
-    onSaveShop(shopData);
+    // Pass both existing URL and new File - upload happens via GraphQL mutation
+    // Like EditPostModal: passes existing photos + new files
+    onSaveShop(shopData, existingCoverPhoto || undefined, newCoverFile || undefined);
   };
 
   return (
@@ -212,40 +269,67 @@ export function ShopForm({ shop, onSaveShop, onCancel }: ShopFormProps) {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-4">
-            <div className="md:col-span-1">
-              <label className="block text-sm font-medium mb-2">Cover Photo URL</label>
-              <input
-                type="url"
-                value={formData.coverPhoto}
-                onChange={(e) => setFormData({...formData, coverPhoto: e.target.value})}
-                className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                placeholder="https://example.com/image.jpg"
-              />
-            </div>
-          </div>
-
-          <div>
-            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-              Leave empty to use default image
-            </p>
-          </div>
-
-          {formData.coverPhoto && (
-            <div>
-              <label className="block text-sm font-medium mb-2">Image Preview</label>
-              <div className="aspect-video rounded-lg overflow-hidden border border-zinc-200 dark:border-zinc-700">
+          {/* Cover Photo Upload */}
+          <div className="border border-zinc-200 dark:border-zinc-700 rounded-lg p-4">
+            <label className="block text-sm font-medium mb-4">Cover Photo</label>
+            
+            {/* Photo preview */}
+            {coverPhotoPreview ? (
+              <div className="relative aspect-video rounded-lg overflow-hidden border border-zinc-200 dark:border-zinc-700 mb-4">
                 <img
-                  src={formData.coverPhoto}
+                  src={coverPhotoPreview}
                   alt="Cover preview"
                   className="w-full h-full object-cover"
                   onError={(e) => {
                     e.currentTarget.src = DEFAULT_IMAGE;
                   }}
                 />
+                <button
+                  type="button"
+                  onClick={removeCoverPhoto}
+                  className="absolute top-2 right-2 p-1.5 bg-black/50 hover:bg-black/70 rounded-full transition-colors"
+                >
+                  <XIcon className="w-4 h-4 text-white" />
+                </button>
               </div>
+            ) : (
+              <div className="aspect-video rounded-lg bg-zinc-100 dark:bg-zinc-800 border-2 border-dashed border-zinc-300 dark:border-zinc-600 flex items-center justify-center mb-4">
+                <div className="text-center">
+                  <ImageIcon className="w-12 h-12 text-zinc-400 mx-auto mb-2" />
+                  <p className="text-sm text-zinc-500 dark:text-zinc-400">No cover photo selected</p>
+                </div>
+              </div>
+            )}
+
+            {/* Upload button */}
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="flex items-center gap-2 px-4 py-2 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-lg hover:bg-emerald-200 dark:hover:bg-emerald-900/50 transition-colors"
+              >
+                <ImageIcon className="w-5 h-5" />
+                <span>{coverPhotoPreview ? 'Change Photo' : 'Upload Photo'}</span>
+              </button>
+              {coverPhotoPreview && (
+                <span className="text-sm text-zinc-500 dark:text-zinc-400">
+                  {newCoverFile ? 'New photo selected' : (existingCoverPhoto ? 'Using existing photo' : '')}
+                </span>
+              )}
             </div>
-          )}
+            
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleCoverPhotoSelect}
+              className="hidden"
+            />
+            
+            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-2">
+              Max 5MB. Recommended aspect ratio: 16:9
+            </p>
+          </div>
 
           <div className="flex gap-4">
             <button

@@ -29,14 +29,89 @@ function convertOwnerShopToShop(ownerShop: OwnerShop): Shop {
   };
 }
 
-function shopToCreateInput(shop: Shop) {
+interface CreateShopInput {
+  name: string;
+  description?: string;
+  location: string;
+  coordinates: { lat: number; lng: number };
+  coverPhoto?: File;
+  otherPhotos?: File[];
+  businessHours: {
+    openTime: string;
+    closeTime: string;
+    days: string[];
+  };
+  businessType: string;
+  paymentMethods: {
+    cash: boolean;
+    gcash: boolean;
+    paymaya: boolean;
+    card: boolean;
+  };
+  delivery: {
+    available: boolean;
+    radius?: number;
+    fee?: number;
+    minOrder?: number;
+  };
+  socialMedia: {
+    facebook?: string;
+    instagram?: string;
+  };
+  contactDetails: {
+    phone: string;
+    email: string;
+    address: string;
+  };
+}
+
+interface UpdateShopInput {
+  name?: string;
+  description?: string;
+  location?: string;
+  coordinates?: { lat: number; lng: number };
+  coverPhoto?: string;
+  newCoverPhoto?: File;
+  otherPhotos?: string[];
+  newOtherPhotos?: File[];
+  businessHours?: {
+    openTime: string;
+    closeTime: string;
+    days: string[];
+  };
+  businessType?: string;
+  paymentMethods?: {
+    cash: boolean;
+    gcash: boolean;
+    paymaya: boolean;
+    card: boolean;
+  };
+  delivery?: {
+    available: boolean;
+    radius?: number;
+    fee?: number;
+    minOrder?: number;
+  };
+  socialMedia?: {
+    facebook?: string;
+    instagram?: string;
+  };
+  contactDetails?: {
+    phone: string;
+    email: string;
+    address: string;
+  };
+  status?: string;
+}
+
+function shopToCreateInput(shop: Shop, coverPhotoFile?: File, otherPhotoFiles?: File[]): CreateShopInput {
   return {
     name: shop.name,
     description: shop.description,
     location: shop.location,
     coordinates: shop.coordinates,
-    coverPhoto: shop.coverPhoto,
-    otherPhotos: shop.otherPhotos,
+    coverPhoto: coverPhotoFile,
+    otherPhotos: otherPhotoFiles,
     businessHours: shop.businessHours,
     businessType: shop.businessType,
     paymentMethods: shop.paymentMethods,
@@ -46,14 +121,16 @@ function shopToCreateInput(shop: Shop) {
   };
 }
 
-function shopToUpdateInput(shop: Shop) {
+function shopToUpdateInput(shop: Shop, existingCoverPhoto?: string, newCoverFile?: File, newOtherPhotoFiles?: File[]): UpdateShopInput {
   return {
     name: shop.name,
     description: shop.description,
     location: shop.location,
     coordinates: shop.coordinates,
-    coverPhoto: shop.coverPhoto,
+    coverPhoto: existingCoverPhoto || shop.coverPhoto,
+    newCoverPhoto: newCoverFile,
     otherPhotos: shop.otherPhotos,
+    newOtherPhotos: newOtherPhotoFiles,
     businessHours: shop.businessHours,
     businessType: shop.businessType,
     paymentMethods: shop.paymentMethods,
@@ -86,10 +163,10 @@ export function useShopManagement({
   const [deleteShopMut] = useMutation(DELETE_SHOP_MUTATION);
 
   const createShop = useCallback(
-    async (shop: Shop): Promise<{ success: boolean; message?: string }> => {
+    async (shop: Shop, _existingCoverPhoto?: string, newCoverFile?: File, otherPhotoFiles?: File[]): Promise<{ success: boolean; message?: string }> => {
       try {
         const result = await createShopMut({
-          variables: { input: shopToCreateInput(shop) },
+          variables: { input: shopToCreateInput(shop, newCoverFile, otherPhotoFiles) },
         });
 
         const response = (result.data as { createShop?: { success: boolean; message?: string } })?.createShop;
@@ -112,12 +189,12 @@ export function useShopManagement({
   );
 
   const updateShop = useCallback(
-    async (shop: Shop): Promise<{ success: boolean; message?: string }> => {
+    async (shop: Shop, existingCoverPhoto?: string, newCoverFile?: File, newOtherPhotoFiles?: File[]): Promise<{ success: boolean; message?: string }> => {
       try {
         const result = await updateShopMut({
           variables: {
             id: shop.id,
-            input: shopToUpdateInput(shop),
+            input: shopToUpdateInput(shop, existingCoverPhoto, newCoverFile, newOtherPhotoFiles),
           },
         });
 

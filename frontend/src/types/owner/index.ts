@@ -68,7 +68,7 @@ export interface ShopCardProps {
 
 export interface ShopFormProps {
   shop?: ShopType | null;
-  onSaveShop: (shop: ShopType) => void;
+  onSaveShop: (shop: ShopType, existingCoverPhoto?: string, newCoverFile?: File) => void;
   onCancel: () => void;
 }
 
@@ -107,8 +107,8 @@ export interface UseShopManagementReturn {
   shops: ShopType[];
   shopsLoading: boolean;
   shopsError: Error | undefined;
-  createShop: (shop: ShopType) => Promise<{ success: boolean; message?: string }>;
-  updateShop: (shop: ShopType) => Promise<{ success: boolean; message?: string }>;
+  createShop: (shop: ShopType, existingCoverPhoto?: string, newCoverFile?: File, otherPhotoFiles?: File[]) => Promise<{ success: boolean; message?: string }>;
+  updateShop: (shop: ShopType, existingCoverPhoto?: string, newCoverFile?: File, newOtherPhotoFiles?: File[]) => Promise<{ success: boolean; message?: string }>;
   deleteShop: (shopId: string) => Promise<{ success: boolean; message?: string }>;
   refreshShops: () => Promise<void>;
 }

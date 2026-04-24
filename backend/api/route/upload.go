@@ -258,6 +258,54 @@ func (h *UploadHandler) UploadReviewPhoto(c *gin.Context) {
 	})
 }
 
+// UploadShopCoverPhoto handles shop cover photo uploads
+func (h *UploadHandler) UploadShopCoverPhoto(c *gin.Context) {
+	userID := middleware.GetUserID(c.Request.Context())
+	if userID == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"success": false,
+			"error":   "Authentication required",
+		})
+		return
+	}
+
+	if h.uploader == nil {
+		c.JSON(http.StatusServiceUnavailable, gin.H{
+			"success": false,
+			"error":   "Image upload service not configured",
+		})
+		return
+	}
+
+	file, header, err := c.Request.FormFile("file")
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"error":   "No file provided",
+		})
+		return
+	}
+	defer file.Close()
+
+	folder := h.env.CloudinaryFolder + "/" + userID + "/shop"
+	userUploader := h.uploader.WithFolder(folder)
+
+	result, err := userUploader.UploadImage(c.Request.Context(), file, header.Filename)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Upload failed: " + err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"url":     result.URL,
+		"message": "Shop cover photo uploaded successfully",
+	})
+}
+
 // SetupUploadRoutes registers the upload routes
 func SetupUploadRoutes(router *gin.Engine, env *bootstrap.Env, userRepo repository.UserRepository) {
 	handler := NewUploadHandler(env, userRepo)
@@ -271,5 +319,6 @@ func SetupUploadRoutes(router *gin.Engine, env *bootstrap.Env, userRepo reposito
 	{
 		api.POST("/upload/profile-photo", handler.UploadProfilePhoto)
 		api.POST("/upload/cover-photo", handler.UploadCoverPhoto)
+		api.POST("/upload/shop-cover-photo", handler.UploadShopCoverPhoto)
 	}
 }

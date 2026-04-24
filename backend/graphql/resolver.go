@@ -602,12 +602,88 @@ func (r *mutationResolver) CreateShop(ctx context.Context, input CreateShopInput
 		}, nil
 	}
 
+	// Upload cover photo to Cloudinary if provided
+	var coverPhotoURL string
+	if input.CoverPhoto != nil {
+		env := bootstrap.LoadEnv()
+		if env.CloudinaryCloudName == "" || env.CloudinaryAPIKey == "" || env.CloudinaryAPISecret == "" {
+			return &ShopPayload{
+				Success: false,
+				Message: "Image upload service not configured",
+			}, nil
+		}
+
+		uploader, err := imageutil.NewImageUploader(
+			env.CloudinaryCloudName,
+			env.CloudinaryAPIKey,
+			env.CloudinaryAPISecret,
+			env.CloudinaryFolder,
+		)
+		if err != nil {
+			return &ShopPayload{
+				Success: false,
+				Message: "Failed to initialize upload service",
+			}, nil
+		}
+
+		folder := env.CloudinaryFolder + "/" + userID + "/shop"
+		userUploader := uploader.WithFolder(folder)
+
+		result, err := userUploader.UploadImage(ctx, input.CoverPhoto.File, input.CoverPhoto.Filename)
+		if err != nil {
+			return &ShopPayload{
+				Success: false,
+				Message: "Failed to upload cover photo: " + err.Error(),
+			}, nil
+		}
+		coverPhotoURL = result.URL
+	}
+
+	// Upload other photos to Cloudinary if provided
+	var otherPhotoURLs []string
+	if len(input.OtherPhotos) > 0 {
+		env := bootstrap.LoadEnv()
+		if env.CloudinaryCloudName == "" || env.CloudinaryAPIKey == "" || env.CloudinaryAPISecret == "" {
+			return &ShopPayload{
+				Success: false,
+				Message: "Image upload service not configured",
+			}, nil
+		}
+
+		uploader, err := imageutil.NewImageUploader(
+			env.CloudinaryCloudName,
+			env.CloudinaryAPIKey,
+			env.CloudinaryAPISecret,
+			env.CloudinaryFolder,
+		)
+		if err != nil {
+			return &ShopPayload{
+				Success: false,
+				Message: "Failed to initialize upload service",
+			}, nil
+		}
+
+		folder := env.CloudinaryFolder + "/" + userID + "/shop"
+		userUploader := uploader.WithFolder(folder)
+
+		for _, file := range input.OtherPhotos {
+			result, err := userUploader.UploadImage(ctx, file.File, file.Filename)
+			if err != nil {
+				return &ShopPayload{
+					Success: false,
+					Message: "Failed to upload image: " + err.Error(),
+				}, nil
+			}
+			otherPhotoURLs = append(otherPhotoURLs, result.URL)
+		}
+	}
+
 	// Build owner resolver input from GraphQL input
 	shopInput := owner.CreateShopInput{
 		Name:         input.Name,
 		Location:     input.Location,
-		CoverPhoto:   input.CoverPhoto,
-		OtherPhotos:  input.OtherPhotos,
+		CoverPhoto:   coverPhotoURL,
+		OtherPhotos:  otherPhotoURLs,
 		BusinessType: string(input.BusinessType),
 	}
 
@@ -813,6 +889,82 @@ func (r *mutationResolver) UpdateShop(ctx context.Context, id string, input Upda
 		}, nil
 	}
 
+	// Upload new cover photo to Cloudinary if provided
+	var newCoverPhotoURL string
+	if input.NewCoverPhoto != nil {
+		env := bootstrap.LoadEnv()
+		if env.CloudinaryCloudName == "" || env.CloudinaryAPIKey == "" || env.CloudinaryAPISecret == "" {
+			return &ShopPayload{
+				Success: false,
+				Message: "Image upload service not configured",
+			}, nil
+		}
+
+		uploader, err := imageutil.NewImageUploader(
+			env.CloudinaryCloudName,
+			env.CloudinaryAPIKey,
+			env.CloudinaryAPISecret,
+			env.CloudinaryFolder,
+		)
+		if err != nil {
+			return &ShopPayload{
+				Success: false,
+				Message: "Failed to initialize upload service",
+			}, nil
+		}
+
+		folder := env.CloudinaryFolder + "/" + userID + "/shop"
+		userUploader := uploader.WithFolder(folder)
+
+		result, err := userUploader.UploadImage(ctx, input.NewCoverPhoto.File, input.NewCoverPhoto.Filename)
+		if err != nil {
+			return &ShopPayload{
+				Success: false,
+				Message: "Failed to upload cover photo: " + err.Error(),
+			}, nil
+		}
+		newCoverPhotoURL = result.URL
+	}
+
+	// Upload new other photos to Cloudinary if provided
+	var newOtherPhotoURLs []string
+	if len(input.NewOtherPhotos) > 0 {
+		env := bootstrap.LoadEnv()
+		if env.CloudinaryCloudName == "" || env.CloudinaryAPIKey == "" || env.CloudinaryAPISecret == "" {
+			return &ShopPayload{
+				Success: false,
+				Message: "Image upload service not configured",
+			}, nil
+		}
+
+		uploader, err := imageutil.NewImageUploader(
+			env.CloudinaryCloudName,
+			env.CloudinaryAPIKey,
+			env.CloudinaryAPISecret,
+			env.CloudinaryFolder,
+		)
+		if err != nil {
+			return &ShopPayload{
+				Success: false,
+				Message: "Failed to initialize upload service",
+			}, nil
+		}
+
+		folder := env.CloudinaryFolder + "/" + userID + "/shop"
+		userUploader := uploader.WithFolder(folder)
+
+		for _, file := range input.NewOtherPhotos {
+			result, err := userUploader.UploadImage(ctx, file.File, file.Filename)
+			if err != nil {
+				return &ShopPayload{
+					Success: false,
+					Message: "Failed to upload image: " + err.Error(),
+				}, nil
+			}
+			newOtherPhotoURLs = append(newOtherPhotoURLs, result.URL)
+		}
+	}
+
 	// Build full update input
 	shopInput := owner.UpdateShopInput{}
 	if input.Name != nil {
@@ -824,11 +976,18 @@ func (r *mutationResolver) UpdateShop(ctx context.Context, id string, input Upda
 	if input.Location != nil {
 		shopInput.Location = *input.Location
 	}
-	if input.CoverPhoto != nil {
+	// Use new cover photo URL if uploaded, otherwise use the provided URL
+	if newCoverPhotoURL != "" {
+		shopInput.CoverPhoto = newCoverPhotoURL
+	} else if input.CoverPhoto != nil {
 		shopInput.CoverPhoto = *input.CoverPhoto
 	}
+	// Combine existing other photos with new uploads
 	if input.OtherPhotos != nil {
 		shopInput.OtherPhotos = input.OtherPhotos
+	}
+	if len(newOtherPhotoURLs) > 0 {
+		shopInput.OtherPhotos = append(shopInput.OtherPhotos, newOtherPhotoURLs...)
 	}
 	if input.BusinessType != nil {
 		shopInput.BusinessType = string(*input.BusinessType)

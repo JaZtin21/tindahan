@@ -13787,14 +13787,14 @@ func (ec *executionContext) unmarshalInputCreateShopInput(ctx context.Context, o
 			it.Coordinates = data
 		case "coverPhoto":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("coverPhoto"))
-			data, err := ec.unmarshalNString2string(ctx, v)
+			data, err := ec.unmarshalOUpload2ᚖgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚐUpload(ctx, v)
 			if err != nil {
 				return it, err
 			}
 			it.CoverPhoto = data
 		case "otherPhotos":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("otherPhotos"))
-			data, err := ec.unmarshalNString2ᚕstringᚄ(ctx, v)
+			data, err := ec.unmarshalOUpload2ᚕᚖgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚐUploadᚄ(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -14785,7 +14785,7 @@ func (ec *executionContext) unmarshalInputUpdateShopInput(ctx context.Context, o
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"name", "description", "location", "coordinates", "coverPhoto", "otherPhotos", "businessHours", "businessType", "paymentMethods", "delivery", "socialMedia", "contactDetails", "status", "rating"}
+	fieldsInOrder := [...]string{"name", "description", "location", "coordinates", "coverPhoto", "newCoverPhoto", "otherPhotos", "newOtherPhotos", "businessHours", "businessType", "paymentMethods", "delivery", "socialMedia", "contactDetails", "status", "rating"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -14827,6 +14827,13 @@ func (ec *executionContext) unmarshalInputUpdateShopInput(ctx context.Context, o
 				return it, err
 			}
 			it.CoverPhoto = data
+		case "newCoverPhoto":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("newCoverPhoto"))
+			data, err := ec.unmarshalOUpload2ᚖgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚐUpload(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.NewCoverPhoto = data
 		case "otherPhotos":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("otherPhotos"))
 			data, err := ec.unmarshalOString2ᚕstringᚄ(ctx, v)
@@ -14834,6 +14841,13 @@ func (ec *executionContext) unmarshalInputUpdateShopInput(ctx context.Context, o
 				return it, err
 			}
 			it.OtherPhotos = data
+		case "newOtherPhotos":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("newOtherPhotos"))
+			data, err := ec.unmarshalOUpload2ᚕᚖgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚐUploadᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.NewOtherPhotos = data
 		case "businessHours":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("businessHours"))
 			data, err := ec.unmarshalOBusinessHoursInput2ᚖtindahanᚑbackendᚋgraphqlᚐBusinessHoursInput(ctx, v)
@@ -19110,6 +19124,24 @@ func (ec *executionContext) marshalOUpload2ᚕᚖgithubᚗcomᚋ99designsᚋgqlg
 	}
 
 	return ret
+}
+
+func (ec *executionContext) unmarshalOUpload2ᚖgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚐUpload(ctx context.Context, v any) (*graphql.Upload, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := graphql.UnmarshalUpload(v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOUpload2ᚖgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚐUpload(ctx context.Context, sel ast.SelectionSet, v *graphql.Upload) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	_ = sel
+	_ = ctx
+	res := graphql.MarshalUpload(*v)
+	return res
 }
 
 func (ec *executionContext) marshalOUser2ᚖtindahanᚑbackendᚋgraphqlᚐUser(ctx context.Context, sel ast.SelectionSet, v *User) graphql.Marshaler {

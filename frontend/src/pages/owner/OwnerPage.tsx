@@ -124,14 +124,16 @@ export function OwnerPage() {
     }
   };
 
-  const handleSaveShop = async (shopData: Shop) => {
+  const handleSaveShop = async (shopData: Shop, existingCoverPhoto?: string, newCoverFile?: File) => {
     if (selectedShop) {
-      const result = await updateShop(shopData);
+      // For edit: pass existing URL and new file (like EditPostModal)
+      const result = await updateShop(shopData, existingCoverPhoto, newCoverFile);
       if (result.success) {
         setSelectedShop(shopData);
       }
     } else {
-      const result = await createShop(shopData);
+      // For create: only pass new file (existing will be empty)
+      const result = await createShop(shopData, existingCoverPhoto, newCoverFile);
       if (result.success) {
         // Refresh shops list and navigate to My Shops tab
         await refreshShops();

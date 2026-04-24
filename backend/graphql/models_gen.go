@@ -124,8 +124,8 @@ type CreateShopInput struct {
 	Description    *string               `json:"description,omitempty"`
 	Location       string                `json:"location"`
 	Coordinates    *CoordinatesInput     `json:"coordinates"`
-	CoverPhoto     string                `json:"coverPhoto"`
-	OtherPhotos    []string              `json:"otherPhotos"`
+	CoverPhoto     *graphql.Upload       `json:"coverPhoto,omitempty"`
+	OtherPhotos    []*graphql.Upload     `json:"otherPhotos,omitempty"`
 	BusinessHours  *BusinessHoursInput   `json:"businessHours"`
 	BusinessType   BusinessType          `json:"businessType"`
 	PaymentMethods *PaymentMethodsInput  `json:"paymentMethods"`
@@ -460,7 +460,9 @@ type UpdateShopInput struct {
 	Location       *string               `json:"location,omitempty"`
 	Coordinates    *CoordinatesInput     `json:"coordinates,omitempty"`
 	CoverPhoto     *string               `json:"coverPhoto,omitempty"`
+	NewCoverPhoto  *graphql.Upload       `json:"newCoverPhoto,omitempty"`
 	OtherPhotos    []string              `json:"otherPhotos,omitempty"`
+	NewOtherPhotos []*graphql.Upload     `json:"newOtherPhotos,omitempty"`
 	BusinessHours  *BusinessHoursInput   `json:"businessHours,omitempty"`
 	BusinessType   *BusinessType         `json:"businessType,omitempty"`
 	PaymentMethods *PaymentMethodsInput  `json:"paymentMethods,omitempty"`
