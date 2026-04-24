@@ -69,12 +69,12 @@ export function useMapMarkers({
         phone: selectedStore.phone,
         email: selectedStore.email,
         hours: selectedStore.hours,
-        rating: selectedStore.rating,
-      });
+              });
     }
     
     // Combine stores and visible posts
     setAllMarkers([...storeMarkers, ...visiblePostMarkers]);
+    console.log('📍 Markers updated:', visiblePostMarkers.length, 'post markers from', groupedPostClusters.length, 'clusters');
   }, [filteredStores, productSearchStores, groupedPostClusters, clusterRotations, mapZoom, selectedStore]);
 
   return { allMarkers };

@@ -21,23 +21,34 @@ export function useMapPosts({ postsData, livePosts, pausedClusters = new Set(), 
     if (newPosts && newPosts.length > 0) {
       setCachedPosts(prevPosts => {
         const existingPostsMap = new Map(prevPosts.map(p => [p.id, p]));
+        let hasChanges = false;
+        
         newPosts.forEach((newPost: Post) => {
-          existingPostsMap.set(newPost.id, newPost);
+          const existingPost = existingPostsMap.get(newPost.id);
+          if (!existingPost || JSON.stringify(existingPost) !== JSON.stringify(newPost)) {
+            existingPostsMap.set(newPost.id, newPost);
+            hasChanges = true;
+          }
         });
+        
         // Remove deleted posts
-        deletedPostIds.forEach(id => existingPostsMap.delete(id));
-        return Array.from(existingPostsMap.values());
+        deletedPostIds.forEach(id => {
+          if (existingPostsMap.has(id)) {
+            existingPostsMap.delete(id);
+            hasChanges = true;
+          }
+        });
+        
+        // Only update if there are actual changes
+        if (hasChanges) {
+          return Array.from(existingPostsMap.values());
+        }
+        return prevPosts;
       });
     }
-  }, [livePosts, postsData]);
+  }, [livePosts, postsData, deletedPostIds]);
 
-  // Remove deleted posts when deletedPostIds changes
-  useEffect(() => {
-    if (deletedPostIds.size > 0) {
-      setCachedPosts(prevPosts => prevPosts.filter(p => !deletedPostIds.has(p.id)));
-    }
-  }, [deletedPostIds]);
-
+  
   // Group posts into clusters ONLY when posts change (NOT on zoom)
   useEffect(() => {
     if (cachedPosts.length === 0) {
@@ -45,16 +56,20 @@ export function useMapPosts({ postsData, livePosts, pausedClusters = new Set(), 
       return;
     }
     
-    const rawPostMarkers = cachedPosts.map((post: Post) => ({
-      lat: post.location?.lat || 0,
-      lng: post.location?.lng || 0,
-      title: post.title?.substring(0, 30) + ((post.title?.length || 0) > 30 ? '...' : '') || 'Post',
-      type: 'post' as const,
-      post: post,
-      id: post.id
-    })).filter((m: any) => m.lat && m.lng);
+    const rawPostMarkers = cachedPosts.map((post: Post) => {
+      console.log('📝 Creating marker for post:', post.id, 'title:', post.title, 'text:', post.text?.substring(0, 50) + '...');
+      return {
+        lat: post.location?.lat || 0,
+        lng: post.location?.lng || 0,
+        title: post.title?.substring(0, 30) + ((post.title?.length || 0) > 30 ? '...' : '') || 'Post',
+        type: 'post' as const,
+        post: post,
+        id: post.id
+      };
+    }).filter((m: any) => m.lat && m.lng);
     
     const clusters = groupNearbyPosts(rawPostMarkers, 15);
+    console.log('🔄 Grouped post clusters updated:', clusters.length, 'clusters from', cachedPosts.length, 'posts');
     setGroupedPostClusters(clusters);
     
     // Initialize rotation indices for new clusters only

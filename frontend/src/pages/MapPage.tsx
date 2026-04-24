@@ -35,6 +35,7 @@ export function MapPage() {
     { skip: !isAuthenticated }
   );
 
+  
   useEffect(() => {
     if (livePostsData?.livePosts) {
       // Handle live posts data - posts from last 24 hours
@@ -185,6 +186,18 @@ export function MapPage() {
     });
   };
 
+  // Sync selectedPost with WebSocket updates
+  useEffect(() => {
+    if (selectedPost && livePosts) {
+      // Find the updated version of the selected post in live posts
+      const updatedPost = livePosts.find((p: any) => p.id === selectedPost.id);
+      if (updatedPost && JSON.stringify(updatedPost) !== JSON.stringify(selectedPost)) {
+        // Post has been updated via WebSocket
+        setSelectedPost(updatedPost);
+      }
+    }
+  }, [livePosts, selectedPost]);
+
   // Handle post preview modal close
   const handleClosePostPreview = () => {
     setIsPostPreviewOpen(false);
@@ -267,15 +280,9 @@ export function MapPage() {
         post={postToEdit}
         isOpen={isEditPostOpen}
         onClose={() => setIsEditPostOpen(false)}
-        onSuccess={(updatedPost) => {
-          // Update selected post in preview modal if it matches
-          if (updatedPost && selectedPost?.id === updatedPost.id) {
-            setSelectedPost(updatedPost);
-          }
-          // Update postToEdit to reflect changes
-          if (updatedPost && postToEdit?.id === updatedPost.id) {
-            setPostToEdit(updatedPost);
-          }
+        onSuccess={() => {
+          // WebSocket will automatically update everything - no manual state updates needed
+          console.log('Post updated successfully - WebSocket will handle UI updates');
         }}
       />
 
