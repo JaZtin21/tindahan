@@ -295,8 +295,20 @@ export function ProfilePage() {
         isOpen={isEditPostOpen}
         onClose={() => setIsEditPostOpen(false)}
         onSuccess={() => {
-          // Refetch posts after edit (not user data to avoid scroll)
-
+          setModal({
+            isOpen: true,
+            type: 'success',
+            title: 'Post Updated',
+            message: 'Your post has been updated successfully.',
+          })
+        }}
+        onError={(message) => {
+          setModal({
+            isOpen: true,
+            type: 'error',
+            title: 'Update Failed',
+            message: message,
+          })
         }}
       />
 
@@ -311,7 +323,7 @@ export function ProfilePage() {
         onConfirm={async () => {
           if (deleteModal.post) {
             try {
-              await deletePost({ 
+              const result = await deletePost({ 
                 variables: { id: deleteModal.post.id },
                 update: (cache) => {
                   // Remove the post from the cache without refetching
@@ -337,9 +349,30 @@ export function ProfilePage() {
                   })
                 }
               })
-              setDeleteModal({ isOpen: false, post: null })
+              if (result.data?.deletePost?.success) {
+                setDeleteModal({ isOpen: false, post: null })
+                setModal({
+                  isOpen: true,
+                  type: 'success',
+                  title: 'Post Deleted',
+                  message: 'Your post has been deleted successfully.',
+                })
+              } else {
+                setModal({
+                  isOpen: true,
+                  type: 'error',
+                  title: 'Delete Failed',
+                  message: result.data?.deletePost?.message || 'Failed to delete post. Please try again.',
+                })
+              }
             } catch (error) {
               console.error('Failed to delete post:', error)
+              setModal({
+                isOpen: true,
+                type: 'error',
+                title: 'Error',
+                message: 'An error occurred while deleting the post. Please try again.',
+              })
             }
           }
         }}
