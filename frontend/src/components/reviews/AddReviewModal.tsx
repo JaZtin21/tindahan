@@ -134,6 +134,7 @@ export function AddReviewModal({ isOpen, onClose, storeId, storeName, existingRe
       isOpen={isOpen}
       onClose={handleClose}
       title={isEditing ? 'Edit Your Review' : 'Write a Review'}
+      mobileBottomSheet
       subtitle={`for ${storeName}`}
       maxWidth="md"
     >

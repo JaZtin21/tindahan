@@ -54,8 +54,6 @@ export function EditPostModal({ isOpen, onClose, post, onSuccess, onError }: Edi
   // Combined previews for display
   const allPreviews = [...existingPhotos, ...newPreviews];
 
-  if (!isOpen || !post) return null;
-
   const handlePhotoSelect = (e: ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
@@ -140,6 +138,7 @@ export function EditPostModal({ isOpen, onClose, post, onSuccess, onError }: Edi
       isOpen={isOpen}
       onClose={handleClose}
       title="Edit Post"
+      mobileBottomSheet
       maxWidth="md"
     >
       <div className="space-y-5">

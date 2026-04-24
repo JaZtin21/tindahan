@@ -14,6 +14,9 @@ export {
 } from './userprofile';
 export type { User, UpdateProfileInput, UserPayload } from './userprofile';
 
+// Export hooks from this directory
+export * from './useIsMobile';
+
 // User and follow hooks
 export { useGetUser } from './userprofile/useUser';
 export { useFollowUser, useUnfollowUser } from './userprofile/useFollow';

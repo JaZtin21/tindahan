@@ -1,4 +1,5 @@
 import { useEffect, type ReactNode } from 'react';
+import { useIsMobile } from '../../hooks/useIsMobile';
 
 // Inline SVG icons
 const XIcon = ({ className }: { className?: string }) => (
@@ -17,6 +18,8 @@ interface ModalProps {
   showCloseButton?: boolean;
   closeOnBackdropClick?: boolean;
   closeOnEscape?: boolean;
+  /** When true, modal becomes a bottom sheet on mobile screens */
+  mobileBottomSheet?: boolean;
 }
 
 const maxWidthClasses = {
@@ -36,7 +39,11 @@ export function Modal({
   showCloseButton = true,
   closeOnBackdropClick = true,
   closeOnEscape = true,
+  mobileBottomSheet = false,
 }: ModalProps) {
+  const isMobile = useIsMobile(768);
+  const shouldUseBottomSheet = mobileBottomSheet && isMobile;
+
   // Close on escape key
   useEffect(() => {
     if (!closeOnEscape) return;
@@ -58,6 +65,51 @@ export function Modal({
 
   if (!isOpen) return null;
 
+  // Mobile Bottom Sheet Variant
+  if (shouldUseBottomSheet) {
+    return (
+      <div className="fixed inset-0 z-[60]">
+        {/* Backdrop */}
+        <div 
+          className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
+          onClick={closeOnBackdropClick ? onClose : undefined}
+        />
+        
+        {/* Bottom Sheet Content */}
+        <div
+          className="absolute left-0 right-0 bottom-0 bg-white dark:bg-zinc-900 rounded-t-2xl shadow-2xl w-full max-h-[90vh] flex flex-col animate-in slide-in-from-bottom duration-300"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Header with title - Sticky */}
+          {(title || subtitle || showCloseButton) && (
+            <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-100 dark:border-zinc-800 shrink-0">
+              <div>
+                {title && (
+                  <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">{title}</h2>
+                )}
+                {subtitle && (
+                  <p className="text-sm text-zinc-500 dark:text-zinc-400">{subtitle}</p>
+                )}
+              </div>
+              {showCloseButton && (
+                <button
+                  onClick={onClose}
+                  className="p-2 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                >
+                  <XIcon className="w-5 h-5 text-zinc-500 dark:text-zinc-400" />
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Content - Scrollable */}
+          <div className="p-4 overflow-y-auto flex-1">{children}</div>
+        </div>
+      </div>
+    );
+  }
+
+  // Default Centered Modal (Desktop or when mobileBottomSheet is false)
   return (
     <div
       className="fixed inset-0 z-[60] flex items-center justify-center p-4"
