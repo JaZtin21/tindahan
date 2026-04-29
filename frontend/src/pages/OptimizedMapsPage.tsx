@@ -7,8 +7,9 @@ import { CachedTileLayer } from '../components/Map';
 import { LIVE_POSTS_SUBSCRIPTION } from '../api/graphql/subscriptions/live-posts';
 import { useAuth } from '../api/graphql/apolloProviderWithAuth';
 import type { Post } from '../types/post';
-import { getPostBubbleHtml, getPostPopupHtml } from '../components/Map/PostMarker';
+import { getPostBubbleHtml} from '../components/Map/PostMarker';
 import { getMapMarkerStyles } from '../components/Map/mapStyles';
+import { PostPreviewModal } from '../components/posts/PostPreviewModal';
 
 // Custom Post Marker Component using actual PostMarker styling
 function PostMapMarker({ post, onClick }: { post: Post; onClick?: (post: Post) => void }) {
@@ -40,8 +41,6 @@ function PostMapMarker({ post, onClick }: { post: Post; onClick?: (post: Post) =
       // Create marker with post location
       const marker = L.marker([post.location!.lat, post.location!.lng], { icon });
       
-      // Bind popup with post details
-      marker.bindPopup(getPostPopupHtml(post));
       
       // Add click handler
       if (onClick) {
@@ -131,6 +130,10 @@ export function OptimizedMapsPage() {
   const [viewportBounds, setViewportBounds] = useState<LatLngBounds | null>(null);
   const mapRef = useRef<any>(null);
   const { isAuthenticated } = useAuth();
+  
+  // Post preview modal state
+  const [selectedPost, setSelectedPost] = useState<Post | null>(null);
+  const [isPostPreviewOpen, setIsPostPreviewOpen] = useState(false);
 
   // Inject map marker styles
   useEffect(() => {
@@ -216,12 +219,22 @@ export function OptimizedMapsPage() {
   // Handle post click
   const handlePostClick = useCallback((post: Post) => {
     console.log('[OptimizedMapsPage] Post clicked:', post.id);
+    console.log('[OptimizedMapsPage] Setting selectedPost:', post);
+    console.log('[OptimizedMapsPage] Setting isPostPreviewOpen to true');
+    setSelectedPost(post);
+    setIsPostPreviewOpen(true);
+  }, []);
+
+  // Handle post preview modal close
+  const handleClosePostPreview = useCallback(() => {
+    setIsPostPreviewOpen(false);
+    setSelectedPost(null);
   }, []);
 
   return (
     <div className="w-full h-screen relative">
       {/* Map info */}
-      <div className="absolute bottom-4 left-4 z-[1000] bg-white rounded-lg shadow-lg p-3 max-w-xs">
+      <div className="absolute bottom-4 left-4 z-[100] bg-white rounded-lg shadow-lg p-3 max-w-xs">
         <h3 className="font-semibold text-sm mb-1">Optimized Map</h3>
         <p className="text-xs text-gray-600">
           Zoom: {zoom}
@@ -260,6 +273,15 @@ export function OptimizedMapsPage() {
           />
         ))}
       </MapContainer>
+      
+      {/* Post Preview Modal */}
+      {selectedPost && (
+        <PostPreviewModal
+          post={selectedPost}
+          isOpen={isPostPreviewOpen}
+          onClose={handleClosePostPreview}
+        />
+      )}
     </div>
   );
 }

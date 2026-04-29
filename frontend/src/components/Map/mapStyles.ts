@@ -372,6 +372,7 @@ export function getMapMarkerStyles(): string {
     /* Leaflet container overrides */
     .leaflet-container {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      z-index: 10;
     }
 
     .leaflet-popup-content-wrapper {
