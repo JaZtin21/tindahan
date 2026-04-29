@@ -2789,10 +2789,10 @@ func (r *subscriptionResolver) LivePosts(ctx context.Context) (<-chan []*Post, e
 		// Track sent post IDs to only send new ones on change
 		sentPostIDs := make(map[string]bool)
 
-		// Create change stream to watch for inserts on posts collection
+		// Create change stream to watch for inserts, updates, and deletes on posts collection
 		pipeline := mongo.Pipeline{
 			{{Key: "$match", Value: bson.M{
-				"operationType": bson.M{"$in": []string{"insert", "update", "replace"}},
+				"operationType": bson.M{"$in": []string{"insert", "update", "replace", "delete"}},
 			}}},
 		}
 
@@ -2836,14 +2836,6 @@ func (r *subscriptionResolver) LivePosts(ctx context.Context) (<-chan []*Post, e
 				continue
 			}
 
-			// Get the document ID from the change stream
-			var docID primitive.ObjectID
-			if fullDoc, ok := changeDoc["fullDocument"].(bson.M); ok {
-				if id, ok := fullDoc["_id"].(primitive.ObjectID); ok {
-					docID = id
-				}
-			}
-
 			// Query ALL posts from last 24 hours (not just new ones)
 			// This ensures first post is always sent when change detected
 			cursor, err := r.postResolver.GetDB().Collection("posts").Find(ctx, bson.M{
@@ -2876,29 +2868,11 @@ func (r *subscriptionResolver) LivePosts(ctx context.Context) (<-chan []*Post, e
 
 			// Send ALL posts (not just new ones) to ensure first post shows up
 			// Frontend will handle deduplication
-			if len(allPosts) > 0 {
-				select {
-				case postChan <- allPosts:
-				case <-ctx.Done():
-					return
-				}
-			}
-
-			// Also handle updates to existing posts
-			if docID != primitive.NilObjectID {
-				var updatedPost bson.M
-				err := r.postResolver.GetDB().Collection("posts").FindOne(ctx, bson.M{"_id": docID}).Decode(&updatedPost)
-				if err == nil {
-					post := r.docToPost(updatedPost)
-					if post != nil && sentPostIDs[post.ID] {
-						// Send updated post as well
-						select {
-						case postChan <- []*Post{post}:
-						case <-ctx.Done():
-							return
-						}
-					}
-				}
+			// Always send, even if empty (for deletions)
+			select {
+			case postChan <- allPosts:
+			case <-ctx.Done():
+				return
 			}
 		}
 	}()
