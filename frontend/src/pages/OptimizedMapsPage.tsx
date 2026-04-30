@@ -16,6 +16,7 @@ import { CreatePostModal } from '../components/posts/CreatePostModal';
 import { EditPostModal } from '../components/posts/EditPostModal';
 import { Modal } from '../components/Modal';
 import { createPostHandlers } from '../utils/maps/handlers';
+import { MdMyLocation } from 'react-icons/md';
 
 // Custom Post Marker Component using actual PostMarker styling with pop animations
 function PostMapMarker({ post, onClick, isEdited }: { post: Post; onClick?: (post: Post) => void; isEdited?: boolean }) {
@@ -163,6 +164,60 @@ export function OptimizedMapsPage() {
   const mapRef = useRef<any>(null);
   const { isAuthenticated } = useAuth();
   
+  // Handle getting current location
+  const handleGetCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      showError('Location Error', 'Geolocation is not supported by your browser.');
+      return;
+    }
+
+    console.log('fewq')
+    
+    setIsGettingLocation(true);
+    
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        setUserLocation({ lat: latitude, lng: longitude });
+        setShowLocationMarker(true); // Show the marker
+        
+        // Center map on user's location with animation
+        if (mapRef.current) {
+          mapRef.current.flyTo([latitude, longitude], 18, {
+            duration: 1.5 // 1.5 seconds animation
+          });
+        }
+        
+        setIsGettingLocation(false);
+      },
+      (error) => {
+        console.error('Error getting location:', error);
+        setIsGettingLocation(false);
+        
+        let errorMessage = 'Unable to get your current location.';
+        switch(error.code) {
+          case error.PERMISSION_DENIED:
+            errorMessage = 'Location access denied. Please enable location permissions.';
+            break;
+          case error.POSITION_UNAVAILABLE:
+            errorMessage = 'Location information is unavailable.';
+            break;
+          case error.TIMEOUT:
+            errorMessage = 'Location request timed out.';
+            break;
+        }
+        
+        showError('Location Error', errorMessage);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 300000 // 5 minutes
+      }
+    );
+  };
+  
+  
   // Create Post Modal state
   const [isCreatePostModalOpen, setIsCreatePostModalOpen] = useState(false);
   
@@ -191,6 +246,14 @@ export function OptimizedMapsPage() {
   // Track recently edited post IDs to skip animation on update
   const [editedPostIds, setEditedPostIds] = useState<Set<string>>(new Set());
   
+  // User location state
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [isGettingLocation, setIsGettingLocation] = useState(false);
+  const [showLocationMarker, setShowLocationMarker] = useState(false);
+  
+  // User Location Marker Management
+  const locationMarkerRef = useRef<any>(null);
+  
   const showSuccess = (title: string, message: string) => {
     setFeedbackModal({ isOpen: true, title, message, type: 'success' });
   };
@@ -198,6 +261,69 @@ export function OptimizedMapsPage() {
   const showError = (title: string, message: string) => {
     setFeedbackModal({ isOpen: true, title, message, type: 'error' });
   };
+  
+  // Handle user location marker
+  useEffect(() => {
+    if (!mapRef.current || !userLocation || !showLocationMarker) {
+      // Remove marker if conditions aren't met
+      if (locationMarkerRef.current && mapRef.current) {
+        mapRef.current.removeLayer(locationMarkerRef.current);
+        locationMarkerRef.current = null;
+      }
+      return;
+    }
+    
+    const init = async () => {
+      const L = await import('leaflet');
+      const map = mapRef.current;
+      
+      if (!map) return;
+      
+      // Remove existing marker if any (prevent duplicates)
+      if (locationMarkerRef.current) {
+        map.removeLayer(locationMarkerRef.current);
+        locationMarkerRef.current = null;
+      }
+      
+      // Create custom pin icon for user location
+      const icon = L.divIcon({
+        html: `
+          <div class="user-location-marker" style="width: 40px; height: 40px; position: relative; display: flex; align-items: center; justify-content: center;">
+            <div class="user-location-pulse" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 40px; height: 40px; background: rgba(239, 68, 68, 0.3); border: 2px solid rgba(239, 68, 68, 0.5); border-radius: 50%; animation: pulse-ring 2s ease-out infinite;"></div>
+            <div class="user-location-pin" style="position: relative; z-index: 2; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3)); animation: location-bounce 2s ease-in-out infinite;">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="#EF4444" stroke="none" style="display: block;">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                <circle cx="12" cy="10" r="3" fill="white"/>
+              </svg>
+            </div>
+          </div>
+        `,
+        className: 'user-location-icon',
+        iconSize: [40, 40],
+        iconAnchor: [20, 20], // Center the 40x40 box
+        popupAnchor: [0, -20]
+      });
+      
+      const marker = L.marker([userLocation.lat, userLocation.lng], { icon });
+      
+      // Set marker options to prevent it from moving during zoom
+      marker.options.zIndexOffset = 1000;
+      marker.options.riseOnHover = false;
+      marker.options.bubblingMouseEvents = false;
+      marker.bindPopup('<div style="font-family: system-ui; font-size: 14px; font-weight: 600;">Your Location</div>');
+      marker.addTo(map);
+      locationMarkerRef.current = marker;
+    };
+    
+    init();
+    
+    return () => {
+      if (locationMarkerRef.current && mapRef.current) {
+        mapRef.current.removeLayer(locationMarkerRef.current);
+        locationMarkerRef.current = null;
+      }
+    };
+  }, [userLocation, showLocationMarker]); // Remove map from dependencies
   
   // GraphQL mutations
   const [createPost, { loading: isCreatingPost }] = useCreatePost();
@@ -367,16 +493,17 @@ export function OptimizedMapsPage() {
         zoomControl={false}
         ref={mapRef}
       >
-        {/* Custom cached tile layer */}
+        {/* Custom cached tile layer - CartoDB Voyager (clean styling, free) */}
         <CachedTileLayer
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png"
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
           maxZoom={19}
         />
         {/* Zoom tracker */}
         <MapZoomTracker onZoomChange={setZoom} />
         {/* Viewport tracker - tracks map bounds for filtering markers */}
         <MapViewportTracker onBoundsChange={setViewportBounds} />
+        
         
         {/* Live Post Markers - only visible when zoomed in to city level (zoom >= 23) */}
         {zoom >= MIN_MARKER_ZOOM && visiblePosts.map((post) => (
@@ -389,16 +516,37 @@ export function OptimizedMapsPage() {
         ))}
       </MapContainer>
       
-      {/* Add Post Button - Outside map container */}
-      <button
-        onClick={() => setIsCreatePostModalOpen(true)}
-        className="fixed bottom-4 right-4 z-40 flex items-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-xl transition-colors"
-      >
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-        </svg>
-        <span className="font-medium">Add Post</span>
-      </button>
+      {/* Button Container - Fixed to bottom right, aligned to end */}
+      <div className="fixed bottom-4 right-4 z-40 flex flex-col items-end gap-2">
+        {/* Location Target Button */}
+        <button
+          onClick={handleGetCurrentLocation}
+          disabled={isGettingLocation}
+          className={`w-12 h-12 rounded-full shadow-xl transition-all flex items-center justify-center ${
+            isGettingLocation 
+              ? 'bg-blue-600 text-white animate-pulse' 
+              : 'bg-white hover:bg-gray-100 text-gray-700'
+          }`}
+          title={isGettingLocation ? 'Getting location...' : 'Get my current location'}
+        >
+          {isGettingLocation ? (
+            <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+          ) : (
+            <MdMyLocation className="w-6 h-6" />
+          )}
+        </button>
+        
+        {/* Add Post Button */}
+        <button
+          onClick={() => setIsCreatePostModalOpen(true)}
+          className="flex items-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-xl transition-colors"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+          <span className="font-medium">Add Post</span>
+        </button>
+      </div>
 
       {/* Post Preview Modal */}
       {selectedPost && (
