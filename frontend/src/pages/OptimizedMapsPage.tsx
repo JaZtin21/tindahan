@@ -154,6 +154,9 @@ function isWithinViewport(lat: number, lng: number, bounds: LatLngBounds | null)
   return bounds.contains([lat, lng]);
 }
 
+// Minimum zoom level to show post markers (city level zoom)
+const MIN_MARKER_ZOOM = 17;
+
 export function OptimizedMapsPage() {
   const [zoom, setZoom] = useState(13);
   const [viewportBounds, setViewportBounds] = useState<LatLngBounds | null>(null);
@@ -375,8 +378,8 @@ export function OptimizedMapsPage() {
         {/* Viewport tracker - tracks map bounds for filtering markers */}
         <MapViewportTracker onBoundsChange={setViewportBounds} />
         
-        {/* Live Post Markers - only visible ones within viewport */}
-        {visiblePosts.map((post) => (
+        {/* Live Post Markers - only visible when zoomed in to city level (zoom >= 23) */}
+        {zoom >= MIN_MARKER_ZOOM && visiblePosts.map((post) => (
           <PostMapMarker
             key={post.id}
             post={post}
