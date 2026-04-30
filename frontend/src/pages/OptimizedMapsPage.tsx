@@ -2,14 +2,20 @@ import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { MapContainer, useMap } from 'react-leaflet';
 import { LatLngBounds } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { useSubscription } from '@apollo/client/react';
+import { useSubscription, useMutation } from '@apollo/client/react';
 import { CachedTileLayer } from '../components/Map';
 import { LIVE_POSTS_SUBSCRIPTION } from '../api/graphql/subscriptions/live-posts';
+import { DELETE_POST_MUTATION } from '../api/graphql/post/post-queries';
+import { useCreatePost } from '../api/graphql/post/usePost';
 import { useAuth } from '../api/graphql/apolloProviderWithAuth';
 import type { Post } from '../types/post';
 import { getPostBubbleHtml} from '../components/Map/PostMarker';
 import { getMapMarkerStyles } from '../components/Map/mapStyles';
 import { PostPreviewModal } from '../components/posts/PostPreviewModal';
+import { CreatePostModal } from '../components/posts/CreatePostModal';
+import { EditPostModal } from '../components/posts/EditPostModal';
+import { Modal } from '../components/Modal';
+import { createPostHandlers } from '../utils/maps/handlers';
 
 // Custom Post Marker Component using actual PostMarker styling
 function PostMapMarker({ post, onClick }: { post: Post; onClick?: (post: Post) => void }) {
@@ -97,6 +103,8 @@ function MapZoomTracker({ onZoomChange }: { onZoomChange: (zoom: number) => void
 
 // Component to track map viewport bounds
 function MapViewportTracker({ onBoundsChange }: { onBoundsChange: (bounds: LatLngBounds) => void }) {
+
+  console.log('triggered')
   const map = useMap();
   
   useEffect(() => {
@@ -131,9 +139,66 @@ export function OptimizedMapsPage() {
   const mapRef = useRef<any>(null);
   const { isAuthenticated } = useAuth();
   
+  // Create Post Modal state
+  const [isCreatePostModalOpen, setIsCreatePostModalOpen] = useState(false);
+  
+  // Edit Post Modal state
+  const [postToEdit, setPostToEdit] = useState<Post | null>(null);
+  const [isEditPostModalOpen, setIsEditPostModalOpen] = useState(false);
+  
+  // Delete confirmation modal state
+  const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; post: Post | null }>({ isOpen: false, post: null });
+  
   // Post preview modal state
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const [isPostPreviewOpen, setIsPostPreviewOpen] = useState(false);
+  
+  // Success/Error feedback modal state
+  const [feedbackModal, setFeedbackModal] = useState<{ 
+    isOpen: boolean; 
+    title: string; 
+    message: string; 
+    type: 'success' | 'error' 
+  }>({ isOpen: false, title: '', message: '', type: 'success' });
+  
+  // Track deleted post IDs to filter from map
+  const [deletedPostIds, setDeletedPostIds] = useState<Set<string>>(new Set());
+  
+  const showSuccess = (title: string, message: string) => {
+    setFeedbackModal({ isOpen: true, title, message, type: 'success' });
+  };
+  
+  const showError = (title: string, message: string) => {
+    setFeedbackModal({ isOpen: true, title, message, type: 'error' });
+  };
+  
+  // GraphQL mutations
+  const [createPost, { loading: isCreatingPost }] = useCreatePost();
+  const [deletePost] = useMutation(DELETE_POST_MUTATION);
+  
+  // Create post handler using factory function
+  const { handleCreatePost } = createPostHandlers({ createPost, showSuccess, showError });
+  
+  // Handle actual delete post execution
+  const executeDeletePost = async () => {
+    if (!deleteModal.post) return;
+    
+    try {
+      const result = await deletePost({ variables: { id: deleteModal.post.id } });
+      if (result.data?.deletePost?.success) {
+        setDeletedPostIds(prev => new Set(prev).add(deleteModal.post!.id));
+        setDeleteModal({ isOpen: false, post: null });
+        setIsPostPreviewOpen(false);
+        setSelectedPost(null);
+        showSuccess('Post Deleted', 'Your post has been deleted successfully.');
+      } else {
+        showError('Delete Failed', result.data?.deletePost?.message || 'Failed to delete post. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error deleting post:', error);
+      showError('Error', 'An error occurred while deleting the post. Please try again.');
+    }
+  };
 
   // Inject map marker styles
   useEffect(() => {
@@ -231,18 +296,22 @@ export function OptimizedMapsPage() {
     setSelectedPost(null);
   }, []);
 
+  // Handle edit post
+  const handleEditPost = useCallback((post: Post) => {
+    setPostToEdit(post);
+    setIsEditPostModalOpen(true);
+    setIsPostPreviewOpen(false);
+  }, []);
+
+  // Handle delete post - opens confirmation modal
+  const handleDeletePost = useCallback((post: Post) => {
+    setDeleteModal({ isOpen: true, post });
+  }, []);
+
   return (
     <div className="w-full h-screen relative">
       {/* Map info */}
-      <div className="absolute bottom-4 left-4 z-[100] bg-white rounded-lg shadow-lg p-3 max-w-xs">
-        <h3 className="font-semibold text-sm mb-1">Optimized Map</h3>
-        <p className="text-xs text-gray-600">
-          Zoom: {zoom}
-        </p>
-        <p className="text-xs text-gray-600">
-          Live Posts: {visiblePosts.length}
-        </p>
-      </div>
+
 
       {/* Map container - use ref to get map instance, avoid controlled props */}
       <MapContainer
@@ -274,14 +343,72 @@ export function OptimizedMapsPage() {
         ))}
       </MapContainer>
       
+      {/* Add Post Button - Outside map container */}
+      <button
+        onClick={() => setIsCreatePostModalOpen(true)}
+        className="fixed bottom-4 right-4 z-40 flex items-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-xl transition-colors"
+      >
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+        </svg>
+        <span className="font-medium">Add Post</span>
+      </button>
+
       {/* Post Preview Modal */}
       {selectedPost && (
         <PostPreviewModal
           post={selectedPost}
           isOpen={isPostPreviewOpen}
           onClose={handleClosePostPreview}
+          onEdit={handleEditPost}
+          onDelete={handleDeletePost}
         />
       )}
+      
+      {/* Create Post Modal */}
+      <CreatePostModal
+        isOpen={isCreatePostModalOpen}
+        onClose={() => setIsCreatePostModalOpen(false)}
+        onSubmit={handleCreatePost}
+        isSubmitting={isCreatingPost}
+        currentLocation={null}
+      />
+      
+      {/* Edit Post Modal */}
+      <EditPostModal
+        isOpen={isEditPostModalOpen}
+        onClose={() => {
+          setIsEditPostModalOpen(false);
+          setPostToEdit(null);
+        }}
+        onSuccess={() => {
+          showSuccess('Post Updated', 'Your post has been updated successfully.');
+          setIsEditPostModalOpen(false);
+          setPostToEdit(null);
+        }}
+        onError={(message: string) => showError('Update Failed', message)}
+        post={postToEdit}
+      />
+      
+      {/* Delete Post Confirmation Modal */}
+      <Modal
+        isOpen={deleteModal.isOpen}
+        onClose={() => setDeleteModal({ isOpen: false, post: null })}
+        title="Delete Post"
+        message="Are you sure you want to delete this post? This action cannot be undone."
+        type="error"
+        showCancel
+        onConfirm={executeDeletePost}
+      />
+      
+      {/* Success/Error Feedback Modal */}
+      <Modal
+        isOpen={feedbackModal.isOpen}
+        onClose={() => setFeedbackModal(prev => ({ ...prev, isOpen: false }))}
+        title={feedbackModal.title}
+        message={feedbackModal.message}
+        type={feedbackModal.type}
+      />
     </div>
   );
 }
