@@ -17,10 +17,11 @@ import { EditPostModal } from '../components/posts/EditPostModal';
 import { Modal } from '../components/Modal';
 import { createPostHandlers } from '../utils/maps/handlers';
 
-// Custom Post Marker Component using actual PostMarker styling
-function PostMapMarker({ post, onClick }: { post: Post; onClick?: (post: Post) => void }) {
+// Custom Post Marker Component using actual PostMarker styling with pop animations
+function PostMapMarker({ post, onClick, isEdited }: { post: Post; onClick?: (post: Post) => void; isEdited?: boolean }) {
   const map = useMap();
   const markerRef = useRef<any>(null);
+  const isRemovingRef = useRef(false);
   
   useEffect(() => {
     const init = async () => {
@@ -35,10 +36,12 @@ function PostMapMarker({ post, onClick }: { post: Post; onClick?: (post: Post) =
         markerRef.current = null;
       }
       
-      // Create the conversation bubble icon using actual PostMarker styling
+      // Create the conversation bubble icon using actual PostMarker styling with animation
+      // Skip animation if this is an edited post (just updating content, not adding new)
+      const className = isEdited ? 'post-bubble-marker' : 'post-bubble-marker animate-in';
       const icon = L.divIcon({
         html: getPostBubbleHtml(post),
-        className: 'post-bubble-marker',
+        className: className,
         iconSize: [200, 44],
         iconAnchor: [25, 22],
         popupAnchor: [0, -44]
@@ -46,7 +49,6 @@ function PostMapMarker({ post, onClick }: { post: Post; onClick?: (post: Post) =
       
       // Create marker with post location
       const marker = L.marker([post.location!.lat, post.location!.lng], { icon });
-      
       
       // Add click handler
       if (onClick) {
@@ -64,13 +66,34 @@ function PostMapMarker({ post, onClick }: { post: Post; onClick?: (post: Post) =
     
     return () => {
       console.log('[PostMapMarker] Cleanup for post:', post.id);
-      if (markerRef.current) {
-        map.removeLayer(markerRef.current);
-        markerRef.current = null;
-        console.log('[PostMapMarker] Marker removed from map for post:', post.id);
+      if (markerRef.current && !isRemovingRef.current) {
+        isRemovingRef.current = true;
+        
+        // Add animate-out class for pop-down animation
+        const element = markerRef.current.getElement();
+        if (element) {
+          element.classList.remove('animate-in');
+          element.classList.add('animate-out');
+          
+          // Wait for animation to complete before removing
+          setTimeout(() => {
+            if (markerRef.current) {
+              map.removeLayer(markerRef.current);
+              markerRef.current = null;
+              console.log('[PostMapMarker] Marker removed from map for post:', post.id);
+            }
+            isRemovingRef.current = false;
+          }, 300); // Match CSS animation duration
+        } else {
+          // Fallback if element not found
+          map.removeLayer(markerRef.current);
+          markerRef.current = null;
+          console.log('[PostMapMarker] Marker removed from map for post:', post.id);
+          isRemovingRef.current = false;
+        }
       }
     };
-  }, [map, post, onClick]);
+  }, [map, post, onClick, isEdited]);
   
   return null;
 }
@@ -103,8 +126,6 @@ function MapZoomTracker({ onZoomChange }: { onZoomChange: (zoom: number) => void
 
 // Component to track map viewport bounds
 function MapViewportTracker({ onBoundsChange }: { onBoundsChange: (bounds: LatLngBounds) => void }) {
-
-  console.log('triggered')
   const map = useMap();
   
   useEffect(() => {
@@ -164,6 +185,9 @@ export function OptimizedMapsPage() {
   // Track deleted post IDs to filter from map
   const [deletedPostIds, setDeletedPostIds] = useState<Set<string>>(new Set());
   
+  // Track recently edited post IDs to skip animation on update
+  const [editedPostIds, setEditedPostIds] = useState<Set<string>>(new Set());
+  
   const showSuccess = (title: string, message: string) => {
     setFeedbackModal({ isOpen: true, title, message, type: 'success' });
   };
@@ -184,7 +208,7 @@ export function OptimizedMapsPage() {
     if (!deleteModal.post) return;
     
     try {
-      const result = await deletePost({ variables: { id: deleteModal.post.id } });
+      const result = await deletePost({ variables: { id: deleteModal.post.id } }) as { data?: { deletePost?: { success: boolean; message?: string } } };
       if (result.data?.deletePost?.success) {
         setDeletedPostIds(prev => new Set(prev).add(deleteModal.post!.id));
         setDeleteModal({ isOpen: false, post: null });
@@ -239,6 +263,7 @@ export function OptimizedMapsPage() {
       
       const merged: Post[] = [];
       const handledIds = new Set<string>();
+      const newlyEditedIds = new Set<string>();
       
       // Process all new/updated posts
       for (const [id, newPost] of newMap) {
@@ -249,6 +274,7 @@ export function OptimizedMapsPage() {
         } else if (JSON.stringify(oldPost) !== JSON.stringify(newPost)) {
           console.log('[WebSocket] Post updated:', id);
           merged.push(newPost);
+          newlyEditedIds.add(id); // Track as edited
         } else {
           merged.push(oldPost); // No change, keep old reference
         }
@@ -263,23 +289,39 @@ export function OptimizedMapsPage() {
         }
       }
       
+      // Update edited post IDs state (for animation control)
+      if (newlyEditedIds.size > 0) {
+        setEditedPostIds(prev => new Set([...prev, ...newlyEditedIds]));
+        // Clear edited IDs after animation duration (350ms)
+        setTimeout(() => {
+          setEditedPostIds(prev => {
+            const next = new Set(prev);
+            newlyEditedIds.forEach(id => next.delete(id));
+            return next;
+          });
+        }, 350);
+      }
+      
       console.log('[OptimizedMapsPage] Live posts total:', merged.length, merged.map(p => p.id));
       return merged;
     });
   }, [livePostsData]);
 
-  // Filter posts that are within current viewport (skip posts without valid coordinates)
+  // Filter posts that are within current viewport and not deleted
   const visiblePosts = useMemo(() => {
-    if (!viewportBounds) return livePosts; // Show all if no bounds
+    // Filter out deleted posts first
+    const activePosts = livePosts.filter(post => !deletedPostIds.has(post.id));
     
-    return livePosts.filter(post => {
+    if (!viewportBounds) return activePosts; // Show all active posts if no bounds
+    
+    return activePosts.filter(post => {
       // Skip posts without valid coordinates
       if (!post.location || post.location.lat == null || post.location.lng == null) {
         return false;
       }
       return isWithinViewport(post.location.lat, post.location.lng, viewportBounds);
     });
-  }, [livePosts, viewportBounds]);
+  }, [livePosts, viewportBounds, deletedPostIds]);
 
   // Handle post click
   const handlePostClick = useCallback((post: Post) => {
@@ -339,6 +381,7 @@ export function OptimizedMapsPage() {
             key={post.id}
             post={post}
             onClick={handlePostClick}
+            isEdited={editedPostIds.has(post.id)}
           />
         ))}
       </MapContainer>
