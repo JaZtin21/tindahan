@@ -1,3 +1,4 @@
+import { useCallback } from 'react'
 import { Outlet } from 'react-router-dom'
 import { useSelector, useDispatch } from 'react-redux'
 import { TopNav, SideNav } from './components/navigation'
@@ -8,6 +9,11 @@ export function App() {
   const dispatch = useDispatch()
   const { isOpen, selectedLocation } = useSelector((state: RootState) => state.sideNav)
 
+  // Memoize onClose to prevent unnecessary SideNav re-renders
+  const handleCloseSideNav = useCallback(() => {
+    dispatch(closeSideNav())
+  }, [dispatch])
+
   return (
     <div className="min-h-dvh bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-900">
       {/* Main content with top padding for fixed nav */}
@@ -15,7 +21,7 @@ export function App() {
         <TopNav />
         <SideNav 
           isOpen={isOpen} 
-          onClose={() => dispatch(closeSideNav())}
+          onClose={handleCloseSideNav}
           selectedLocation={selectedLocation}
         />
         <Outlet />

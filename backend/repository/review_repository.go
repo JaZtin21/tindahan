@@ -36,8 +36,15 @@ func NewReviewRepository(db *mongo.Database) ReviewRepository {
 func (r *reviewRepository) CreateReview(ctx context.Context, review *domain.Review) error {
 	review.CreatedAt = time.Now()
 	review.UpdatedAt = time.Now()
-	_, err := r.collection.InsertOne(ctx, review)
-	return err
+	result, err := r.collection.InsertOne(ctx, review)
+	if err != nil {
+		return err
+	}
+	// Set the generated ID back on the review struct
+	if oid, ok := result.InsertedID.(primitive.ObjectID); ok {
+		review.ID = oid
+	}
+	return nil
 }
 
 func (r *reviewRepository) GetReviewByID(ctx context.Context, reviewID primitive.ObjectID) (*domain.Review, error) {
@@ -167,7 +174,7 @@ func (r *reviewRepository) GetReviewStats(ctx context.Context, storeID primitive
 	pipeline := []bson.M{
 		{"$match": bson.M{"store_id": storeID}},
 		{"$group": bson.M{
-			"_id": "$rating",
+			"_id":   "$rating",
 			"count": bson.M{"$sum": 1},
 		}},
 	}

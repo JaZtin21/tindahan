@@ -13,6 +13,7 @@ interface ReviewsListProps {
   storeId: string;
   onAddReview: () => void;
   onEditReview: (review: Review) => void;
+  onDeleteReview?: (review: Review) => void;
   onReviewsChange?: (actions: {
     refetchReviews: () => void;
     refetchStats: () => void;
@@ -21,7 +22,7 @@ interface ReviewsListProps {
   }) => void;
 }
 
-export function ReviewsList({ storeId, onAddReview, onEditReview, onReviewsChange }: ReviewsListProps) {
+export function ReviewsList({ storeId, onAddReview, onEditReview, onDeleteReview, onReviewsChange }: ReviewsListProps) {
   const { isAuthenticated, user } = useAuth();
   const currentUser = useSelector((state: RootState) => state.user);
   const [page, setPage] = useState(1);
@@ -231,7 +232,7 @@ export function ReviewsList({ storeId, onAddReview, onEditReview, onReviewsChang
                 isMyReview={review.userId === currentUser?.id}
                 onEdit={() => onEditReview(review)}
                 onDelete={() => {
-                  window.dispatchEvent(new CustomEvent('deleteReview', { detail: review }));
+                  onDeleteReview?.(review);
                 }}
               />
             ))}

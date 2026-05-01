@@ -398,6 +398,12 @@ func (r *ReviewResolver) reviewToMap(ctx context.Context, review *domain.Review)
 		userData["profilePhoto"] = user.ProfilePhoto
 	}
 
+	// For new reviews, UpdatedAt might be zero - use CreatedAt in that case
+	updatedAt := review.UpdatedAt
+	if updatedAt.IsZero() {
+		updatedAt = review.CreatedAt
+	}
+
 	return map[string]interface{}{
 		"id":        review.ID.Hex(),
 		"storeId":   review.StoreID.Hex(),
@@ -407,6 +413,6 @@ func (r *ReviewResolver) reviewToMap(ctx context.Context, review *domain.Review)
 		"text":      review.Text,
 		"photos":    review.Photos,
 		"createdAt": review.CreatedAt.Format(time.RFC3339),
-		"updatedAt": review.UpdatedAt.Format(time.RFC3339),
+		"updatedAt": updatedAt.Format(time.RFC3339),
 	}
 }

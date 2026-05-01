@@ -77,6 +77,7 @@ export const CREATE_REVIEW_MUTATION = gql`
         text
         photos
         createdAt
+        updatedAt
       }
     }
   }

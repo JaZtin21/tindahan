@@ -27,16 +27,24 @@ function PostMapMarker({ post, onClick, isEdited }: { post: Post; onClick?: (pos
   const map = useMap();
   const markerRef = useRef<any>(null);
   const isRemovingRef = useRef(false);
+  const postRef = useRef<string>('');
+  const onClickRef = useRef(onClick);
+  
+  // Keep callback ref updated
+  onClickRef.current = onClick;
   
   useEffect(() => {
+    // Only recreate if post ID actually changed
+    if (post.id === postRef.current && markerRef.current) {
+      return;
+    }
+    postRef.current = post.id;
+    
     const init = async () => {
       const L = await import('leaflet');
       
-      console.log('[PostMapMarker] Creating marker for post:', post.id);
-      
       // Check if marker already exists
       if (markerRef.current) {
-        console.log('[PostMapMarker] Marker already exists, removing first:', post.id);
         map.removeLayer(markerRef.current);
         markerRef.current = null;
       }
@@ -55,22 +63,19 @@ function PostMapMarker({ post, onClick, isEdited }: { post: Post; onClick?: (pos
       // Create marker with post location
       const marker = L.marker([post.location!.lat, post.location!.lng], { icon });
       
-      // Add click handler
-      if (onClick) {
-        marker.on('click', () => onClick(post));
-      }
+      // Add click handler using ref
+      marker.on('click', () => {
+        onClickRef.current?.(post);
+      });
       
       // Add to map
       marker.addTo(map);
       markerRef.current = marker;
-      
-      console.log('[PostMapMarker] Marker added to map for post:', post.id);
     };
     
     init();
     
     return () => {
-      console.log('[PostMapMarker] Cleanup for post:', post.id);
       if (markerRef.current && !isRemovingRef.current) {
         isRemovingRef.current = true;
         
@@ -85,7 +90,6 @@ function PostMapMarker({ post, onClick, isEdited }: { post: Post; onClick?: (pos
             if (markerRef.current) {
               map.removeLayer(markerRef.current);
               markerRef.current = null;
-              console.log('[PostMapMarker] Marker removed from map for post:', post.id);
             }
             isRemovingRef.current = false;
           }, 300); // Match CSS animation duration
@@ -93,12 +97,14 @@ function PostMapMarker({ post, onClick, isEdited }: { post: Post; onClick?: (pos
           // Fallback if element not found
           map.removeLayer(markerRef.current);
           markerRef.current = null;
-          console.log('[PostMapMarker] Marker removed from map for post:', post.id);
           isRemovingRef.current = false;
         }
       }
     };
-  }, [map, post, onClick, isEdited]);
+    // Remove map from deps - it changes on every pan/zoom causing blinking
+    // Only depend on post.id and isEdited
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [post.id, isEdited]);
   
   return null;
 }
@@ -164,9 +170,24 @@ function isWithinViewport(lat: number, lng: number, bounds: LatLngBounds | null)
 function StoreMarker({ store, onClick }: { store: any; onClick?: (store: any) => void }) {
   const map = useMap();
   const markerRef = useRef<any>(null);
+  const storeRef = useRef<string>('');
+  const onClickRef = useRef(onClick);
+  
+  // Keep callback ref updated
+  onClickRef.current = onClick;
   
   useEffect(() => {
     if (!store || !store.lat || !store.lng) return;
+    
+    // Create a key to detect actual store changes
+    const storeKey = `${store.id || store.storeId}-${store.lat}-${store.lng}`;
+    
+    // If same store, don't re-render
+    if (storeKey === storeRef.current && markerRef.current) {
+      return;
+    }
+    
+    storeRef.current = storeKey;
     
     const init = async () => {
       const L = await import('leaflet');
@@ -193,9 +214,9 @@ function StoreMarker({ store, onClick }: { store: any; onClick?: (store: any) =>
       const marker = L.marker([store.lat, store.lng], { icon });
       
       // Add click handler to open sidebar - NO POPUP
-      if (onClick) {
-        marker.on('click', () => onClick(store));
-      }
+      marker.on('click', () => {
+        onClickRef.current?.(store);
+      });
       
       marker.addTo(map);
       markerRef.current = marker;
@@ -209,7 +230,9 @@ function StoreMarker({ store, onClick }: { store: any; onClick?: (store: any) =>
         markerRef.current = null;
       }
     };
-  }, [map, store, onClick]);
+    // Remove map from deps - it changes on every pan/zoom causing blinking
+    // Use storeRef to only update when store actually changes
+  }, [store]);
   
   return null;
 }
@@ -218,9 +241,20 @@ function StoreMarker({ store, onClick }: { store: any; onClick?: (store: any) =>
 function LocationPinMarker({ location }: { location: any }) {
   const map = useMap();
   const markerRef = useRef<any>(null);
+  const locationRef = useRef<string>('');
   
   useEffect(() => {
     if (!location || !location.lat || !location.lng) return;
+    
+    // Create a key to detect actual location changes
+    const locationKey = `${location.lat}-${location.lng}`;
+    
+    // If same location, don't re-render
+    if (locationKey === locationRef.current && markerRef.current) {
+      return;
+    }
+    
+    locationRef.current = locationKey;
     
     const init = async () => {
       const L = await import('leaflet');
@@ -263,7 +297,8 @@ function LocationPinMarker({ location }: { location: any }) {
         markerRef.current = null;
       }
     };
-  }, [map, location]);
+    // Remove map from deps - it changes on every pan/zoom causing blinking
+  }, [location]);
   
   return null;
 }
@@ -350,14 +385,25 @@ function ProductStoreMarkers({ stores, onStoreClick }: { stores: any[]; onStoreC
 function UserLocationMarker({ location }: { location: { lat: number; lng: number } }) {
   const map = useMap();
   const markerRef = useRef<any>(null);
+  const locationRef = useRef<string>('');
   
   useEffect(() => {
-    if (!location || !location.lat || !location.lng) return;
+    if (!location) return;
+    
+    // Create a key to detect actual location changes
+    const locationKey = `${location.lat}-${location.lng}`;
+    
+    // If same location, don't re-render
+    if (locationKey === locationRef.current && markerRef.current) {
+      return;
+    }
+    
+    locationRef.current = locationKey;
     
     const init = async () => {
       const L = await import('leaflet');
       
-      // Remove existing marker
+      // Remove existing marker if any (prevent duplicates)
       if (markerRef.current) {
         map.removeLayer(markerRef.current);
         markerRef.current = null;
@@ -396,7 +442,8 @@ function UserLocationMarker({ location }: { location: { lat: number; lng: number
         markerRef.current = null;
       }
     };
-  }, [map, location]);
+    // Remove map from deps - it changes on every pan/zoom causing blinking
+  }, [location]);
   
   return null;
 }
