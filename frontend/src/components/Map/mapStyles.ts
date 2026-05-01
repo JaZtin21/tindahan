@@ -448,6 +448,36 @@ export function getMapMarkerStyles(): string {
       border-bottom: none !important;
     }
 
+    /* Search Result Store Marker Styles */
+    .store-marker-icon {
+      background: transparent !important;
+      border: none !important;
+    }
+
+    .store-marker-icon:hover {
+      transform: scale(1.1);
+    }
+
+    /* Product Store Marker Styles */
+    .product-store-marker-icon {
+      background: transparent !important;
+      border: none !important;
+    }
+
+    .product-store-marker-icon:hover {
+      transform: scale(1.1);
+    }
+
+    /* Location Pin Marker Styles */
+    .location-pin-icon {
+      background: transparent !important;
+      border: none !important;
+    }
+
+    .location-pin-icon:hover {
+      transform: scale(1.1);
+    }
+
     .leaflet-control-attribution {
       display: none !important;
     }

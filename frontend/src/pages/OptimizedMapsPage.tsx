@@ -1,11 +1,13 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import { useDispatch } from 'react-redux';
 import { MapContainer, useMap } from 'react-leaflet';
 import { LatLngBounds } from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { useSubscription, useMutation } from '@apollo/client/react';
+import { useSubscription, useMutation, useQuery } from '@apollo/client/react';
 import { CachedTileLayer } from '../components/Map';
 import { LIVE_POSTS_SUBSCRIPTION } from '../api/graphql/subscriptions/live-posts';
 import { DELETE_POST_MUTATION } from '../api/graphql/post/post-queries';
+import { SHOPS_BY_PRODUCT_QUERY } from '../api/graphql/shop/shop-queries';
 import { useCreatePost } from '../api/graphql/post/usePost';
 import { useAuth } from '../api/graphql/apolloProviderWithAuth';
 import type { Post } from '../types/post';
@@ -16,7 +18,9 @@ import { CreatePostModal } from '../components/posts/CreatePostModal';
 import { EditPostModal } from '../components/posts/EditPostModal';
 import { Modal } from '../components/Modal';
 import { createPostHandlers } from '../utils/maps/handlers';
+import { openSideNav } from '../store';
 import { MdMyLocation } from 'react-icons/md';
+import { SearchBar } from '../components/Map/SearchBar';
 
 // Custom Post Marker Component using actual PostMarker styling with pop animations
 function PostMapMarker({ post, onClick, isEdited }: { post: Post; onClick?: (post: Post) => void; isEdited?: boolean }) {
@@ -155,10 +159,253 @@ function isWithinViewport(lat: number, lng: number, bounds: LatLngBounds | null)
   return bounds.contains([lat, lng]);
 }
 
+// Search Result Marker Components
+// Store Marker (Shop icon for API store results)
+function StoreMarker({ store, onClick }: { store: any; onClick?: (store: any) => void }) {
+  const map = useMap();
+  const markerRef = useRef<any>(null);
+  
+  useEffect(() => {
+    if (!store || !store.lat || !store.lng) return;
+    
+    const init = async () => {
+      const L = await import('leaflet');
+      
+      // Remove existing marker
+      if (markerRef.current) {
+        map.removeLayer(markerRef.current);
+        markerRef.current = null;
+      }
+      
+      // Create shop icon using emoji - SMALLER with background
+      const icon = L.divIcon({
+        html: `
+          <div style="width: 32px; height: 32px; background: white; border-radius: 50%; border: 2px solid #3B82F6; display: flex; align-items: center; justify-content: center; font-size: 18px; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.3); transition: transform 0.2s;">
+            🏪
+          </div>
+        `,
+        className: 'store-marker-icon',
+        iconSize: [32, 32],
+        iconAnchor: [16, 16],
+        popupAnchor: [0, -16]
+      });
+      
+      const marker = L.marker([store.lat, store.lng], { icon });
+      
+      // Add click handler to open sidebar - NO POPUP
+      if (onClick) {
+        marker.on('click', () => onClick(store));
+      }
+      
+      marker.addTo(map);
+      markerRef.current = marker;
+    };
+    
+    init();
+    
+    return () => {
+      if (markerRef.current) {
+        map.removeLayer(markerRef.current);
+        markerRef.current = null;
+      }
+    };
+  }, [map, store, onClick]);
+  
+  return null;
+}
+
+// Location Pin Marker (Pin icon for geocoding results)
+function LocationPinMarker({ location }: { location: any }) {
+  const map = useMap();
+  const markerRef = useRef<any>(null);
+  
+  useEffect(() => {
+    if (!location || !location.lat || !location.lng) return;
+    
+    const init = async () => {
+      const L = await import('leaflet');
+      
+      // Remove existing marker
+      if (markerRef.current) {
+        map.removeLayer(markerRef.current);
+        markerRef.current = null;
+      }
+      
+      // Create location pin icon
+      const icon = L.divIcon({
+        html: `
+          <div class="location-pin-marker" style="width: 40px; height: 40px; position: relative; display: flex; align-items: center; justify-content: center;">
+            <div class="location-pin" style="position: relative; z-index: 2; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="#3B82F6" stroke="white" stroke-width="1.5" style="display: block;">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                <circle cx="12" cy="10" r="3" fill="white"/>
+              </svg>
+            </div>
+          </div>
+        `,
+        className: 'location-pin-icon',
+        iconSize: [40, 40],
+        iconAnchor: [20, 20],
+        popupAnchor: [0, -20]
+      });
+      
+      const marker = L.marker([location.lat, location.lng], { icon });
+      marker.bindPopup(`<div style="font-family: system-ui; font-size: 14px; font-weight: 600;">${location.name}</div>`);
+      marker.addTo(map);
+      markerRef.current = marker;
+    };
+    
+    init();
+    
+    return () => {
+      if (markerRef.current) {
+        map.removeLayer(markerRef.current);
+        markerRef.current = null;
+      }
+    };
+  }, [map, location]);
+  
+  return null;
+}
+
+// Product Store Markers (Multiple shop markers for product search results)
+function ProductStoreMarkers({ stores, onStoreClick }: { stores: any[]; onStoreClick?: (store: any) => void }) {
+  const map = useMap();
+  const markersRef = useRef<any[]>([]);
+  const storesRef = useRef<string>('');
+  const onStoreClickRef = useRef(onStoreClick);
+  
+  // Keep callback ref updated
+  onStoreClickRef.current = onStoreClick;
+  
+  useEffect(() => {
+    if (!stores || stores.length === 0) return;
+    
+    // Create stable comparison key from store IDs and positions
+    const storesKey = stores.map(s => `${s.id || s.title}-${s.lat}-${s.lng}`).join('|');
+    
+    // Check if stores actually changed
+    if (storesKey === storesRef.current && markersRef.current.length > 0) {
+      return; // No change, don't re-render
+    }
+    
+    storesRef.current = storesKey;
+    
+    const init = async () => {
+      const L = await import('leaflet');
+      
+      // Clear existing markers
+      markersRef.current.forEach(marker => {
+        map.removeLayer(marker);
+      });
+      markersRef.current = [];
+      
+      // Create markers for each store using shop emoji
+      stores.forEach((store) => {
+        if (!store.lat || !store.lng) return;
+        
+        // Create shop icon using emoji - SMALLER with background (same style as store marker)
+        const icon = L.divIcon({
+          html: `
+            <div style="width: 32px; height: 32px; background: white; border-radius: 50%; border: 2px solid #3B82F6; display: flex; align-items: center; justify-content: center; font-size: 18px; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.3); transition: transform 0.2s;">
+              🏪
+            </div>
+          `,
+          className: 'product-store-marker-icon',
+          iconSize: [32, 32],
+          iconAnchor: [16, 16],
+          popupAnchor: [0, -16]
+        });
+        
+        const marker = L.marker([store.lat, store.lng], { icon });
+        
+        // Add click handler to open sidebar - use ref to avoid re-creation
+        marker.on('click', () => {
+          if (onStoreClickRef.current) {
+            onStoreClickRef.current(store);
+          }
+        });
+        
+        marker.addTo(map);
+        markersRef.current.push(marker);
+      });
+    };
+    
+    init();
+    
+    // Only cleanup on unmount, not on every render
+    return () => {
+      markersRef.current.forEach(marker => {
+        map.removeLayer(marker);
+      });
+      markersRef.current = [];
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stores]); // Only depend on stores, not map or onStoreClick
+  
+  return null;
+}
+
+// User Location Marker Component
+function UserLocationMarker({ location }: { location: { lat: number; lng: number } }) {
+  const map = useMap();
+  const markerRef = useRef<any>(null);
+  
+  useEffect(() => {
+    if (!location || !location.lat || !location.lng) return;
+    
+    const init = async () => {
+      const L = await import('leaflet');
+      
+      // Remove existing marker
+      if (markerRef.current) {
+        map.removeLayer(markerRef.current);
+        markerRef.current = null;
+      }
+      
+      // Create custom pin icon for user location
+      const icon = L.divIcon({
+        html: `
+          <div class="user-location-marker" style="width: 40px; height: 40px; position: relative; display: flex; align-items: center; justify-content: center;">
+            <div class="user-location-pulse" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 40px; height: 40px; background: rgba(239, 68, 68, 0.3); border: 2px solid rgba(239, 68, 68, 0.5); border-radius: 50%; animation: pulse-ring 2s ease-out infinite;"></div>
+            <div class="user-location-pin" style="position: relative; z-index: 2; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3)); animation: location-bounce 2s ease-in-out infinite;">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="#EF4444" stroke="none" style="display: block;">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                <circle cx="12" cy="10" r="3" fill="white"/>
+              </svg>
+            </div>
+          </div>
+        `,
+        className: 'user-location-icon',
+        iconSize: [40, 40],
+        iconAnchor: [20, 20],
+        popupAnchor: [0, -20]
+      });
+      
+      const marker = L.marker([location.lat, location.lng], { icon });
+      marker.bindPopup('<div style="font-family: system-ui; font-size: 14px; font-weight: 600;">Your Location</div>');
+      marker.addTo(map);
+      markerRef.current = marker;
+    };
+    
+    init();
+    
+    return () => {
+      if (markerRef.current) {
+        map.removeLayer(markerRef.current);
+        markerRef.current = null;
+      }
+    };
+  }, [map, location]);
+  
+  return null;
+}
+
 // Minimum zoom level to show post markers (city level zoom)
 const MIN_MARKER_ZOOM = 17;
 
 export function OptimizedMapsPage() {
+  const dispatch = useDispatch();
   const [zoom, setZoom] = useState(13);
   const [viewportBounds, setViewportBounds] = useState<LatLngBounds | null>(null);
   const mapRef = useRef<any>(null);
@@ -251,6 +498,21 @@ export function OptimizedMapsPage() {
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [showLocationMarker, setShowLocationMarker] = useState(false);
   
+  // Store/Product search states
+  const [filteredStores, setFilteredStores] = useState<any[]>([]);
+  const [productSearchStores, setProductSearchStores] = useState<any[]>([]);
+  const [productNameForSearch, setProductNameForSearch] = useState<string | null>(null);
+  const [selectedStore, setSelectedStore] = useState<any | null>(null);
+  
+  // Search marker visibility states
+  const [showStoreMarker, setShowStoreMarker] = useState(false);
+  const [showLocationPinMarker, setShowLocationPinMarker] = useState(false);
+  const [showProductStoreMarkers, setShowProductStoreMarkers] = useState(false);
+  
+  // Search result marker data
+  const [storeMarkerData, setStoreMarkerData] = useState<any | null>(null);
+  const [locationPinData, setLocationPinData] = useState<any | null>(null);
+  
   // User Location Marker Management
   const locationMarkerRef = useRef<any>(null);
   
@@ -329,8 +591,139 @@ export function OptimizedMapsPage() {
   const [createPost, { loading: isCreatingPost }] = useCreatePost();
   const [deletePost] = useMutation(DELETE_POST_MUTATION);
   
+  // Query to get shops by product name
+  const { refetch: refetchShopsByProduct } = useQuery(SHOPS_BY_PRODUCT_QUERY, {
+    variables: { productName: productNameForSearch },
+    skip: !productNameForSearch
+  });
+  
   // Create post handler using factory function
   const { handleCreatePost } = createPostHandlers({ createPost, showSuccess, showError });
+  
+  // Handle store selection from search (from API - shop marker)
+  const handleStoreSelect = (store: { lat: number; lng: number; name: string; id?: string; description?: string; location?: string; coverPhoto?: string; businessType?: string; phone?: string; hours?: string }) => {
+    console.log('[Search] Selected store:', store);
+    // Only hide product store markers, keep location pin
+    setShowProductStoreMarkers(false);
+    setProductSearchStores([]);
+    
+    // Center map on store
+    if (mapRef.current) {
+      mapRef.current.flyTo([store.lat, store.lng], 18, { duration: 1.5 });
+    }
+    
+    // Set store marker data and show it
+    setStoreMarkerData(store);
+    setShowStoreMarker(true);
+    setSelectedStore(store);
+    
+    // Open sidebar with store info
+    dispatch(openSideNav({
+      name: store.name,
+      lat: store.lat,
+      lng: store.lng,
+      type: 'store',
+      description: store.description,
+      address: store.location || 'Address not available',
+      image: store.coverPhoto,
+      phone: store.phone,
+      storeId: store.id
+    }));
+  };
+  
+  // Handle store click from marker (for both single store and product stores)
+  const handleStoreMarkerClick = (store: any) => {
+    console.log('[Marker] Store clicked:', store);
+    
+    // Open sidebar with store info
+    dispatch(openSideNav({
+      name: store.name || store.title,
+      lat: store.lat,
+      lng: store.lng,
+      type: 'store',
+      description: store.description,
+      address: store.location || 'Address not available',
+      image: store.coverPhoto,
+      phone: store.phone,
+      storeId: store.id
+    }));
+  };
+  
+  // Handle location selection from search (from geocoding - pin marker)
+  const handleLocationSelect = (location: { lat: number; lng: number; name: string; details?: string }) => {
+    console.log('[Search] Selected location:', location);
+    // Location pin is independent - don't hide shop or product markers
+    // Just add the location pin marker
+    
+    // Center map on location
+    if (mapRef.current) {
+      mapRef.current.flyTo([location.lat, location.lng], 18, { duration: 1.5 });
+    }
+    
+    // Set location pin data and show it
+    setLocationPinData(location);
+    setShowLocationPinMarker(true);
+  };
+  
+  // Handle product selection from search
+  const handleProductSelect = async (productName: string) => {
+    console.log('[Search] Selected product:', productName);
+    setProductNameForSearch(productName);
+    
+    // Fetch stores that have this product
+    const result = await refetchShopsByProduct({ productName }) as { data?: { shopsByProduct?: { data: any[] } } };
+    const shops = result.data?.shopsByProduct?.data || [];
+    
+    // Convert shops to marker format
+    const storeMarkers = shops.map((shop: any) => ({
+      id: shop.id,
+      lat: shop.coordinates?.lat || 0,
+      lng: shop.coordinates?.lng || 0,
+      title: shop.name,
+      description: shop.description,
+      phone: shop.contactDetails?.phone,
+      hours: shop.businessHours ? `${shop.businessHours.openTime} - ${shop.businessHours.closeTime}` : undefined,
+      coverPhoto: shop.coverPhoto,
+      businessType: shop.businessType,
+      location: shop.contactDetails?.address || shop.location,
+    })).filter((s: any) => s.lat && s.lng);
+    
+    setProductSearchStores(storeMarkers);
+    setFilteredStores(storeMarkers);
+    
+    // Only hide single store marker, keep location pin
+    setShowStoreMarker(false);
+    setStoreMarkerData(null);
+    setShowProductStoreMarkers(true);
+    
+    // Zoom out to fit all stores using fitBounds
+    if (mapRef.current && storeMarkers.length > 0) {
+      const bounds = storeMarkers.map(s => [s.lat, s.lng]);
+      mapRef.current.fitBounds(bounds, { padding: [50, 50], maxZoom: 15, duration: 1.5 });
+    }
+    
+    // Show success message with store count
+    showSuccess('Product Search', `Found ${storeMarkers.length} stores with "${productName}"`);
+  };
+  
+  // Clear product search stores
+  const clearProductStores = () => {
+    setProductSearchStores([]);
+    setFilteredStores([]);
+    setProductNameForSearch(null);
+    setShowProductStoreMarkers(false);
+  };
+  
+  // Clear all search markers
+  const clearAllSearchMarkers = () => {
+    setShowStoreMarker(false);
+    setShowLocationPinMarker(false);
+    setShowProductStoreMarkers(false);
+    setStoreMarkerData(null);
+    setLocationPinData(null);
+    setProductSearchStores([]);
+    setFilteredStores([]);
+  };
   
   // Handle actual delete post execution
   const executeDeletePost = async () => {
@@ -484,6 +877,31 @@ export function OptimizedMapsPage() {
       {/* Map info */}
 
 
+      {/* Search Bar - Fixed at top */}
+      <div className="absolute top-22 left-0 right-0 z-49 px-4">
+        <SearchBar
+          onSearch={(query) => console.log('[Search] Query:', query)}
+          onStoreSelect={(item: any) => {
+            // Check if it's from geocoding (location) or API (store)
+            if (item.source === 'geocoding' || (!item.id && !item.businessType)) {
+              // It's a location from geocoding
+              handleLocationSelect({
+                lat: item.lat,
+                lng: item.lng,
+                name: item.name,
+                details: item.location || item.description
+              });
+            } else {
+              // It's a store from API
+              handleStoreSelect(item);
+            }
+          }}
+          onProductSelect={handleProductSelect}
+          onClearProductStores={clearProductStores}
+          placeholder="Search for stores or products near you..."
+        />
+      </div>
+
       {/* Map container - use ref to get map instance, avoid controlled props */}
       <MapContainer
         center={[14.5995, 120.9842]}
@@ -504,6 +922,18 @@ export function OptimizedMapsPage() {
         {/* Viewport tracker - tracks map bounds for filtering markers */}
         <MapViewportTracker onBoundsChange={setViewportBounds} />
         
+        
+        {/* User Location Marker - only visible when location is set and marker should be shown */}
+        {userLocation && showLocationMarker && <UserLocationMarker location={userLocation} />}
+        
+        {/* Store Marker - from API store search results */}
+        {showStoreMarker && storeMarkerData && <StoreMarker store={storeMarkerData} onClick={handleStoreMarkerClick} />}
+        
+        {/* Location Pin Marker - from geocoding results */}
+        {showLocationPinMarker && locationPinData && <LocationPinMarker location={locationPinData} />}
+        
+        {/* Product Store Markers - multiple stores that have the product */}
+        {showProductStoreMarkers && productSearchStores.length > 0 && <ProductStoreMarkers stores={productSearchStores} onStoreClick={handleStoreMarkerClick} />}
         
         {/* Live Post Markers - only visible when zoomed in to city level (zoom >= 23) */}
         {zoom >= MIN_MARKER_ZOOM && visiblePosts.map((post) => (

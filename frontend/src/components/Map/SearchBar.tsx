@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import { useLazyQuery } from '@apollo/client/react';
+import { FiSearch } from 'react-icons/fi';
 import { SEARCH_SHOPS_QUERY } from '../../api/graphql/shop/shop-queries';
 import { ITEMS_QUERY } from '../../api/graphql/product/product-queries';
 import { searchLocation } from '../../utils/maps';
@@ -162,7 +163,11 @@ export function SearchBar({ onSearch, onStoreSelect, onProductSelect, onClearPro
           className="w-full px-4 py-3 pl-12 text-lg border border-zinc-300 dark:border-zinc-600 rounded-xl bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent shadow-lg"
         />
         <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-zinc-400">
-          {isLoading ? '⏳' : '🔍'}
+          {isLoading ? (
+            <div className="animate-spin w-5 h-5 border-2 border-zinc-400 border-t-transparent rounded-full" />
+          ) : (
+            <FiSearch size={20} />
+          )}
         </div>
       </div>
 
