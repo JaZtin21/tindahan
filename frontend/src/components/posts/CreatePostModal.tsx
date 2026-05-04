@@ -1,4 +1,4 @@
-import { useState, useRef, type ChangeEvent } from 'react';
+import { useState, useRef, type ChangeEvent, memo } from 'react';
 import { LocationPicker } from '../owner/LocationPicker';
 import { POST_TYPES } from '../../types/post';
 import type { CreatePostModalProps } from '../../types/post';
@@ -18,7 +18,7 @@ const ImageIcon = ({ className }: { className?: string }) => (
 );
 
 
-export function CreatePostModal({ isOpen, onClose, onSubmit, isSubmitting: externalSubmitting, currentLocation }: CreatePostModalProps) {
+function CreatePostModalInner({ isOpen, onClose, onSubmit, isSubmitting: externalSubmitting, currentLocation }: CreatePostModalProps) {
   const [title, setTitle] = useState('');
   const [text, setText] = useState('');
   const [photos, setPhotos] = useState<File[]>([]);
@@ -37,6 +37,8 @@ export function CreatePostModal({ isOpen, onClose, onSubmit, isSubmitting: exter
       name: address
     });
   };
+
+  console.log('test')
 
   const handlePhotoSelect = (e: ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -123,9 +125,7 @@ export function CreatePostModal({ isOpen, onClose, onSubmit, isSubmitting: exter
       maxWidth="lg"
       mobileBottomSheet
     >
-      <div className="flex flex-col h-full">
-        {/* Content - Scrollable */}
-        <div className="flex-1 overflow-y-auto p-4">
+      <div>
           {/* Title input */}
           <input
             type="text"
@@ -227,25 +227,27 @@ export function CreatePostModal({ isOpen, onClose, onSubmit, isSubmitting: exter
             onChange={handlePhotoSelect}
             className="hidden"
           />
-        </div>
 
-        {/* Footer */}
-        <div className="flex items-center justify-end gap-2 px-4 py-3 border-t border-zinc-200 dark:border-zinc-700 shrink-0">
-          <button
-            onClick={handleClose}
-            className="px-4 py-2 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSubmit}
-            disabled={!title.trim() || photos.length === 0 || !selectedLocation || isLoading}
-            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-300 dark:disabled:bg-zinc-600 disabled:cursor-not-allowed rounded-lg transition-colors"
-          >
-            {isLoading ? 'Posting...' : 'Post'}
-          </button>
+          {/* Footer Buttons - inside scrollable area */}
+          <div className="flex items-center justify-end gap-2 px-4 py-4 mt-4 border-t border-zinc-200 dark:border-zinc-700">
+            <button
+              onClick={handleClose}
+              className="px-4 py-2 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSubmit}
+              disabled={!title.trim() || photos.length === 0 || !selectedLocation || isLoading}
+              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-300 dark:disabled:bg-zinc-600 disabled:cursor-not-allowed rounded-lg transition-colors"
+            >
+              {isLoading ? 'Posting...' : 'Post'}
+            </button>
+          </div>
         </div>
-      </div>
     </Modal>
   );
 }
+
+// Memoize to prevent re-renders when parent (OptimizedMapsPage) re-renders on map interactions
+export const CreatePostModal = memo(CreatePostModalInner);

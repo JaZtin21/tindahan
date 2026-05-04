@@ -5,11 +5,21 @@ import { PostAuthorAvatar } from './PostAuthorAvatar'
 import { DropdownMenu, DropdownItem } from '../common/Modal'
 import { formatDate } from '../../utils/profile'
 
-export function PostItem({ post, profilePhoto, isMyPost, onEdit, onDelete }: PostItemProps & { isMyPost?: boolean; onEdit?: () => void; onDelete?: () => void }) {
+interface PostItemExtendedProps extends PostItemProps {
+  isMyPost?: boolean;
+  onEdit?: () => void;
+  onDelete?: () => void;
+  onClick?: () => void;
+}
+
+export function PostItem({ post, profilePhoto, isMyPost, onEdit, onDelete, onClick }: PostItemExtendedProps) {
   const [showMenu, setShowMenu] = useState(false);
 
   return (
-    <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/40 p-4">
+    <div 
+      className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/40 p-4 cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/60 transition-colors"
+      onClick={onClick}
+    >
       <div className="mb-3 flex items-center gap-3">
         <PostAuthorAvatar profilePhoto={profilePhoto} authorName={post.author?.name || 'Unknown'} />
         <div className="flex-1">
@@ -18,7 +28,7 @@ export function PostItem({ post, profilePhoto, isMyPost, onEdit, onDelete }: Pos
         </div>
         {/* 3-dot menu for my posts */}
         {isMyPost && (
-          <div className="relative">
+          <div className="relative" onClick={(e) => e.stopPropagation()}>
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -71,7 +81,7 @@ export function PostItem({ post, profilePhoto, isMyPost, onEdit, onDelete }: Pos
       <p className="mb-3 text-zinc-700 dark:text-zinc-300">{post.text}</p>
 
       {post.photos && post.photos.length > 0 && (
-        <div className="mb-3">
+        <div className="mb-3" onClick={(e) => e.stopPropagation()}>
           <PhotoGallery photos={post.photos} size="large" />
         </div>
       )}

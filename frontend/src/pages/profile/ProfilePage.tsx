@@ -17,6 +17,7 @@ import { DELETE_POST_MUTATION } from '../../api/graphql/post/post-queries'
 import { Modal } from '../../components'
 import { useMutation } from '@apollo/client/react'
 import { EditPostModal } from '../../components/posts/EditPostModal'
+import { PostPreviewModal } from '../../components/posts/PostPreviewModal'
 import type { Post } from '../../types/map'
 import {
   CoverPhotoSection,
@@ -68,6 +69,8 @@ export function ProfilePage() {
 
   // Edit post modal state
   const [postToEdit, setPostToEdit] = useState<Post | null>(null)
+  const [previewPost, setPreviewPost] = useState<Post | null>(null)
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false)
   const [isEditPostOpen, setIsEditPostOpen] = useState(false)
   
   // Delete confirmation modal state
@@ -276,6 +279,23 @@ export function ProfilePage() {
         isMyPosts={isOwnProfile}
         onEditPost={handleEditPost}
         onDeletePost={handleDeletePost}
+        onPostClick={(post) => {
+          setPreviewPost(post)
+          setIsPreviewOpen(true)
+        }}
+      />
+
+      {/* Post Preview Modal */}
+      <PostPreviewModal
+        isOpen={isPreviewOpen}
+        onClose={() => {
+          setIsPreviewOpen(false);
+          // Delay clearing previewPost to allow close animation to complete
+          setTimeout(() => setPreviewPost(null), 300);
+        }}
+        post={previewPost}
+        onEdit={handleEditPost}
+        onDelete={handleDeletePost}
       />
 
       {isOwnProfile && (

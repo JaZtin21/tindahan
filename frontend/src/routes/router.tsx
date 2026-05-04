@@ -2,7 +2,6 @@ import { Navigate, createBrowserRouter } from 'react-router-dom'
 
 import App from '../App'
 import { HomePage } from '../pages/HomePage'
-import { MapPage } from '../pages/MapPage'
 import { OptimizedMapsPage } from '../pages/OptimizedMapsPage'
 import { OwnerPage } from '../pages/OwnerPage'
 import { LoginPage } from '../pages/LoginPage'
@@ -16,7 +15,7 @@ export const router = createBrowserRouter([
     element: <App />,
     children: [
       { index: true, element: <HomePage /> },
-      { path: 'map', element: <MapPage /> },
+      { path: 'map', element: <OptimizedMapsPage />},
       { path: 'optimized-maps', element: <OptimizedMapsPage /> },
       { path: 'owner', element: <OwnerPage /> },
       { path: 'login', element: <LoginPage /> },

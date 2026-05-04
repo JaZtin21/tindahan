@@ -6,9 +6,10 @@ interface ExtendedPostsSectionProps extends PostsSectionProps {
   isMyPosts?: boolean;
   onEditPost?: (post: Post) => void;
   onDeletePost?: (post: Post) => void;
+  onPostClick?: (post: Post) => void;
 }
 
-export function PostsSection({ posts, postsLoading, profilePhoto, isMyPosts, onEditPost, onDeletePost }: ExtendedPostsSectionProps) {
+export function PostsSection({ posts, postsLoading, profilePhoto, isMyPosts, onEditPost, onDeletePost, onPostClick }: ExtendedPostsSectionProps) {
   return (
     <div className="mt-8 px-4 sm:px-6">
       <h2 className="mb-4 text-xl font-bold text-zinc-900 dark:text-white">Posts</h2>
@@ -32,6 +33,7 @@ export function PostsSection({ posts, postsLoading, profilePhoto, isMyPosts, onE
               isMyPost={isMyPosts}
               onEdit={() => onEditPost?.(post)}
               onDelete={() => onDeletePost?.(post)}
+              onClick={() => onPostClick?.(post)}
             />
           ))}
         </div>

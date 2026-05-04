@@ -1,5 +1,6 @@
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useState, useCallback, type ReactNode } from 'react';
 import { useIsMobile } from '../../hooks/useIsMobile';
+import { BottomSheet } from './BottomSheet';
 
 // Inline SVG icons
 const XIcon = ({ className }: { className?: string }) => (
@@ -22,13 +23,6 @@ interface ModalProps {
   mobileBottomSheet?: boolean;
 }
 
-const maxWidthClasses = {
-  sm: 'max-w-sm',
-  md: 'max-w-md',
-  lg: 'max-w-lg',
-  xl: 'max-w-xl',
-};
-
 export function Modal({
   isOpen,
   onClose,
@@ -43,68 +37,64 @@ export function Modal({
 }: ModalProps) {
   const isMobile = useIsMobile(768);
   const shouldUseBottomSheet = mobileBottomSheet && isMobile;
+  
+  // Internal state to track if modal should be visible (handles close animation)
+  const [isVisible, setIsVisible] = useState(isOpen);
+  const [isAnimatingOut, setIsAnimatingOut] = useState(false);
 
-  // Close on escape key
+  // Handle open/close with animation
   useEffect(() => {
-    if (!closeOnEscape) return;
-
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-
     if (isOpen) {
-      document.addEventListener('keydown', handleEscape);
-      document.body.style.overflow = 'hidden';
+      setIsVisible(true);
+      setIsAnimatingOut(false);
+    } else if (isVisible) {
+      // Parent wants to close, start animation
+      setIsAnimatingOut(true);
+      const timer = setTimeout(() => {
+        setIsVisible(false);
+        setIsAnimatingOut(false);
+      }, 200); // Match animation duration
+      return () => clearTimeout(timer);
     }
+  }, [isOpen, isVisible]);
 
-    return () => {
-      document.removeEventListener('keydown', handleEscape);
-      document.body.style.overflow = '';
-    };
-  }, [isOpen, onClose, closeOnEscape]);
+  // Internal close handler - starts animation, then calls parent's onClose
+  const handleClose = useCallback(() => {
+    if (isAnimatingOut) return; // Prevent double-close
+    setIsAnimatingOut(true);
+    setTimeout(() => {
+      onClose();
+    }, 200); // Match animation duration
+  }, [onClose, isAnimatingOut]);
 
-  if (!isOpen) return null;
+  // Handle escape key via React event handler on container
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (closeOnEscape && e.key === 'Escape') {
+      handleClose();
+    }
+  };
+
+  // Don't render if not visible
+  if (!isVisible) return null;
 
   // Mobile Bottom Sheet Variant
   if (shouldUseBottomSheet) {
     return (
-      <div className="fixed inset-0 z-[60]">
-        {/* Backdrop */}
-        <div 
-          className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
-          onClick={closeOnBackdropClick ? onClose : undefined}
-        />
-        
-        {/* Bottom Sheet Content */}
-        <div
-          className="absolute left-0 right-0 bottom-0 bg-white dark:bg-zinc-900 rounded-t-2xl shadow-2xl w-full max-h-[90vh] flex flex-col animate-in slide-in-from-bottom duration-300"
-          onClick={(e) => e.stopPropagation()}
+      <div
+        onKeyDown={handleKeyDown}
+        tabIndex={-1}
+        style={{ outline: 'none' }}
+      >
+        <BottomSheet
+          isOpen={!isAnimatingOut}
+          onClose={handleClose}
+          title={title}
+          subtitle={subtitle}
+          showCloseButton={showCloseButton}
+          closeOnBackdropClick={closeOnBackdropClick}
         >
-          {/* Header with title - Sticky */}
-          {(title || subtitle || showCloseButton) && (
-            <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-100 dark:border-zinc-800 shrink-0">
-              <div>
-                {title && (
-                  <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">{title}</h2>
-                )}
-                {subtitle && (
-                  <p className="text-sm text-zinc-500 dark:text-zinc-400">{subtitle}</p>
-                )}
-              </div>
-              {showCloseButton && (
-                <button
-                  onClick={onClose}
-                  className="p-2 rounded-full hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-                >
-                  <XIcon className="w-5 h-5 text-zinc-500 dark:text-zinc-400" />
-                </button>
-              )}
-            </div>
-          )}
-
-          {/* Content - Scrollable */}
-          <div className="p-4 overflow-y-auto flex-1">{children}</div>
-        </div>
+          {children}
+        </BottomSheet>
       </div>
     );
   }
@@ -112,27 +102,60 @@ export function Modal({
   // Default Centered Modal (Desktop or when mobileBottomSheet is false)
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+      onKeyDown={handleKeyDown}
+      tabIndex={-1}
+      style={{ outline: 'none' }}
+    >
+      <DesktopModal
+        isAnimatingOut={isAnimatingOut}
+        onClose={handleClose}
+        closeOnBackdropClick={closeOnBackdropClick}
+        title={title}
+        subtitle={subtitle}
+        showCloseButton={showCloseButton}
+        maxWidth={maxWidth}
+      >
+        {children}
+      </DesktopModal>
+    </div>
+  );
+}
+
+// Simplified desktop modal with animation classes
+function DesktopModal({ isAnimatingOut, onClose, closeOnBackdropClick, title, subtitle, showCloseButton, maxWidth, children }: {
+  isAnimatingOut: boolean;
+  onClose: () => void;
+  closeOnBackdropClick: boolean;
+  title?: string;
+  subtitle?: string;
+  showCloseButton: boolean;
+  maxWidth: 'sm' | 'md' | 'lg' | 'xl';
+  children: ReactNode;
+}) {
+  const maxWidthClasses = {
+    sm: 'max-w-sm',
+    md: 'max-w-md',
+    lg: 'max-w-lg',
+    xl: 'max-w-xl',
+  };
+
+  return (
+    <div
+      className={`fixed inset-0 z-[60] flex items-center justify-center p-4 transition-all duration-200 ${
+        isAnimatingOut ? 'opacity-0 scale-95' : 'opacity-100 scale-100'
+      }`}
       onClick={closeOnBackdropClick ? onClose : undefined}
     >
-      {/* Backdrop */}
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
-
-      {/* Modal Content */}
       <div
-        className={`relative bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl ${maxWidthClasses[maxWidth]} w-full max-h-[90vh] flex flex-col animate-in fade-in zoom-in-95 duration-200`}
+        className={`relative bg-white dark:bg-zinc-900 rounded-2xl shadow-2xl ${maxWidthClasses[maxWidth]} w-full max-h-[90vh] flex flex-col`}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header with title - Sticky */}
         {(title || subtitle || showCloseButton) && (
           <div className="flex items-center justify-between p-6 border-b border-zinc-100 dark:border-zinc-800 shrink-0">
             <div>
-              {title && (
-                <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">{title}</h2>
-              )}
-              {subtitle && (
-                <p className="text-sm text-zinc-500 dark:text-zinc-400">{subtitle}</p>
-              )}
+              {title && <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">{title}</h2>}
+              {subtitle && <p className="text-sm text-zinc-500 dark:text-zinc-400">{subtitle}</p>}
             </div>
             {showCloseButton && (
               <button
@@ -144,8 +167,6 @@ export function Modal({
             )}
           </div>
         )}
-
-        {/* Content - Scrollable */}
         <div className="p-6 overflow-y-auto">{children}</div>
       </div>
     </div>

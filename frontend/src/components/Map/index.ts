@@ -1,7 +1,5 @@
-export { OpenStreetMap } from './OpenStreetMap';
 export { StorePinner } from './StorePinner';
 export { SearchBar } from './SearchBar';
-export { LocationSearchBar } from './LocationSearchBar';
 export { CachedTileLayer, tileCache } from './CachedTileLayer';
 export {
   getPostBubbleHtml,

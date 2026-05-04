@@ -2,8 +2,6 @@
 export { useItemManagement, useShopManagement } from './owner';
 export type { UseItemManagementProps, UseItemManagementReturn, UseShopManagementProps, UseShopManagementReturn } from '../types/owner';
 
-// MapPage hooks
-export { useMapPosts, useMapMarkers, useMapCenter } from './mappage';
 
 // User profile hooks
 export {

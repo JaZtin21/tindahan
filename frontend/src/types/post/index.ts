@@ -57,7 +57,7 @@ export interface CreatePostModalProps {
 
 // Post preview modal props
 export interface PostPreviewModalProps {
-  post: Post;
+  post: Post | null;
   isOpen: boolean;
   onClose: () => void;
 }

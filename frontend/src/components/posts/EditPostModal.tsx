@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, type ChangeEvent } from 'react';
+import { useState, useRef, useEffect, type ChangeEvent, memo } from 'react';
 import { useMutation } from '@apollo/client/react';
 import { UPDATE_POST_MUTATION } from '../../api/graphql/post/post-queries';
 import { Modal } from '../common/Modal';
@@ -26,7 +26,7 @@ const XIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
-export function EditPostModal({ isOpen, onClose, post, onSuccess, onError }: EditPostModalProps) {
+function EditPostModalInner({ isOpen, onClose, post, onSuccess, onError }: EditPostModalProps) {
   const [title, setTitle] = useState('');
   const [text, setText] = useState('');
   const [types, setTypes] = useState<string[]>([]);
@@ -286,3 +286,5 @@ export function EditPostModal({ isOpen, onClose, post, onSuccess, onError }: Edi
     </Modal>
   );
 }
+
+export const EditPostModal = memo(EditPostModalInner);

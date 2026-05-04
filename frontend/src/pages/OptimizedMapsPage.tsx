@@ -449,7 +449,7 @@ function UserLocationMarker({ location }: { location: { lat: number; lng: number
 }
 
 // Minimum zoom level to show post markers (city level zoom)
-const MIN_MARKER_ZOOM = 17;
+const MIN_MARKER_ZOOM = 16;
 
 export function OptimizedMapsPage() {
   const dispatch = useDispatch();
@@ -904,7 +904,8 @@ export function OptimizedMapsPage() {
   // Handle post preview modal close
   const handleClosePostPreview = useCallback(() => {
     setIsPostPreviewOpen(false);
-    setSelectedPost(null);
+    // Delay clearing selectedPost to allow close animation to complete
+    setTimeout(() => setSelectedPost(null), 300);
   }, []);
 
   // Handle edit post
@@ -1025,18 +1026,16 @@ export function OptimizedMapsPage() {
         </button>
       </div>
 
-      {/* Post Preview Modal */}
-      {selectedPost && (
-        <PostPreviewModal
-          post={selectedPost}
-          isOpen={isPostPreviewOpen}
-          onClose={handleClosePostPreview}
-          onEdit={handleEditPost}
-          onDelete={handleDeletePost}
-        />
-      )}
+      {/* Post Preview Modal - always render, Modal handles visibility */}
+      <PostPreviewModal
+        post={selectedPost}
+        isOpen={isPostPreviewOpen}
+        onClose={handleClosePostPreview}
+        onEdit={handleEditPost}
+        onDelete={handleDeletePost}
+      />
       
-      {/* Create Post Modal */}
+      {/* Create Post Modal - always render, Modal handles visibility */}
       <CreatePostModal
         isOpen={isCreatePostModalOpen}
         onClose={() => setIsCreatePostModalOpen(false)}
@@ -1045,7 +1044,7 @@ export function OptimizedMapsPage() {
         currentLocation={null}
       />
       
-      {/* Edit Post Modal */}
+      {/* Edit Post Modal - always render, Modal handles visibility */}
       <EditPostModal
         isOpen={isEditPostModalOpen}
         onClose={() => {
@@ -1061,7 +1060,7 @@ export function OptimizedMapsPage() {
         post={postToEdit}
       />
       
-      {/* Delete Post Confirmation Modal */}
+      {/* Delete Post Confirmation Modal - always render, Modal handles visibility */}
       <Modal
         isOpen={deleteModal.isOpen}
         onClose={() => setDeleteModal({ isOpen: false, post: null })}
@@ -1073,13 +1072,15 @@ export function OptimizedMapsPage() {
       />
       
       {/* Success/Error Feedback Modal */}
-      <Modal
-        isOpen={feedbackModal.isOpen}
-        onClose={() => setFeedbackModal(prev => ({ ...prev, isOpen: false }))}
-        title={feedbackModal.title}
-        message={feedbackModal.message}
-        type={feedbackModal.type}
-      />
+      {feedbackModal.isOpen && (
+        <Modal
+          isOpen={feedbackModal.isOpen}
+          onClose={() => setFeedbackModal(prev => ({ ...prev, isOpen: false }))}
+          title={feedbackModal.title}
+          message={feedbackModal.message}
+          type={feedbackModal.type}
+        />
+      )}
     </div>
   );
 }
