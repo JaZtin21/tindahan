@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import { useDispatch } from 'react-redux';
 import { MapContainer, useMap } from 'react-leaflet';
-import { LatLngBounds } from 'leaflet';
+import L, { type LatLngBounds } from 'leaflet'
 import 'leaflet/dist/leaflet.css';
 import { useSubscription, useMutation, useQuery } from '@apollo/client/react';
 import { CachedTileLayer } from '../components/Map';
@@ -11,7 +11,7 @@ import { SHOPS_BY_PRODUCT_QUERY } from '../api/graphql/shop/shop-queries';
 import { useCreatePost } from '../api/graphql/post/usePost';
 import { useAuth } from '../api/graphql/apolloProviderWithAuth';
 import type { Post } from '../types/post';
-import { getPostBubbleHtml} from '../components/Map/PostMarker';
+import { getPostBubbleHtml, getPostGroupBubbleHtml } from '../components/Map/PostMarker';
 import { getMapMarkerStyles } from '../components/Map/mapStyles';
 import { PostPreviewModal } from '../components/posts/PostPreviewModal';
 import { CreatePostModal } from '../components/posts/CreatePostModal';
@@ -448,13 +448,345 @@ function UserLocationMarker({ location }: { location: { lat: number; lng: number
   return null;
 }
 
+// Type definitions for marker data
+type StoreLocationData = {
+  lat: number;
+  lng: number;
+  name: string;
+  image?: string;
+  type?: string;
+  address?: string;
+  id?: string;
+  businessType?: string;
+};
+
+type LocationPinData = {
+  lat: number;
+  lng: number;
+  name: string;
+  address?: string;
+};
+
+type ProductStore = {
+  id: string;
+  lat: number;
+  lng: number;
+  name: string;
+  address?: string;
+  image?: string;
+};
+
+// MapMarkers - Internal component that handles all markers and zoom/viewport state
+// This lives inside MapContainer so only it re-renders on zoom/pan, not the entire page
+interface MapMarkersProps {
+  livePosts: Post[];
+  deletedPostIds: Set<string>;
+  editedPostIds: Set<string>;
+  onPostClick: (post: Post) => void;
+  showStoreMarker: boolean;
+  storeMarkerData: StoreLocationData | null;
+  onStoreMarkerClick: (store: StoreLocationData) => void;
+  showLocationPinMarker: boolean;
+  locationPinData: LocationPinData | null;
+  showProductStoreMarkers: boolean;
+  productSearchStores: ProductStore[];
+  userLocation: { lat: number; lng: number } | null;
+  showUserLocationMarker: boolean;
+}
+
+function MapMarkers({
+  livePosts,
+  deletedPostIds,
+  editedPostIds,
+  onPostClick,
+  showStoreMarker,
+  storeMarkerData,
+  onStoreMarkerClick,
+  showLocationPinMarker,
+  locationPinData,
+  showProductStoreMarkers,
+  productSearchStores,
+  userLocation,
+  showUserLocationMarker
+}: MapMarkersProps) {
+  const map = useMap();
+  const [zoom, setZoom] = useState(map.getZoom());
+  const [viewportBounds, setViewportBounds] = useState<LatLngBounds | null>(map.getBounds());
+
+  // Track zoom changes
+  useEffect(() => {
+    const handleZoom = () => setZoom(map.getZoom());
+    map.on('zoomend', handleZoom);
+    return () => { map.off('zoomend', handleZoom); };
+  }, [map]);
+
+  // Track viewport bounds changes
+  useEffect(() => {
+    const handleMove = () => {
+      const bounds = map.getBounds();
+      if (bounds?.isValid()) setViewportBounds(bounds);
+    };
+    map.on('moveend', handleMove);
+    return () => { map.off('moveend', handleMove); };
+  }, [map]);
+
+  // Filter visible posts within viewport
+  const visiblePosts = useMemo(() => {
+    if (!viewportBounds) return [];
+    
+    const isWithinViewport = (lat: number, lng: number, bounds: LatLngBounds) => {
+      const northEast = bounds.getNorthEast();
+      const southWest = bounds.getSouthWest();
+      const latBuffer = (northEast.lat - southWest.lat) * 0.2;
+      const lngBuffer = (northEast.lng - southWest.lng) * 0.2;
+      return (
+        lat >= southWest.lat - latBuffer &&
+        lat <= northEast.lat + latBuffer &&
+        lng >= southWest.lng - lngBuffer &&
+        lng <= northEast.lng + lngBuffer
+      );
+    };
+
+    return livePosts.filter(post => {
+      if (!post.location || post.location.lat == null || post.location.lng == null) return false;
+      if (deletedPostIds.has(post.id)) return false;
+      return isWithinViewport(post.location.lat, post.location.lng, viewportBounds);
+    });
+  }, [livePosts, viewportBounds, deletedPostIds]);
+
+  // Cluster posts
+  const clusteredPosts = useMemo(() => {
+    return clusterPosts(visiblePosts, GROUP_DISTANCE_THRESHOLD);
+  }, [visiblePosts]);
+
+  return (
+    <>
+      {/* User Location Marker */}
+      {showUserLocationMarker && userLocation && <UserLocationMarker location={userLocation} />}
+      
+      {/* Store Marker */}
+      {showStoreMarker && storeMarkerData && <StoreMarker store={storeMarkerData} onClick={onStoreMarkerClick} />}
+      
+      {/* Location Pin Marker */}
+      {showLocationPinMarker && locationPinData && <LocationPinMarker location={locationPinData} />}
+      
+      {/* Product Store Markers */}
+      {showProductStoreMarkers && productSearchStores.length > 0 && (
+        <ProductStoreMarkers stores={productSearchStores} onStoreClick={onStoreMarkerClick} />
+      )}
+      
+      {/* Live Post Markers - only visible when zoomed in */}
+      {zoom >= MIN_MARKER_ZOOM && clusteredPosts.map((item) => (
+        item.type === 'single' ? (
+          <PostMapMarker
+            key={item.post.id}
+            post={item.post}
+            onClick={onPostClick}
+            isEdited={editedPostIds.has(item.post.id)}
+          />
+        ) : (
+          <PostGroupMarker
+            key={`group-${item.group.posts.map(p => p.id).sort().join('-')}`}
+            group={item.group}
+            onClick={onPostClick}
+          />
+        )
+      ))}
+    </>
+  );
+}
+
 // Minimum zoom level to show post markers (city level zoom)
 const MIN_MARKER_ZOOM = 16;
 
+// Distance threshold for grouping posts (in meters)
+const GROUP_DISTANCE_THRESHOLD = 50;
+
+// Haversine distance calculation between two lat/lng points in meters
+function getDistanceInMeters(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371e3; // Earth radius in meters
+  const φ1 = lat1 * Math.PI / 180;
+  const φ2 = lat2 * Math.PI / 180;
+  const Δφ = (lat2 - lat1) * Math.PI / 180;
+  const Δλ = (lng2 - lng1) * Math.PI / 180;
+
+  const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+    Math.cos(φ1) * Math.cos(φ2) *
+    Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+  return R * c;
+}
+
+// Group posts that are within threshold distance of each other
+type PostGroup = { posts: Post[]; centerLat: number; centerLng: number };
+type PostOrGroup = { type: 'single'; post: Post } | { type: 'group'; group: PostGroup };
+
+function clusterPosts(posts: Post[], thresholdMeters: number): PostOrGroup[] {
+  if (posts.length === 0) return [];
+
+  const used = new Set<string>();
+  const result: PostOrGroup[] = [];
+
+  for (const post of posts) {
+    if (used.has(post.id)) continue;
+    if (!post.location || post.location.lat == null || post.location.lng == null) continue;
+
+    const group: Post[] = [post];
+    used.add(post.id);
+
+    for (const other of posts) {
+      if (used.has(other.id)) continue;
+      if (!other.location || other.location.lat == null || other.location.lng == null) continue;
+      if (post.id === other.id) continue;
+
+      const distance = getDistanceInMeters(
+        post.location.lat, post.location.lng,
+        other.location.lat, other.location.lng
+      );
+
+      if (distance <= thresholdMeters) {
+        group.push(other);
+        used.add(other.id);
+      }
+    }
+
+    if (group.length === 1) {
+      result.push({ type: 'single', post });
+    } else {
+      // Calculate center point
+      const centerLat = group.reduce((sum, p) => sum + (p.location?.lat || 0), 0) / group.length;
+      const centerLng = group.reduce((sum, p) => sum + (p.location?.lng || 0), 0) / group.length;
+      result.push({ type: 'group', group: { posts: group, centerLat, centerLng } });
+    }
+  }
+
+  return result;
+}
+
+// Calculate offset position for grouped markers to prevent overlap
+function getOffsetPosition(index: number, total: number, baseLat: number, baseLng: number): [number, number] {
+  if (total <= 1) return [baseLat, baseLng];
+  
+  // Arrange in a small circle around the base position
+  // 10 meters offset at equator ~ 0.00009 degrees
+  const offsetMeters = 15;
+  const angle = (2 * Math.PI * index) / total;
+  const latOffset = (offsetMeters * Math.cos(angle)) / 111320;
+  const lngOffset = (offsetMeters * Math.sin(angle)) / (111320 * Math.cos(baseLat * Math.PI / 180));
+  
+  return [baseLat + latOffset, baseLng + lngOffset];
+}
+
+// Post Group Marker - cycles through posts in the group with animation
+function PostGroupMarker({ group, onClick }: { group: PostGroup; onClick?: (post: Post) => void }) {
+  const map = useMap();
+  const markerRef = useRef<any>(null);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const isPausedRef = useRef(false);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const currentPostRef = useRef<Post>(group.posts[0]);
+  const groupIdRef = useRef<string>('');
+  
+  // Generate stable group ID from post IDs
+  const groupId = group.posts.map(p => p.id).sort().join('-');
+
+  // Update current post ref
+  currentPostRef.current = group.posts[currentIndex];
+
+  // Setup marker only when group ID changes (new set of posts)
+  useEffect(() => {
+    // Only recreate marker if this is a truly different group
+    if (groupIdRef.current === groupId && markerRef.current) {
+      return;
+    }
+    groupIdRef.current = groupId;
+    
+    // Remove old marker if exists
+    if (markerRef.current) {
+      map.removeLayer(markerRef.current);
+    }
+    
+    const firstPost = group.posts[0];
+    const [lat, lng] = getOffsetPosition(0, group.posts.length, firstPost.location!.lat, firstPost.location!.lng);
+
+    const icon = L.divIcon({
+      html: getPostGroupBubbleHtml(firstPost, group.posts.length),
+      className: 'post-bubble-marker group-marker-animate',
+      iconSize: [40, 44],
+      iconAnchor: [20, 44],
+      popupAnchor: [0, -44]
+    });
+
+    const marker = L.marker([lat, lng], { icon });
+    marker.on('click', () => {
+      if (onClick) onClick(currentPostRef.current);
+    });
+    marker.on('mouseover', () => {
+      isPausedRef.current = true;
+      const el = marker.getElement();
+      if (el) el.classList.add('paused');
+    });
+    marker.on('mouseout', () => {
+      isPausedRef.current = false;
+      const el = marker.getElement();
+      if (el) el.classList.remove('paused');
+    });
+    marker.addTo(map);
+    markerRef.current = marker;
+
+    return () => {
+      if (markerRef.current) {
+        map.removeLayer(markerRef.current);
+        markerRef.current = null;
+      }
+    };
+  }, [map, groupId, onClick]);
+
+  // Update icon when currentIndex changes (only update icon, don't recreate marker)
+  useEffect(() => {
+    if (!markerRef.current) return;
+    
+    const currentPost = group.posts[currentIndex];
+    const [lat, lng] = getOffsetPosition(currentIndex, group.posts.length, currentPost.location!.lat, currentPost.location!.lng);
+    
+    // Update position and icon only
+    markerRef.current.setLatLng([lat, lng]);
+    markerRef.current.setIcon(L.divIcon({
+      html: getPostGroupBubbleHtml(currentPost, group.posts.length),
+      className: 'post-bubble-marker group-marker-animate',
+      iconSize: [40, 44],
+      iconAnchor: [20, 44],
+      popupAnchor: [0, -44]
+    }));
+  }, [currentIndex]);
+
+  // Cycle interval - only runs when group length changes (posts added/removed from group)
+  useEffect(() => {
+    // Clear any existing interval
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+    }
+    
+    intervalRef.current = setInterval(() => {
+      if (!isPausedRef.current) {
+        setCurrentIndex(prev => (prev + 1) % group.posts.length);
+      }
+    }, 1500);
+    
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
+  }, [group.posts.length]);
+
+  return null;
+}
+
 export function OptimizedMapsPage() {
   const dispatch = useDispatch();
-  const [zoom, setZoom] = useState(13);
-  const [viewportBounds, setViewportBounds] = useState<LatLngBounds | null>(null);
   const mapRef = useRef<any>(null);
   const { isAuthenticated } = useAuth();
   
@@ -876,22 +1208,6 @@ export function OptimizedMapsPage() {
     });
   }, [livePostsData]);
 
-  // Filter posts that are within current viewport and not deleted
-  const visiblePosts = useMemo(() => {
-    // Filter out deleted posts first
-    const activePosts = livePosts.filter(post => !deletedPostIds.has(post.id));
-    
-    if (!viewportBounds) return activePosts; // Show all active posts if no bounds
-    
-    return activePosts.filter(post => {
-      // Skip posts without valid coordinates
-      if (!post.location || post.location.lat == null || post.location.lng == null) {
-        return false;
-      }
-      return isWithinViewport(post.location.lat, post.location.lng, viewportBounds);
-    });
-  }, [livePosts, viewportBounds, deletedPostIds]);
-
   // Handle post click
   const handlePostClick = useCallback((post: Post) => {
     console.log('[OptimizedMapsPage] Post clicked:', post.id);
@@ -965,33 +1281,22 @@ export function OptimizedMapsPage() {
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
           maxZoom={19}
         />
-        {/* Zoom tracker */}
-        <MapZoomTracker onZoomChange={setZoom} />
-        {/* Viewport tracker - tracks map bounds for filtering markers */}
-        <MapViewportTracker onBoundsChange={setViewportBounds} />
-        
-        
-        {/* User Location Marker - only visible when location is set and marker should be shown */}
-        {userLocation && showLocationMarker && <UserLocationMarker location={userLocation} />}
-        
-        {/* Store Marker - from API store search results */}
-        {showStoreMarker && storeMarkerData && <StoreMarker store={storeMarkerData} onClick={handleStoreMarkerClick} />}
-        
-        {/* Location Pin Marker - from geocoding results */}
-        {showLocationPinMarker && locationPinData && <LocationPinMarker location={locationPinData} />}
-        
-        {/* Product Store Markers - multiple stores that have the product */}
-        {showProductStoreMarkers && productSearchStores.length > 0 && <ProductStoreMarkers stores={productSearchStores} onStoreClick={handleStoreMarkerClick} />}
-        
-        {/* Live Post Markers - only visible when zoomed in to city level (zoom >= 23) */}
-        {zoom >= MIN_MARKER_ZOOM && visiblePosts.map((post) => (
-          <PostMapMarker
-            key={post.id}
-            post={post}
-            onClick={handlePostClick}
-            isEdited={editedPostIds.has(post.id)}
-          />
-        ))}
+        {/* All markers - isolated in MapMarkers component to prevent page re-renders */}
+        <MapMarkers
+          livePosts={livePosts}
+          deletedPostIds={deletedPostIds}
+          editedPostIds={editedPostIds}
+          onPostClick={handlePostClick}
+          showStoreMarker={showStoreMarker}
+          storeMarkerData={storeMarkerData}
+          onStoreMarkerClick={handleStoreMarkerClick}
+          showLocationPinMarker={showLocationPinMarker}
+          locationPinData={locationPinData}
+          showProductStoreMarkers={showProductStoreMarkers}
+          productSearchStores={productSearchStores}
+          userLocation={userLocation}
+          showUserLocationMarker={showLocationMarker}
+        />
       </MapContainer>
       
       {/* Button Container - Fixed to bottom right, aligned to end */}

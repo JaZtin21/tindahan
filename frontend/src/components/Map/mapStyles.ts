@@ -263,6 +263,58 @@ export function getMapMarkerStyles(): string {
       animation: post-pop-out 0.3s ease-in forwards;
     }
 
+    /* Group marker cycling animation - smooth pop in/out */
+    @keyframes group-post-cycle {
+      0% {
+        opacity: 0;
+        transform: scale(0.6) translateY(10px);
+      }
+      20% {
+        opacity: 1;
+        transform: scale(1.1) translateY(-3px);
+      }
+      30% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+      }
+      80% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+      }
+      100% {
+        opacity: 0;
+        transform: scale(0.6) translateY(-10px);
+      }
+    }
+
+    .group-marker-animate .post-marker-wrapper {
+      animation: group-post-cycle 1.5s ease-in-out infinite;
+    }
+
+    .group-marker-animate.paused .post-marker-wrapper {
+      animation-play-state: paused;
+    }
+
+    /* Show group count badge */
+    .post-bubble-marker.group-marker-animate .post-bubble-avatar-new::after {
+      content: attr(data-count);
+      position: absolute;
+      top: -4px;
+      right: -4px;
+      background: #3B82F6;
+      color: white;
+      font-size: 10px;
+      font-weight: 700;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      border: 2px solid white;
+    }
+
     /* Post popup styles */
     .post-popup {
       min-width: 200px;

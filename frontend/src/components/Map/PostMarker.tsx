@@ -99,6 +99,18 @@ export function getPostIcon(L: any, post: Post, animate: boolean = false) {
 }
 
 /**
+ * Generate HTML for post group bubble marker with count badge
+ * Used when multiple posts are clustered together
+ * @param post - The post to display in the cycle
+ * @param count - Total number of posts in the group
+ */
+export function getPostGroupBubbleHtml(post: Post, count: number): string {
+  const baseHtml = getPostBubbleHtml(post);
+  // Add data-count attribute to the avatar div for CSS badge
+  return baseHtml.replace('class="post-bubble-avatar-new"', `class="post-bubble-avatar-new" data-count="${count}"`);
+}
+
+/**
  * Create a Leaflet marker for a post
  * This is the main function to create a post marker on the map
  * @param animate - If true, adds pop-in animation
