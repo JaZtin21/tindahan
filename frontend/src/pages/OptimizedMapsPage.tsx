@@ -109,56 +109,6 @@ function PostMapMarker({ post, onClick, isEdited }: { post: Post; onClick?: (pos
   return null;
 }
 
-// Component to handle map zoom tracking
-function MapZoomTracker({ onZoomChange }: { onZoomChange: (zoom: number) => void }) {
-  const map = useMap();
-  const lastZoomRef = useRef<number>(map.getZoom());
-  
-  useEffect(() => {
-    lastZoomRef.current = map.getZoom();
-    onZoomChange(map.getZoom());
-    
-    const handleZoom = () => {
-      const currentZoom = map.getZoom();
-      if (currentZoom !== lastZoomRef.current) {
-        lastZoomRef.current = currentZoom;
-        onZoomChange(currentZoom);
-      }
-    };
-    map.on('zoomend', handleZoom);
-    
-    return () => {
-      map.off('zoomend', handleZoom);
-    };
-  }, [map, onZoomChange]);
-  
-  return null;
-}
-
-// Component to track map viewport bounds
-function MapViewportTracker({ onBoundsChange }: { onBoundsChange: (bounds: LatLngBounds) => void }) {
-  const map = useMap();
-  
-  useEffect(() => {
-    // Initial bounds
-    onBoundsChange(map.getBounds());
-    
-    const handleMove = () => {
-      onBoundsChange(map.getBounds());
-    };
-    
-    map.on('moveend', handleMove);
-    map.on('zoomend', handleMove);
-    
-    return () => {
-      map.off('moveend', handleMove);
-      map.off('zoomend', handleMove);
-    };
-  }, [map, onBoundsChange]);
-  
-  return null;
-}
-
 // Utility to check if a point is within bounds
 function isWithinViewport(lat: number, lng: number, bounds: LatLngBounds | null): boolean {
   if (!bounds) return true; // Show all if no bounds yet
@@ -511,7 +461,13 @@ function MapMarkers({
 }: MapMarkersProps) {
   const map = useMap();
   const [zoom, setZoom] = useState(map.getZoom());
-  const [viewportBounds, setViewportBounds] = useState<LatLngBounds | null>(map.getBounds());
+  const [viewportBounds, setViewportBounds] = useState<LatLngBounds | null>(null);
+
+  // Initialize bounds on mount
+  useEffect(() => {
+    const bounds = map.getBounds();
+    if (bounds?.isValid()) setViewportBounds(bounds);
+  }, [map]);
 
   // Track zoom changes
   useEffect(() => {
@@ -524,34 +480,27 @@ function MapMarkers({
   useEffect(() => {
     const handleMove = () => {
       const bounds = map.getBounds();
+      console.log('Map moved, new bounds:', bounds?.toBBoxString());
       if (bounds?.isValid()) setViewportBounds(bounds);
     };
     map.on('moveend', handleMove);
     return () => { map.off('moveend', handleMove); };
   }, [map]);
 
-  // Filter visible posts within viewport
+  // Filter visible posts within viewport (strict - no buffer)
   const visiblePosts = useMemo(() => {
-    if (!viewportBounds) return [];
+    if (!viewportBounds) {
+      console.log('No viewport bounds yet');
+      return [];
+    }
     
-    const isWithinViewport = (lat: number, lng: number, bounds: LatLngBounds) => {
-      const northEast = bounds.getNorthEast();
-      const southWest = bounds.getSouthWest();
-      const latBuffer = (northEast.lat - southWest.lat) * 0.2;
-      const lngBuffer = (northEast.lng - southWest.lng) * 0.2;
-      return (
-        lat >= southWest.lat - latBuffer &&
-        lat <= northEast.lat + latBuffer &&
-        lng >= southWest.lng - lngBuffer &&
-        lng <= northEast.lng + lngBuffer
-      );
-    };
-
-    return livePosts.filter(post => {
+    const filtered = livePosts.filter(post => {
       if (!post.location || post.location.lat == null || post.location.lng == null) return false;
       if (deletedPostIds.has(post.id)) return false;
-      return isWithinViewport(post.location.lat, post.location.lng, viewportBounds);
+      return viewportBounds.contains([post.location.lat, post.location.lng]);
     });
+    console.log('Visible posts:', filtered.length, 'of', livePosts.length, 'within bounds');
+    return filtered;
   }, [livePosts, viewportBounds, deletedPostIds]);
 
   // Cluster posts
@@ -678,31 +627,37 @@ function getOffsetPosition(index: number, total: number, baseLat: number, baseLn
   return [baseLat + latOffset, baseLng + lngOffset];
 }
 
-// Post Group Marker - cycles through posts in the group with animation
+// Post Group Marker - cycles through posts with simple clean animations
 function PostGroupMarker({ group, onClick }: { group: PostGroup; onClick?: (post: Post) => void }) {
   const map = useMap();
   const markerRef = useRef<any>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const isPausedRef = useRef(false);
+  const [isHovered, setIsHovered] = useState(false);
+  const [isExiting, setIsExiting] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const currentPostRef = useRef<Post>(group.posts[0]);
-  const groupIdRef = useRef<string>('');
   
   // Generate stable group ID from post IDs
   const groupId = group.posts.map(p => p.id).sort().join('-');
+  const currentPost = group.posts[currentIndex];
 
-  // Update current post ref
-  currentPostRef.current = group.posts[currentIndex];
-
-  // Setup marker only when group ID changes (new set of posts)
-  useEffect(() => {
-    // Only recreate marker if this is a truly different group
-    if (groupIdRef.current === groupId && markerRef.current) {
-      return;
+  // Clear interval helper
+  const clearCycleInterval = () => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
     }
-    groupIdRef.current = groupId;
-    
-    // Remove old marker if exists
+  };
+
+  // Start cycling interval - switch when animation ends (2.5s)
+  const startCycleInterval = () => {
+    clearCycleInterval();
+    intervalRef.current = setInterval(() => {
+      setCurrentIndex(prev => (prev + 1) % group.posts.length);
+    }, 2500);
+  };
+
+  // Setup marker when group changes
+  useEffect(() => {
     if (markerRef.current) {
       map.removeLayer(markerRef.current);
     }
@@ -719,23 +674,34 @@ function PostGroupMarker({ group, onClick }: { group: PostGroup; onClick?: (post
     });
 
     const marker = L.marker([lat, lng], { icon });
+    
     marker.on('click', () => {
-      if (onClick) onClick(currentPostRef.current);
+      if (onClick) onClick(currentPost);
     });
+    
     marker.on('mouseover', () => {
-      isPausedRef.current = true;
-      const el = marker.getElement();
-      if (el) el.classList.add('paused');
+      setIsHovered(true);
+      clearCycleInterval();
     });
+    
     marker.on('mouseout', () => {
-      isPausedRef.current = false;
-      const el = marker.getElement();
-      if (el) el.classList.remove('paused');
+      setIsExiting(true);
+      setTimeout(() => {
+        setIsHovered(false);
+        setCurrentIndex(prev => (prev + 1) % group.posts.length);
+        setIsExiting(false);
+        startCycleInterval();
+      }, 500);
     });
+    
     marker.addTo(map);
     markerRef.current = marker;
 
+    // Start cycling
+    startCycleInterval();
+
     return () => {
+      clearCycleInterval();
       if (markerRef.current) {
         map.removeLayer(markerRef.current);
         markerRef.current = null;
@@ -743,44 +709,37 @@ function PostGroupMarker({ group, onClick }: { group: PostGroup; onClick?: (post
     };
   }, [map, groupId, onClick]);
 
-  // Update icon when currentIndex changes (only update icon, don't recreate marker)
+  // Update marker when currentIndex changes or hover state changes
   useEffect(() => {
     if (!markerRef.current) return;
     
-    const currentPost = group.posts[currentIndex];
     const [lat, lng] = getOffsetPosition(currentIndex, group.posts.length, currentPost.location!.lat, currentPost.location!.lng);
     
-    // Update position and icon only
+    // Build className based on state
+    let className = 'post-bubble-marker';
+    if (isHovered) {
+      className += ' paused'; // Show fully without animation
+    } else if (isExiting) {
+      className += ' group-marker-animate exiting';
+    } else {
+      className += ' group-marker-animate';
+    }
+    
     markerRef.current.setLatLng([lat, lng]);
     markerRef.current.setIcon(L.divIcon({
       html: getPostGroupBubbleHtml(currentPost, group.posts.length),
-      className: 'post-bubble-marker group-marker-animate',
+      className,
       iconSize: [40, 44],
       iconAnchor: [20, 44],
       popupAnchor: [0, -44]
     }));
-  }, [currentIndex]);
-
-  // Cycle interval - only runs when group length changes (posts added/removed from group)
-  useEffect(() => {
-    // Clear any existing interval
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
+    
+    // Force animation restart by triggering reflow
+    const el = markerRef.current.getElement();
+    if (el) {
+      void el.offsetHeight;
     }
-    
-    intervalRef.current = setInterval(() => {
-      if (!isPausedRef.current) {
-        setCurrentIndex(prev => (prev + 1) % group.posts.length);
-      }
-    }, 1500);
-    
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-    };
-  }, [group.posts.length]);
+  }, [currentIndex, currentPost, isHovered, isExiting, group.posts.length]);
 
   return null;
 }
