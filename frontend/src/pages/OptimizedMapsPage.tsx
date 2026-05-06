@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { MapContainer, useMap } from 'react-leaflet';
 import L, { type LatLngBounds } from 'leaflet'
 import 'leaflet/dist/leaflet.css';
@@ -18,7 +18,7 @@ import { CreatePostModal } from '../components/posts/CreatePostModal';
 import { EditPostModal } from '../components/posts/EditPostModal';
 import { Modal } from '../components/Modal';
 import { createPostHandlers } from '../utils/maps/handlers';
-import { openSideNav } from '../store';
+import { openSideNav, openPostPreview, closePostPreview } from '../store';
 import { MdMyLocation } from 'react-icons/md';
 import { SearchBar } from '../components/Map/SearchBar';
 
@@ -549,7 +549,7 @@ function MapMarkers({
 const MIN_MARKER_ZOOM = 16;
 
 // Distance threshold for grouping posts (in meters)
-const GROUP_DISTANCE_THRESHOLD = 50;
+const GROUP_DISTANCE_THRESHOLD = 10;
 
 // Haversine distance calculation between two lat/lng points in meters
 function getDistanceInMeters(lat1: number, lng1: number, lat2: number, lng2: number): number {
@@ -628,17 +628,25 @@ function getOffsetPosition(index: number, total: number, baseLat: number, baseLn
 }
 
 // Post Group Marker - cycles through posts with simple clean animations
-function PostGroupMarker({ group, onClick }: { group: PostGroup; onClick?: (post: Post) => void }) {
+function PostGroupMarker({ group, onClick }: { 
+  group: PostGroup; 
+  onClick?: (post: Post) => void;
+}) {
   const map = useMap();
+  const { isOpen: isPostPreviewOpen } = useSelector((state: any) => state.postPreview);
   const markerRef = useRef<any>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
   const [isExiting, setIsExiting] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const currentIndexRef = useRef(0);
   
   // Generate stable group ID from post IDs
   const groupId = group.posts.map(p => p.id).sort().join('-');
   const currentPost = group.posts[currentIndex];
+  
+  // Update ref when state changes
+  currentIndexRef.current = currentIndex;
 
   // Clear interval helper
   const clearCycleInterval = () => {
@@ -655,6 +663,22 @@ function PostGroupMarker({ group, onClick }: { group: PostGroup; onClick?: (post
       setCurrentIndex(prev => (prev + 1) % group.posts.length);
     }, 2500);
   };
+
+  // Handle post preview state changes - clear/start interval based on preview state
+  useEffect(() => {
+    if (isPostPreviewOpen) {
+            setIsHovered(true);
+      clearCycleInterval();
+    } else {
+           setIsExiting(true);
+      setTimeout(() => {
+        setIsHovered(false);
+        setCurrentIndex(prev => (prev + 1) % group.posts.length);
+        setIsExiting(false);
+        startCycleInterval();
+      }, 500);
+    }
+  }, [isPostPreviewOpen]);
 
   // Setup marker when group changes
   useEffect(() => {
@@ -676,7 +700,7 @@ function PostGroupMarker({ group, onClick }: { group: PostGroup; onClick?: (post
     const marker = L.marker([lat, lng], { icon });
     
     marker.on('click', () => {
-      if (onClick) onClick(currentPost);
+      if (onClick) onClick(group.posts[currentIndexRef.current]);
     });
     
     marker.on('mouseover', () => {
@@ -748,6 +772,7 @@ export function OptimizedMapsPage() {
   const dispatch = useDispatch();
   const mapRef = useRef<any>(null);
   const { isAuthenticated } = useAuth();
+  const { isOpen: isPostPreviewOpen } = useSelector((state: any) => state.postPreview);
   
   // Handle getting current location
   const handleGetCurrentLocation = () => {
@@ -815,7 +840,6 @@ export function OptimizedMapsPage() {
   
   // Post preview modal state
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
-  const [isPostPreviewOpen, setIsPostPreviewOpen] = useState(false);
   
   // Success/Error feedback modal state
   const [feedbackModal, setFeedbackModal] = useState<{ 
@@ -1072,7 +1096,7 @@ export function OptimizedMapsPage() {
       if (result.data?.deletePost?.success) {
         setDeletedPostIds(prev => new Set(prev).add(deleteModal.post!.id));
         setDeleteModal({ isOpen: false, post: null });
-        setIsPostPreviewOpen(false);
+        dispatch(closePostPreview());
         setSelectedPost(null);
         showSuccess('Post Deleted', 'Your post has been deleted successfully.');
       } else {
@@ -1173,22 +1197,22 @@ export function OptimizedMapsPage() {
     console.log('[OptimizedMapsPage] Setting selectedPost:', post);
     console.log('[OptimizedMapsPage] Setting isPostPreviewOpen to true');
     setSelectedPost(post);
-    setIsPostPreviewOpen(true);
-  }, []);
+    dispatch(openPostPreview(post.id));
+  }, [dispatch]);
 
   // Handle post preview modal close
   const handleClosePostPreview = useCallback(() => {
-    setIsPostPreviewOpen(false);
+    dispatch(closePostPreview());
     // Delay clearing selectedPost to allow close animation to complete
     setTimeout(() => setSelectedPost(null), 300);
-  }, []);
+  }, [dispatch]);
 
   // Handle edit post
   const handleEditPost = useCallback((post: Post) => {
     setPostToEdit(post);
     setIsEditPostModalOpen(true);
-    setIsPostPreviewOpen(false);
-  }, []);
+    dispatch(closePostPreview());
+  }, [dispatch]);
 
   // Handle delete post - opens confirmation modal
   const handleDeletePost = useCallback((post: Post) => {

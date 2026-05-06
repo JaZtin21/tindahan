@@ -1,6 +1,7 @@
 import { configureStore } from '@reduxjs/toolkit'
 import { userSlice, themeSlice, locationSlice } from './slices'
 import sideNavSlice, { openSideNav, closeSideNav, clearSideNavContent } from './sideNavSlice'
+import postPreviewSlice from './postPreviewSlice'
 
 export const store = configureStore({
   reducer: {
@@ -8,6 +9,7 @@ export const store = configureStore({
     theme: themeSlice.reducer,
     location: locationSlice.reducer,
     sideNav: sideNavSlice,
+    postPreview: postPreviewSlice,
   },
 });
 
@@ -19,3 +21,4 @@ export const { setUser, clearUser } = userSlice.actions;
 export const { toggleTheme, setTheme } = themeSlice.actions;
 export const { setLocation, clearLocation } = locationSlice.actions;
 export { openSideNav, closeSideNav, clearSideNavContent };
+export { openPostPreview, closePostPreview } from './postPreviewSlice';
