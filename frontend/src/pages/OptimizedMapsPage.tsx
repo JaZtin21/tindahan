@@ -463,11 +463,6 @@ function MapMarkers({
   const [zoom, setZoom] = useState(map.getZoom());
   const [viewportBounds, setViewportBounds] = useState<LatLngBounds | null>(null);
 
-  // Initialize bounds on mount
-  useEffect(() => {
-    const bounds = map.getBounds();
-    if (bounds?.isValid()) setViewportBounds(bounds);
-  }, [map]);
 
   // Track zoom changes
   useEffect(() => {
@@ -525,22 +520,26 @@ function MapMarkers({
       )}
       
       {/* Live Post Markers - only visible when zoomed in */}
-      {zoom >= MIN_MARKER_ZOOM && clusteredPosts.map((item) => (
-        item.type === 'single' ? (
-          <PostMapMarker
-            key={item.post.id}
-            post={item.post}
-            onClick={onPostClick}
-            isEdited={editedPostIds.has(item.post.id)}
-          />
-        ) : (
-          <PostGroupMarker
-            key={`group-${item.group.posts.map(p => p.id).sort().join('-')}`}
-            group={item.group}
-            onClick={onPostClick}
-          />
-        )
-      ))}
+      {zoom >= MIN_MARKER_ZOOM && (
+        <>
+          {clusteredPosts.map((item) => (
+            item.type === 'single' ? (
+              <PostMapMarker
+                key={item.post.id}
+                post={item.post}
+                onClick={onPostClick}
+                isEdited={editedPostIds.has(item.post.id)}
+              />
+            ) : (
+              <PostGroupMarker
+                key={`group-${item.group.posts.map(p => p.id).sort().join('-')}`}
+                group={item.group}
+                onClick={onPostClick}
+              />
+            )
+          ))}
+        </>
+      )}
     </>
   );
 }
@@ -627,7 +626,6 @@ function getOffsetPosition(index: number, total: number, baseLat: number, baseLn
   return [baseLat + latOffset, baseLng + lngOffset];
 }
 
-// Post Group Marker - cycles through posts with simple clean animations
 function PostGroupMarker({ group, onClick }: { 
   group: PostGroup; 
   onClick?: (post: Post) => void;
@@ -635,20 +633,18 @@ function PostGroupMarker({ group, onClick }: {
   const map = useMap();
   const { isOpen: isPostPreviewOpen } = useSelector((state: any) => state.postPreview);
   const markerRef = useRef<any>(null);
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [currentPostIndex, setCurrentPostIndex] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
-  const [isExiting, setIsExiting] = useState(false);
+  const [isMyPostOpen, setIsMyPostOpen] = useState(false); // Track if MY post is in modal
+  const [isResuming, setIsResuming] = useState(false); // Track if resuming after hover/modal
+  const [wasPaused, setWasPaused] = useState(false); // Track if we were paused before
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const currentIndexRef = useRef(0);
+  const currentIndexRef = useRef(0); // Ref to track current index for click handler
   
-  // Generate stable group ID from post IDs
-  const groupId = group.posts.map(p => p.id).sort().join('-');
-  const currentPost = group.posts[currentIndex];
+  // Get current post
+  const currentPost = group.posts[currentPostIndex];
   
-  // Update ref when state changes
-  currentIndexRef.current = currentIndex;
-
-  // Clear interval helper
+  // Clear interval
   const clearCycleInterval = () => {
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
@@ -656,36 +652,56 @@ function PostGroupMarker({ group, onClick }: {
     }
   };
 
-  // Start cycling interval - switch when animation ends (2.5s)
-  const startCycleInterval = () => {
+  // Start cycling
+  const startCycling = () => {
     clearCycleInterval();
     intervalRef.current = setInterval(() => {
-      setCurrentIndex(prev => (prev + 1) % group.posts.length);
-    }, 2500);
+      setCurrentPostIndex(prev => {
+        const newIndex = (prev + 1) % group.posts.length;
+        currentIndexRef.current = newIndex; // Keep ref in sync
+        return newIndex;
+      });
+    }, 3000);
   };
 
-  // Handle post preview state changes - clear/start interval based on preview state
+  // Handle hover and modal state - only pause if MY post is open or I'm hovered
   useEffect(() => {
-    if (isPostPreviewOpen) {
-            setIsHovered(true);
+    const isPaused = isHovered || isMyPostOpen;
+    
+    if (isPaused) {
       clearCycleInterval();
-    } else {
-           setIsExiting(true);
+      setIsResuming(false); // Not resuming when paused
+      setWasPaused(true); // Track that we were paused
+    } else if (wasPaused) {
+      // We were paused and now we're not - resume with popdown only
+      setIsResuming(true); // Set resuming state for popdown only
+      setWasPaused(false); // Reset paused tracking
+      
+      // After popdown animation, go to next post and resume normal cycling
       setTimeout(() => {
-        setIsHovered(false);
-        setCurrentIndex(prev => (prev + 1) % group.posts.length);
-        setIsExiting(false);
-        startCycleInterval();
-      }, 500);
+        setCurrentPostIndex(prev => {
+          const newIndex = (prev + 1) % group.posts.length;
+          currentIndexRef.current = newIndex; // Keep ref in sync
+          return newIndex;
+        });
+        setIsResuming(false);
+        startCycling();
+      }, 500); // Match popdown animation duration
+    } else {
+      // Normal cycling (no previous pause)
+      startCycling();
+    }
+  }, [isHovered, isMyPostOpen, wasPaused]);
+
+  // Sync local modal state with global state
+  useEffect(() => {
+    if (!isPostPreviewOpen) {
+      setIsMyPostOpen(false);
     }
   }, [isPostPreviewOpen]);
 
-  // Setup marker when group changes
+  // Create marker once
   useEffect(() => {
-    if (markerRef.current) {
-      map.removeLayer(markerRef.current);
-    }
-    
     const firstPost = group.posts[0];
     const [lat, lng] = getOffsetPosition(0, group.posts.length, firstPost.location!.lat, firstPost.location!.lng);
 
@@ -700,29 +716,32 @@ function PostGroupMarker({ group, onClick }: {
     const marker = L.marker([lat, lng], { icon });
     
     marker.on('click', () => {
-      if (onClick) onClick(group.posts[currentIndexRef.current]);
+      if (onClick) {
+        // Get the current post index from ref (always up-to-date)
+        const currentIndex = currentIndexRef.current;
+        const clickedPost = group.posts[currentIndex];
+        console.log('[PostGroupMarker] Click detected:');
+        console.log('  - currentIndexRef.current:', currentIndexRef.current);
+        console.log('  - currentPostIndex state:', currentPostIndex);
+        console.log('  - clickedPost.id:', clickedPost.id);
+        console.log('  - clickedPost.title:', clickedPost.title);
+        console.log('  - group.posts.length:', group.posts.length);
+        console.log('  - all post IDs:', group.posts.map(p => p.id));
+        onClick(clickedPost);
+        setIsMyPostOpen(true); // Track that MY post is open
+      }
     });
     
     marker.on('mouseover', () => {
       setIsHovered(true);
-      clearCycleInterval();
     });
     
     marker.on('mouseout', () => {
-      setIsExiting(true);
-      setTimeout(() => {
-        setIsHovered(false);
-        setCurrentIndex(prev => (prev + 1) % group.posts.length);
-        setIsExiting(false);
-        startCycleInterval();
-      }, 500);
+      setIsHovered(false);
     });
     
     marker.addTo(map);
     markerRef.current = marker;
-
-    // Start cycling
-    startCycleInterval();
 
     return () => {
       clearCycleInterval();
@@ -731,22 +750,22 @@ function PostGroupMarker({ group, onClick }: {
         markerRef.current = null;
       }
     };
-  }, [map, groupId, onClick]);
+  }, [map, group.posts.length]);
 
-  // Update marker when currentIndex changes or hover state changes
+  // Update marker icon and position when current post changes
   useEffect(() => {
     if (!markerRef.current) return;
     
-    const [lat, lng] = getOffsetPosition(currentIndex, group.posts.length, currentPost.location!.lat, currentPost.location!.lng);
+    const [lat, lng] = getOffsetPosition(currentPostIndex, group.posts.length, currentPost.location!.lat, currentPost.location!.lng);
     
-    // Build className based on state
+    // Set class based on LOCAL state (not global)
     let className = 'post-bubble-marker';
-    if (isHovered) {
-      className += ' paused'; // Show fully without animation
-    } else if (isExiting) {
-      className += ' group-marker-animate exiting';
+    if (isHovered || isMyPostOpen) {
+      className += ' paused';
+    } else if (isResuming) {
+      className += ' resuming';
     } else {
-      className += ' group-marker-animate';
+      className += ' cycling';
     }
     
     markerRef.current.setLatLng([lat, lng]);
@@ -757,13 +776,7 @@ function PostGroupMarker({ group, onClick }: {
       iconAnchor: [20, 44],
       popupAnchor: [0, -44]
     }));
-    
-    // Force animation restart by triggering reflow
-    const el = markerRef.current.getElement();
-    if (el) {
-      void el.offsetHeight;
-    }
-  }, [currentIndex, currentPost, isHovered, isExiting, group.posts.length]);
+  }, [currentPostIndex, currentPost, isHovered, isResuming]);
 
   return null;
 }
@@ -771,6 +784,7 @@ function PostGroupMarker({ group, onClick }: {
 export function OptimizedMapsPage() {
   const dispatch = useDispatch();
   const mapRef = useRef<any>(null);
+  // ... rest of the code remains the same ...
   const { isAuthenticated } = useAuth();
   const { isOpen: isPostPreviewOpen } = useSelector((state: any) => state.postPreview);
   

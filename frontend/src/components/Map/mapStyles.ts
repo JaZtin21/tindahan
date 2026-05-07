@@ -294,11 +294,21 @@ export function getMapMarkerStyles(): string {
     }
 
 
-    /* Show post fully when hovered (no animation) */
+    /* Show post fully when hovered or modal open (no animation) */
     .post-bubble-marker.paused .post-marker-wrapper {
-      animation: none;
+      animation: none !important;
       opacity: 1;
       transform: none;
+    }
+
+    /* Animation with popdown - only when cycling normally */
+    .post-bubble-marker.cycling .post-marker-wrapper {
+      animation: group-post-cycle 2.5s ease-in-out forwards;
+    }
+
+    /* Resume cycling - only popdown animation, no popup */
+    .post-bubble-marker.resuming .post-marker-wrapper {
+      animation: post-exit 0.5s ease-in-out forwards;
     }
 
     /* Post popup styles */
