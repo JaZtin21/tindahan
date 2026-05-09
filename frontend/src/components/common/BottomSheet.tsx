@@ -5,7 +5,7 @@ interface BottomSheetProps {
   isOpen: boolean;
   onClose: () => void;
   children: ReactNode;
-  title?: string;
+  title?: string | ReactNode;
   subtitle?: string;
   showCloseButton?: boolean;
   closeOnBackdropClick?: boolean;
@@ -156,7 +156,11 @@ export function BottomSheet({
         {(title || subtitle || showCloseButton) && (
           <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-100 dark:border-zinc-800 shrink-0">
             <div className="flex-1 min-w-0">
-              {title && <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 truncate">{title}</h2>}
+              {typeof title === 'string' ? (
+                <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 truncate">{title}</h2>
+              ) : (
+                title
+              )}
               {subtitle && <p className="text-sm text-zinc-500 dark:text-zinc-400 truncate">{subtitle}</p>}
             </div>
             {showCloseButton && (

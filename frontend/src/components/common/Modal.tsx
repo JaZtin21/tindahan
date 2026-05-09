@@ -12,7 +12,7 @@ const XIcon = ({ className }: { className?: string }) => (
 interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
-  title?: string;
+  title?: string | ReactNode;
   subtitle?: string;
   children: ReactNode;
   maxWidth?: 'sm' | 'md' | 'lg' | 'xl';
@@ -126,7 +126,7 @@ function DesktopModal({ isAnimatingOut, onClose, closeOnBackdropClick, title, su
   isAnimatingOut: boolean;
   onClose: () => void;
   closeOnBackdropClick: boolean;
-  title?: string;
+  title?: string | ReactNode;
   subtitle?: string;
   showCloseButton: boolean;
   maxWidth: 'sm' | 'md' | 'lg' | 'xl';
@@ -153,8 +153,12 @@ function DesktopModal({ isAnimatingOut, onClose, closeOnBackdropClick, title, su
       >
         {(title || subtitle || showCloseButton) && (
           <div className="flex items-center justify-between p-6 border-b border-zinc-100 dark:border-zinc-800 shrink-0">
-            <div>
-              {title && <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">{title}</h2>}
+            <div className="flex-1">
+              {typeof title === 'string' ? (
+                <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">{title}</h2>
+              ) : (
+                title
+              )}
               {subtitle && <p className="text-sm text-zinc-500 dark:text-zinc-400">{subtitle}</p>}
             </div>
             {showCloseButton && (
