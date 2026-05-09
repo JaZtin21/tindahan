@@ -71,8 +71,6 @@ export function BottomSheet({
 
   // Drag handlers
   const handleDragStart = (clientY: number) => {
-    if (contentRef.current && contentRef.current.scrollTop > 0) return;
-    
     setIsDragging(true);
     setIsAnimating(false);
     dragState.current = {

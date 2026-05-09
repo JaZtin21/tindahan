@@ -4,6 +4,7 @@ import { useMutation } from '@apollo/client/react';
 import { clearSideNavContent } from '../../store';
 import { ReviewsList } from '../reviews/ReviewsList';
 import { AddReviewModal } from '../reviews/AddReviewModal';
+import { Modal as CommonModal } from '../common/Modal';
 import { Modal } from '../Modal';
 import { DELETE_REVIEW_MUTATION } from '../../api/graphql/review/review-queries';
 import type { Review } from '../../types/review';
@@ -58,13 +59,8 @@ export function SideNav({ isOpen, onClose, selectedLocation }: SideNavProps) {
   // Computed from deleteModal for convenience
   const reviewToDelete = deleteModal.review;
   
-  // Mobile sheet state
-  const [sheetHeight, setSheetHeight] = useState(50);
-  const [isDragging, setIsDragging] = useState(false);
-  const dragStartY = useRef(0);
-  const dragStartHeight = useRef(50);
+  // Desktop ref
   const sideNavRef = useRef<HTMLDivElement>(null);
-  const sheetRef = useRef<HTMLDivElement>(null);
   
   // Refs for callbacks
   const reviewsActionsRef = useRef<{ refetchReviews: () => void; refetchStats: () => void; addReviewToCache: (r: Review) => void; removeReviewFromCache: (id: string) => void } | null>(null);
@@ -92,36 +88,7 @@ export function SideNav({ isOpen, onClose, selectedLocation }: SideNavProps) {
     }
   }, [isOpen, selectedLocation, dispatch]);
 
-  // Mobile drag handlers
-  const handleDragStart = (e: React.MouseEvent | React.TouchEvent) => {
-    if (!isMobile) return;
-    setIsDragging(true);
-    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
-    dragStartY.current = clientY;
-    dragStartHeight.current = sheetHeight;
-  };
-
-  const handleDragMove = (e: React.MouseEvent | React.TouchEvent) => {
-    if (!isDragging || !isMobile) return;
-    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
-    const deltaY = dragStartY.current - clientY;
-    const newHeight = Math.min(90, Math.max(30, dragStartHeight.current + (deltaY / window.innerHeight * 100)));
-    setSheetHeight(newHeight);
-  };
-
-  const handleDragEnd = () => {
-    setIsDragging(false);
-    if (sheetHeight < 40) setSheetHeight(30);
-    else if (sheetHeight > 70) setSheetHeight(90);
-    else setSheetHeight(50);
-  };
-
-  // Reset sheet height when opening
-  useEffect(() => { if (isOpen) setSheetHeight(50); }, [isOpen]);
-
-  // Backdrop click
-  const handleBackdropClick = (e: React.MouseEvent) => { if (e.target === e.currentTarget) onClose(); };
-
+  
   // Modal helpers
   const showSuccess = (title: string, message: string) => setFeedbackModal({ isOpen: true, title, message, type: 'success' });
   const showError = (title: string, message: string) => setFeedbackModal({ isOpen: true, title, message, type: 'error' });
@@ -136,21 +103,21 @@ export function SideNav({ isOpen, onClose, selectedLocation }: SideNavProps) {
     setDeleteModal({ isOpen: true, review });
   };
 
-  // Delete review handler - confirms the actual deletion
+  // Delete review handler - confirms actual deletion
   const handleDeleteReview = async () => {
     if (!reviewToDelete) return;
     try {
       const result = await deleteReview({ variables: { id: reviewToDelete.id } });
-      if (result.data?.deleteReview?.success) {
+      if ((result.data as any)?.deleteReview?.success) {
         reviewsActionsRef.current?.removeReviewFromCache(reviewToDelete.id);
         reviewsActionsRef.current?.refetchStats();
         setDeleteModal({ isOpen: false, review: null });
         showSuccess('Review Deleted', 'Your review has been deleted successfully.');
       } else {
-        showError('Delete Failed', result.data?.deleteReview?.message || 'Failed to delete review.');
+        showError('Delete Failed', (result.data as any)?.deleteReview?.message || 'Failed to delete review.');
       }
     } catch (error) {
-      showError('Error', 'An error occurred while deleting the review.');
+      showError('Error', 'An error occurred while deleting review.');
     }
   };
 
@@ -174,35 +141,36 @@ export function SideNav({ isOpen, onClose, selectedLocation }: SideNavProps) {
             onEditReview={handleEditReview}
             onDeleteReview={handleDeleteReviewClick}
             onReviewsChange={handleReviewsChange}
+            isMobile={false}
           />
         </div>
       )}
 
-      {/* Mobile Bottom Sheet */}
+      {/* Mobile Modal */}
       {isMobile && (
-        <>
-          <div className={`fixed inset-0 bg-black/50 z-40 transition-opacity duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} onClick={handleBackdropClick} />
-          <div ref={sheetRef} className={`fixed left-0 right-0 bg-white dark:bg-zinc-900 z-50 rounded-t-2xl shadow-2xl transition-transform duration-300 ease-out ${isOpen ? 'translate-y-0' : 'translate-y-full'}`} style={{ bottom: 0, height: `${sheetHeight}%`, maxHeight: '90vh' }} onMouseMove={handleDragMove} onMouseUp={handleDragEnd} onMouseLeave={handleDragEnd} onTouchMove={handleDragMove} onTouchEnd={handleDragEnd}>
-            <div className="w-full flex justify-center pt-2 pb-1 cursor-grab active:cursor-grabbing" onMouseDown={handleDragStart} onTouchStart={handleDragStart}>
-              <div className="w-12 h-1.5 bg-zinc-300 dark:bg-zinc-600 rounded-full" />
-            </div>
-            <div className="flex flex-col h-[calc(100%-24px)] overflow-hidden">
-              <SideNavContent 
-                selectedLocation={selectedLocation}
-                activeTab={activeTab}
-                onTabClick={handleTabClick}
-                onClose={onClose}
-                isStore={isStore}
-                hasStoreId={hasStoreId}
-                showReviews={activeTab === 'reviews' && hasOpenedReviews}
-                onAddReview={handleAddReview}
-                onEditReview={handleEditReview}
-                onDeleteReview={handleDeleteReviewClick}
-                onReviewsChange={handleReviewsChange}
-              />
-            </div>
-          </div>
-        </>
+        <CommonModal
+          isOpen={isOpen}
+          onClose={onClose}
+          maxWidth="lg"
+          mobileBottomSheet
+          showCloseButton={true}
+          title={selectedLocation?.type === 'store' ? 'Store Details' : 'Location Details'}
+        >
+          <SideNavContent 
+            selectedLocation={selectedLocation}
+            activeTab={activeTab}
+            onTabClick={handleTabClick}
+            onClose={onClose}
+            isStore={isStore}
+            hasStoreId={hasStoreId}
+            showReviews={activeTab === 'reviews' && hasOpenedReviews}
+            onAddReview={handleAddReview}
+            onEditReview={handleEditReview}
+            onDeleteReview={handleDeleteReviewClick}
+            onReviewsChange={handleReviewsChange}
+            isMobile={true}
+          />
+        </CommonModal>
       )}
 
       {/* Review Modal */}
@@ -251,21 +219,24 @@ interface SideNavContentProps {
   onEditReview: (review: Review) => void;
   onDeleteReview: (review: Review) => void;
   onReviewsChange: (actions: { refetchReviews: () => void; refetchStats: () => void; addReviewToCache: (r: Review) => void; removeReviewFromCache: (id: string) => void }) => void;
+  isMobile?: boolean;
 }
 
-function SideNavContent({ selectedLocation, activeTab, onTabClick, onClose, isStore, hasStoreId, showReviews, onAddReview, onEditReview, onDeleteReview, onReviewsChange }: SideNavContentProps) {
+function SideNavContent({ selectedLocation, activeTab, onTabClick, onClose, isStore, hasStoreId, showReviews, onAddReview, onEditReview, onDeleteReview, onReviewsChange, isMobile = false }: SideNavContentProps) {
   return (
     <>
-      <div className="flex items-center justify-between p-4 border-b border-zinc-200 dark:border-zinc-700">
-        <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">
-          {selectedLocation?.type === 'store' ? 'Store Details' : 'Location Details'}
-        </h2>
-        <button onClick={onClose} className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors">
-          <svg className="w-5 h-5 text-zinc-600 dark:text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-      </div>
+      {!isMobile && (
+        <div className="flex items-center justify-between p-4 border-b border-zinc-200 dark:border-zinc-700">
+          <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">
+            {selectedLocation?.type === 'store' ? 'Store Details' : 'Location Details'}
+          </h2>
+          <button onClick={onClose} className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors">
+            <svg className="w-5 h-5 text-zinc-600 dark:text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      )}
 
       <div className="flex-1 overflow-y-auto h-[calc(100vh-64px)] md:h-[calc(100vh-64px)]">
         {selectedLocation ? (
