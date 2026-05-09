@@ -109,31 +109,23 @@ export function getMapMarkerStyles(): string {
     .post-bubble-marker {
       background: transparent !important;
       border: none !important;
-      transition: opacity 0.2s ease, z-index 0s, transform 0.2s ease;
+      transition: transform 0.2s ease, z-index 0s;
       z-index: 400 !important;
     }
 
     .post-bubble-marker:hover {
-      opacity: 1;
+      transform: scale(1.08) translateY(-8px);
       z-index: 1000 !important;
       filter: drop-shadow(0 8px 20px rgba(0,0,0,0.25));
-      transform: scale(1.08);
-    }
- 
-    .post-bubble-marker:hover ~ .post-bubble-marker:not(:hover) {
-      opacity: 0.3;
-      transition: opacity 0.2s ease, z-index 0s, transform 0.2s ease;
     }
 
-    
     .post-bubble-marker:hover .post-bubble-new {
       box-shadow: 0 8px 24px rgba(0,0,0,0.2);
     }
 
     .post-bubble-marker:hover .post-bubble-avatar-new {
-      opacity: 0.9;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
       transform: scale(1.1);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4);
     }
 
     .post-bubble-marker > div {
@@ -236,30 +228,30 @@ export function getMapMarkerStyles(): string {
     @keyframes post-pop-in {
       0% {
         opacity: 0;
-        transform: scale(0.5);
+        transform: scale(0.5) translateY(20px);
       }
       60% {
         opacity: 1;
-        transform: scale(1.05);
+        transform: scale(1.05) translateY(-5px);
       }
       100% {
         opacity: 1;
-        transform: scale(1);
+        transform: scale(1) translateY(0);
       }
     }
 
     @keyframes post-pop-out {
       0% {
         opacity: 1;
-        transform: scale(1);
+        transform: scale(1) translateY(0);
       }
       40% {
         opacity: 1;
-        transform: scale(1.05);
+        transform: scale(1.05) translateY(-5px);
       }
       100% {
         opacity: 0;
-        transform: scale(0.5);
+        transform: scale(0.5) translateY(20px);
       }
     }
 
@@ -275,19 +267,19 @@ export function getMapMarkerStyles(): string {
     @keyframes group-post-cycle {
       0% {
         opacity: 0;
-        transform: scale(0.5);
+        transform: scale(0.5) translateY(20px);
       }
       10% {
         opacity: 1;
-        transform: scale(1);
+        transform: scale(1) translateY(0);
       }
       90% {
         opacity: 1;
-        transform: scale(1);
+        transform: scale(1) translateY(0);
       }
       100% {
         opacity: 0;
-        transform: scale(0.6);
+        transform: scale(0.6) translateY(-10px);
       }
     }
 
@@ -297,8 +289,8 @@ export function getMapMarkerStyles(): string {
 
     /* Exit animation when unhovering - same speed as normal fade out */
     @keyframes post-exit {
-      0% { opacity: 1; transform: scale(1); }
-      100% { opacity: 0; transform: scale(0.6); }
+      0% { opacity: 1; transform: scale(1) translateY(0); }
+      100% { opacity: 0; transform: scale(0.6) translateY(-10px); }
     }
 
 
@@ -461,18 +453,20 @@ export function getMapMarkerStyles(): string {
 
     @keyframes location-bounce {
       0%, 100% {
-        opacity: 0.8;
+        transform: translateY(0);
       }
       50% {
-        opacity: 1;
+        transform: translateY(-4px);
       }
     }
 
     @keyframes pulse-ring {
       0% {
+        transform: translate(-50%, -50%) scale(0.8);
         opacity: 1;
       }
       100% {
+        transform: translate(-50%, -50%) scale(1.5);
         opacity: 0;
       }
     }
@@ -509,7 +503,6 @@ export function getMapMarkerStyles(): string {
     }
 
     .store-marker-icon:hover {
-      opacity: 0.8;
       transform: scale(1.1);
     }
 
@@ -520,7 +513,6 @@ export function getMapMarkerStyles(): string {
     }
 
     .product-store-marker-icon:hover {
-      opacity: 0.8;
       transform: scale(1.1);
     }
 
@@ -531,7 +523,6 @@ export function getMapMarkerStyles(): string {
     }
 
     .location-pin-icon:hover {
-      opacity: 0.8;
       transform: scale(1.1);
     }
 

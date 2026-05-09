@@ -126,3 +126,55 @@ export interface SearchBarProps {
   onClearProductStores?: () => void;
   placeholder?: string;
 }
+
+// Additional types from OptimizedMapsPage
+export type StoreLocationData = {
+  lat: number;
+  lng: number;
+  name: string;
+  id?: string;
+  description?: string;
+  location?: string;
+  coverPhoto?: string;
+  businessType?: string;
+  phone?: string;
+  hours?: string;
+};
+
+export type LocationPinData = {
+  lat: number;
+  lng: number;
+  name: string;
+  address?: string;
+  image?: string;
+};
+
+export type ProductStore = {
+  id: string;
+  lat: number;
+  lng: number;
+  name: string;
+  address?: string;
+  image?: string;
+};
+
+// Group posts that are within threshold distance of each other
+export type PostGroup = { posts: PostType[] };
+export type PostOrGroup = { type: 'single'; post: PostType } | { type: 'group'; group: PostGroup };
+
+// MapMarkers component props
+export interface MapMarkersProps {
+  livePosts: PostType[];
+  deletedPostIds: Set<string>;
+  editedPostIds: Set<string>;
+  onPostClick: (post: PostType) => void;
+  showStoreMarker: boolean;
+  storeMarkerData: StoreLocationData | null;
+  onStoreMarkerClick: (store: StoreLocationData) => void;
+  showLocationPinMarker: boolean;
+  locationPinData: LocationPinData | null;
+  showProductStoreMarkers: boolean;
+  productSearchStores: ProductStore[];
+  userLocation: { lat: number; lng: number } | null;
+  showUserLocationMarker: boolean;
+}
