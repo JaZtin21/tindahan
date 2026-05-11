@@ -20,20 +20,36 @@ export function PostMapMarker({ post, onClick, isEdited }: PostMapMarkerProps) {
   onClickRef.current = onClick;
   
   useEffect(() => {
-    // Only recreate if post ID actually changed
-    if (post.id === postRef.current && markerRef.current) {
-      return;
-    }
-    postRef.current = post.id;
-    
     const init = async () => {
       const L = await import('leaflet');
       
       // Check if marker already exists
       if (markerRef.current) {
-        map.removeLayer(markerRef.current);
-        markerRef.current = null;
+        // If marker exists and this is same post ID, update content instead of recreating
+        if (post.id === postRef.current) {
+          const element = markerRef.current.getElement();
+          if (element) {
+            // Update the entire icon HTML without recreating marker
+            const newIcon = L.divIcon({
+              html: getPostBubbleHtml(post),
+              className: isEdited ? 'post-bubble-marker' : 'post-bubble-marker animate-in',
+              iconSize: [200, 44],
+              iconAnchor: [25, 22],
+              popupAnchor: [0, -44]
+            });
+            markerRef.current.setIcon(newIcon);
+          }
+          postRef.current = post.id;
+          return;
+        } else {
+          // Different post ID, remove old marker
+          map.removeLayer(markerRef.current);
+          markerRef.current = null;
+        }
       }
+      
+      // Create new marker
+      postRef.current = post.id;
       
       // Create the conversation bubble icon using actual PostMarker styling with animation
       // Skip animation if this is an edited post (just updating content, not adding new)
@@ -87,7 +103,7 @@ export function PostMapMarker({ post, onClick, isEdited }: PostMapMarkerProps) {
         }
       }
     };
-  }, [post, map]);
+  }, [post.id, post.title, post.text, post.photos, post.types, isEdited, map]);
 
   return null;
 }
