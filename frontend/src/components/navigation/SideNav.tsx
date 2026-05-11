@@ -7,6 +7,7 @@ import { AddReviewModal } from '../reviews/AddReviewModal';
 import { Modal as CommonModal } from '../common/Modal';
 import { Modal } from '../Modal';
 import { DELETE_REVIEW_MUTATION } from '../../api/graphql/review/review-queries';
+import { CREATE_INQUIRY_MUTATION } from '../../api/graphql/inquiry/inquiry-queries';
 import type { Review } from '../../types/review';
 import { useIsMobile } from '../../hooks/useIsMobile';
 
@@ -66,6 +67,19 @@ export function SideNav({ isOpen, onClose, selectedLocation }: SideNavProps) {
   const reviewsActionsRef = useRef<{ refetchReviews: () => void; refetchStats: () => void; addReviewToCache: (r: Review) => void; removeReviewFromCache: (id: string) => void } | null>(null);
 
   const [deleteReview] = useMutation(DELETE_REVIEW_MUTATION);
+  const [createInquiry] = useMutation<{
+    createInquiry: {
+      success: boolean;
+      message: string;
+      data?: {
+        id: string;
+        item: string;
+        message: string;
+        status: string;
+        createdAt: string;
+      };
+    };
+  }>(CREATE_INQUIRY_MUTATION);
 
   // Tab click handler - lazy load reviews only when clicked
   const handleTabClick = (tab: TabType) => {
@@ -79,6 +93,40 @@ export function SideNav({ isOpen, onClose, selectedLocation }: SideNavProps) {
   const handleAddReview = () => { setEditingReview(null); setIsReviewModalOpen(true); };
   const handleEditReview = (review: Review) => { setEditingReview(review); setIsReviewModalOpen(true); };
   const handleCloseReviewModal = () => { setIsReviewModalOpen(false); setEditingReview(null); };
+
+  // Inquiry state and handlers
+  const [inquiryItem, setInquiryItem] = useState('');
+  const [inquiryMessage, setInquiryMessage] = useState('');
+  const [isSubmittingInquiry, setIsSubmittingInquiry] = useState(false);
+
+  const handleSubmitInquiry = async () => {
+    if (!selectedLocation?.storeId || !inquiryItem.trim() || !inquiryMessage.trim()) return;
+    
+    setIsSubmittingInquiry(true);
+    try {
+      const result = await createInquiry({
+        variables: {
+          input: {
+            shopId: selectedLocation.storeId,
+            item: inquiryItem.trim(),
+            message: inquiryMessage.trim()
+          }
+        }
+      });
+      
+      if (result.data?.createInquiry?.success) {
+        showSuccess('Inquiry Sent', 'Your inquiry has been sent to the shop owner.');
+        setInquiryItem('');
+        setInquiryMessage('');
+      } else {
+        showError('Error', result.data?.createInquiry?.message || 'Failed to send inquiry.');
+      }
+    } catch (error) {
+      showError('Error', 'An error occurred while sending your inquiry.');
+    } finally {
+      setIsSubmittingInquiry(false);
+    }
+  };
 
   // Clear content when sidebar closes
   useEffect(() => {
@@ -142,6 +190,12 @@ export function SideNav({ isOpen, onClose, selectedLocation }: SideNavProps) {
             onDeleteReview={handleDeleteReviewClick}
             onReviewsChange={handleReviewsChange}
             isMobile={false}
+            inquiryItem={inquiryItem}
+            setInquiryItem={setInquiryItem}
+            inquiryMessage={inquiryMessage}
+            setInquiryMessage={setInquiryMessage}
+            isSubmittingInquiry={isSubmittingInquiry}
+            handleSubmitInquiry={handleSubmitInquiry}
           />
         </div>
       )}
@@ -169,6 +223,12 @@ export function SideNav({ isOpen, onClose, selectedLocation }: SideNavProps) {
             onDeleteReview={handleDeleteReviewClick}
             onReviewsChange={handleReviewsChange}
             isMobile={true}
+            inquiryItem={inquiryItem}
+            setInquiryItem={setInquiryItem}
+            inquiryMessage={inquiryMessage}
+            setInquiryMessage={setInquiryMessage}
+            isSubmittingInquiry={isSubmittingInquiry}
+            handleSubmitInquiry={handleSubmitInquiry}
           />
         </CommonModal>
       )}
@@ -220,9 +280,35 @@ interface SideNavContentProps {
   onDeleteReview: (review: Review) => void;
   onReviewsChange: (actions: { refetchReviews: () => void; refetchStats: () => void; addReviewToCache: (r: Review) => void; removeReviewFromCache: (id: string) => void }) => void;
   isMobile?: boolean;
+  // Inquiry props
+  inquiryItem: string;
+  setInquiryItem: (value: string) => void;
+  inquiryMessage: string;
+  setInquiryMessage: (value: string) => void;
+  isSubmittingInquiry: boolean;
+  handleSubmitInquiry: () => void;
 }
 
-function SideNavContent({ selectedLocation, activeTab, onTabClick, onClose, isStore, hasStoreId, showReviews, onAddReview, onEditReview, onDeleteReview, onReviewsChange, isMobile = false }: SideNavContentProps) {
+function SideNavContent({ 
+  selectedLocation, 
+  activeTab, 
+  onTabClick, 
+  onClose, 
+  isStore, 
+  hasStoreId, 
+  showReviews, 
+  onAddReview, 
+  onEditReview, 
+  onDeleteReview, 
+  onReviewsChange, 
+  isMobile = false,
+  inquiryItem,
+  setInquiryItem,
+  inquiryMessage,
+  setInquiryMessage,
+  isSubmittingInquiry,
+  handleSubmitInquiry
+}: SideNavContentProps) {
   return (
     <>
       {!isMobile && (
@@ -272,6 +358,46 @@ function SideNavContent({ selectedLocation, activeTab, onTabClick, onClose, isSt
                     {selectedLocation.email && <div className="flex items-center gap-3"><div className="w-8 h-8 bg-purple-100 dark:bg-purple-900 rounded-full flex items-center justify-center text-sm">📧</div><div><p className="font-medium text-zinc-900 dark:text-zinc-100">Email</p><p className="text-zinc-600 dark:text-zinc-400">{selectedLocation.email}</p></div></div>}
                     {selectedLocation.hours && <div className="flex items-center gap-3"><div className="w-8 h-8 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center text-sm">🕐</div><div><p className="font-medium text-zinc-900 dark:text-zinc-100">Hours</p><p className="text-zinc-600 dark:text-zinc-400">{selectedLocation.hours}</p></div></div>}
                   </div>
+                  
+                  {/* Inquiry Form - Only show for stores */}
+                  {isStore && selectedLocation.storeId && (
+                    <div className="pt-4 border-t border-zinc-200 dark:border-zinc-700">
+                      <h4 className="font-semibold text-zinc-900 dark:text-zinc-100 mb-3 flex items-center gap-2">
+                        <span className="w-6 h-6 bg-orange-100 dark:bg-orange-900 rounded-full flex items-center justify-center text-sm">💬</span>
+                        Send Inquiry
+                      </h4>
+                      <div className="space-y-3">
+                        <div>
+                          <label className="block text-sm text-zinc-600 dark:text-zinc-400 mb-1">Item/Product</label>
+                          <input
+                            type="text"
+                            value={inquiryItem}
+                            onChange={(e) => setInquiryItem(e.target.value)}
+                            placeholder="What item are you asking about?"
+                            className="w-full px-3 py-2 text-sm rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm text-zinc-600 dark:text-zinc-400 mb-1">Message</label>
+                          <textarea
+                            value={inquiryMessage}
+                            onChange={(e) => setInquiryMessage(e.target.value)}
+                            placeholder="Your inquiry message..."
+                            rows={3}
+                            className="w-full px-3 py-2 text-sm rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                          />
+                        </div>
+                        <button
+                          onClick={handleSubmitInquiry}
+                          disabled={!inquiryItem.trim() || !inquiryMessage.trim() || isSubmittingInquiry}
+                          className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-400 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
+                        >
+                          {isSubmittingInquiry ? 'Sending...' : 'Send Inquiry'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  
                   {!isStore && <div className="pt-4 border-t border-zinc-200 dark:border-zinc-700"><p className="text-zinc-500 dark:text-zinc-400 text-sm">Reviews are only available for stores.</p></div>}
                 </>
               )}

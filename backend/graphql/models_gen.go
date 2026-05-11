@@ -82,6 +82,12 @@ type CoordinatesInput struct {
 	Lng float64 `json:"lng"`
 }
 
+type CreateInquiryInput struct {
+	ShopID  string `json:"shopId"`
+	Item    string `json:"item"`
+	Message string `json:"message"`
+}
+
 type CreateItemInput struct {
 	Name        string         `json:"name"`
 	Price       float64        `json:"price"`
@@ -182,6 +188,47 @@ type ImageUploadPayload struct {
 	Message  string  `json:"message"`
 	URL      *string `json:"url,omitempty"`
 	PublicID *string `json:"publicID,omitempty"`
+}
+
+type InquiriesPayload struct {
+	Success    bool       `json:"success"`
+	Message    string     `json:"message"`
+	Data       []*Inquiry `json:"data"`
+	Total      int        `json:"total"`
+	Page       int        `json:"page"`
+	TotalPages int        `json:"totalPages"`
+}
+
+type Inquiry struct {
+	ID        string          `json:"id"`
+	User      *User           `json:"user,omitempty"`
+	Shop      *Shop           `json:"shop,omitempty"`
+	Item      string          `json:"item"`
+	Message   string          `json:"message"`
+	Status    InquiryStatus   `json:"status"`
+	Replies   []*InquiryReply `json:"replies"`
+	CreatedAt time.Time       `json:"createdAt"`
+	UpdatedAt *time.Time      `json:"updatedAt,omitempty"`
+}
+
+type InquiryPayload struct {
+	Success bool     `json:"success"`
+	Message string   `json:"message"`
+	Data    *Inquiry `json:"data,omitempty"`
+}
+
+type InquiryReply struct {
+	ID        string    `json:"id"`
+	Inquiry   *Inquiry  `json:"inquiry,omitempty"`
+	Author    *User     `json:"author,omitempty"`
+	Message   string    `json:"message"`
+	CreatedAt time.Time `json:"createdAt"`
+}
+
+type InquiryReplyPayload struct {
+	Success bool          `json:"success"`
+	Message string        `json:"message"`
+	Data    *InquiryReply `json:"data,omitempty"`
 }
 
 type Item struct {
@@ -306,6 +353,11 @@ type RefreshTokenInput struct {
 	RefreshToken string `json:"refreshToken"`
 }
 
+type ReplyToInquiryInput struct {
+	InquiryID string `json:"inquiryId"`
+	Message   string `json:"message"`
+}
+
 type Review struct {
 	ID        string     `json:"id"`
 	StoreID   string     `json:"storeId"`
@@ -408,6 +460,11 @@ type SocialMediaInput struct {
 }
 
 type Subscription struct {
+}
+
+type UpdateInquiryStatusInput struct {
+	InquiryID string        `json:"inquiryId"`
+	Status    InquiryStatus `json:"status"`
 }
 
 type UpdateItemInput struct {
@@ -561,6 +618,65 @@ func (e *BusinessType) UnmarshalJSON(b []byte) error {
 }
 
 func (e BusinessType) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
+}
+
+type InquiryStatus string
+
+const (
+	InquiryStatusPending   InquiryStatus = "PENDING"
+	InquiryStatusResponded InquiryStatus = "RESPONDED"
+	InquiryStatusResolved  InquiryStatus = "RESOLVED"
+	InquiryStatusClosed    InquiryStatus = "CLOSED"
+)
+
+var AllInquiryStatus = []InquiryStatus{
+	InquiryStatusPending,
+	InquiryStatusResponded,
+	InquiryStatusResolved,
+	InquiryStatusClosed,
+}
+
+func (e InquiryStatus) IsValid() bool {
+	switch e {
+	case InquiryStatusPending, InquiryStatusResponded, InquiryStatusResolved, InquiryStatusClosed:
+		return true
+	}
+	return false
+}
+
+func (e InquiryStatus) String() string {
+	return string(e)
+}
+
+func (e *InquiryStatus) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = InquiryStatus(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid InquiryStatus", str)
+	}
+	return nil
+}
+
+func (e InquiryStatus) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *InquiryStatus) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e InquiryStatus) MarshalJSON() ([]byte, error) {
 	var buf bytes.Buffer
 	e.MarshalGQL(&buf)
 	return buf.Bytes(), nil

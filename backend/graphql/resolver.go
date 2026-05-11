@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 	"tindahan-backend/api/handlers/auth"
+	"tindahan-backend/api/handlers/inquiry"
 	"tindahan-backend/api/handlers/middleware"
 	"tindahan-backend/api/handlers/owner"
 	"tindahan-backend/api/handlers/post"
@@ -116,9 +117,11 @@ type Resolver struct {
 	ownerResolver   *owner.OwnerResolver
 	postResolver    *post.PostResolver
 	reviewResolver  *review.ReviewResolver
+	inquiryResolver *inquiry.InquiryResolver
 	storeRepo       repository.StoreRepository
 	productRepo     repository.ProductRepository
 	userRepo        repository.UserRepository
+	inquiryRepo     repository.InquiryRepository
 	db              *mongo.Database
 	jwtSecret       string
 	postNotifier    *PostNotifier
@@ -1736,6 +1739,105 @@ func (r *mutationResolver) DeleteComment(ctx context.Context, commentID string, 
 	}, nil
 }
 
+// CreateInquiry is the resolver for the createInquiry field
+func (r *mutationResolver) CreateInquiry(ctx context.Context, input CreateInquiryInput) (*InquiryPayload, error) {
+	userID := middleware.GetUserID(ctx)
+	if userID == "" {
+		return &InquiryPayload{
+			Success: false,
+			Message: "Authentication required",
+		}, nil
+	}
+
+	result, err := r.inquiryResolver.CreateInquiry(ctx, userID, input.ShopID, input.Item, input.Message)
+	if err != nil {
+		return &InquiryPayload{
+			Success: false,
+			Message: result["message"].(string),
+		}, nil
+	}
+
+	if !result["success"].(bool) {
+		return &InquiryPayload{
+			Success: false,
+			Message: result["message"].(string),
+		}, nil
+	}
+
+	inquiryData := result["data"].(*domain.Inquiry)
+	return &InquiryPayload{
+		Success: true,
+		Message: result["message"].(string),
+		Data:    r.formatInquiryData(inquiryData),
+	}, nil
+}
+
+// ReplyToInquiry is the resolver for the replyToInquiry field
+func (r *mutationResolver) ReplyToInquiry(ctx context.Context, input ReplyToInquiryInput) (*InquiryReplyPayload, error) {
+	userID := middleware.GetUserID(ctx)
+	if userID == "" {
+		return &InquiryReplyPayload{
+			Success: false,
+			Message: "Authentication required",
+		}, nil
+	}
+
+	result, err := r.inquiryResolver.ReplyToInquiry(ctx, input.InquiryID, userID, input.Message)
+	if err != nil {
+		return &InquiryReplyPayload{
+			Success: false,
+			Message: result["message"].(string),
+		}, nil
+	}
+
+	if !result["success"].(bool) {
+		return &InquiryReplyPayload{
+			Success: false,
+			Message: result["message"].(string),
+		}, nil
+	}
+
+	replyData := result["data"].(domain.InquiryReply)
+	return &InquiryReplyPayload{
+		Success: true,
+		Message: result["message"].(string),
+		Data:    r.formatInquiryReplyData(replyData),
+	}, nil
+}
+
+// UpdateInquiryStatus is the resolver for the updateInquiryStatus field
+func (r *mutationResolver) UpdateInquiryStatus(ctx context.Context, input UpdateInquiryStatusInput) (*InquiryPayload, error) {
+	userID := middleware.GetUserID(ctx)
+	if userID == "" {
+		return &InquiryPayload{
+			Success: false,
+			Message: "Authentication required",
+		}, nil
+	}
+
+	result, err := r.inquiryResolver.UpdateInquiryStatus(ctx, input.InquiryID, domain.InquiryStatus(input.Status))
+	if err != nil {
+		return &InquiryPayload{
+			Success: false,
+			Message: result["message"].(string),
+		}, nil
+	}
+
+	if !result["success"].(bool) {
+		return &InquiryPayload{
+			Success: false,
+			Message: result["message"].(string),
+		}, nil
+	}
+
+	inquiryData := result["data"].(*domain.Inquiry)
+	return &InquiryPayload{
+		Success: true,
+		Message: result["message"].(string),
+		Data:    r.formatInquiryData(inquiryData),
+	}, nil
+}
+
 // Me is the resolver for the me field.
 func (r *queryResolver) Me(ctx context.Context) (*UserPayload, error) {
 	userID := middleware.GetUserID(ctx)
@@ -2880,6 +2982,253 @@ func (r *subscriptionResolver) LivePosts(ctx context.Context) (<-chan []*Post, e
 	return postChan, nil
 }
 
+// InquiryReplied is the resolver for the inquiryReplied subscription
+func (r *subscriptionResolver) InquiryReplied(ctx context.Context, inquiryID string) (<-chan *InquiryReply, error) {
+	replyChan := make(chan *InquiryReply, 1)
+
+	// Convert inquiryID to ObjectID
+	inquiryObjectID, err := primitive.ObjectIDFromHex(inquiryID)
+	if err != nil {
+		close(replyChan)
+		return replyChan, nil
+	}
+
+	// Start watching for changes
+	changeStream, err := r.inquiryRepo.WatchReplies(ctx, inquiryObjectID)
+	if err != nil {
+		close(replyChan)
+		return replyChan, nil
+	}
+
+	go func() {
+		defer close(replyChan)
+		defer changeStream.Close(ctx)
+
+		for changeStream.Next(ctx) {
+			var changeDoc bson.M
+			if err := changeStream.Decode(&changeDoc); err != nil {
+				continue
+			}
+
+			// Get the full document
+			if fullDoc, ok := changeDoc["fullDocument"].(bson.M); ok {
+				// Extract the last reply (newest one)
+				if repliesRaw, ok := fullDoc["replies"].(primitive.A); ok && len(repliesRaw) > 0 {
+					lastReply := repliesRaw[len(repliesRaw)-1].(bson.M)
+
+					replyID, _ := lastReply["_id"].(primitive.ObjectID)
+					authorID, _ := lastReply["author_id"].(primitive.ObjectID)
+					message, _ := lastReply["message"].(string)
+					createdAt, _ := lastReply["created_at"].(primitive.DateTime)
+
+					reply := &InquiryReply{
+						ID:        replyID.Hex(),
+						Message:   message,
+						CreatedAt: createdAt.Time(),
+					}
+
+					// Fetch author data
+					if r.userRepo != nil {
+						if author, err := r.userRepo.GetUserByID(ctx, authorID); err == nil {
+							name := author.FirstName
+							if author.LastName != "" {
+								name = author.FirstName + " " + author.LastName
+							}
+							reply.Author = &User{
+								ID:           author.ID.Hex(),
+								Name:         name,
+								Email:        author.Email,
+								FirstName:    author.FirstName,
+								LastName:     author.LastName,
+								Role:         UserRole(author.Role),
+								ProfilePhoto: &author.ProfilePhoto,
+								IsActive:     author.IsActive,
+							}
+						}
+					}
+
+					select {
+					case replyChan <- reply:
+					case <-ctx.Done():
+						return
+					}
+				}
+			}
+		}
+	}()
+
+	return replyChan, nil
+}
+
+// NewInquiryForShop is the resolver for the newInquiryForShop subscription
+func (r *subscriptionResolver) NewInquiryForShop(ctx context.Context, shopID string) (<-chan *Inquiry, error) {
+	inquiryChan := make(chan *Inquiry, 1)
+
+	// Convert shopID to ObjectID
+	shopObjectID, err := primitive.ObjectIDFromHex(shopID)
+	if err != nil {
+		close(inquiryChan)
+		return inquiryChan, nil
+	}
+
+	// Start watching for new inquiries
+	changeStream, err := r.inquiryRepo.WatchInquiries(ctx, shopObjectID)
+	if err != nil {
+		close(inquiryChan)
+		return inquiryChan, nil
+	}
+
+	go func() {
+		defer close(inquiryChan)
+		defer changeStream.Close(ctx)
+
+		for changeStream.Next(ctx) {
+			var changeDoc bson.M
+			if err := changeStream.Decode(&changeDoc); err != nil {
+				continue
+			}
+
+			// Get the full document
+			if fullDoc, ok := changeDoc["fullDocument"].(bson.M); ok {
+				inquiry := r.docToInquiry(fullDoc)
+				if inquiry != nil {
+					select {
+					case inquiryChan <- inquiry:
+					case <-ctx.Done():
+						return
+					}
+				}
+			}
+		}
+	}()
+
+	return inquiryChan, nil
+}
+
+// docToInquiry converts a MongoDB document to a GraphQL Inquiry struct
+func (r *Resolver) docToInquiry(doc bson.M) *Inquiry {
+	inquiry := &Inquiry{}
+
+	// ID
+	if id, ok := doc["_id"].(primitive.ObjectID); ok {
+		inquiry.ID = id.Hex()
+	}
+
+	// UserID
+	var userID primitive.ObjectID
+	if uid, ok := doc["user_id"].(primitive.ObjectID); ok {
+		userID = uid
+	}
+
+	// ShopID
+	var shopID primitive.ObjectID
+	if sid, ok := doc["shop_id"].(primitive.ObjectID); ok {
+		shopID = sid
+	}
+
+	// Item
+	if item, ok := doc["item"].(string); ok {
+		inquiry.Item = item
+	}
+
+	// Message
+	if message, ok := doc["message"].(string); ok {
+		inquiry.Message = message
+	}
+
+	// Status
+	if status, ok := doc["status"].(string); ok {
+		inquiry.Status = InquiryStatus(status)
+	}
+
+	// Fetch user data
+	if r.userRepo != nil && userID != primitive.NilObjectID {
+		if user, err := r.userRepo.GetUserByID(context.Background(), userID); err == nil {
+			name := user.FirstName
+			if user.LastName != "" {
+				name = user.FirstName + " " + user.LastName
+			}
+			inquiry.User = &User{
+				ID:           user.ID.Hex(),
+				Name:         name,
+				Email:        user.Email,
+				FirstName:    user.FirstName,
+				LastName:     user.LastName,
+				Role:         UserRole(user.Role),
+				ProfilePhoto: &user.ProfilePhoto,
+				IsActive:     user.IsActive,
+			}
+		}
+	}
+
+	// Fetch shop data
+	if r.storeRepo != nil && shopID != primitive.NilObjectID {
+		if shop, err := r.storeRepo.GetStoreByID(context.Background(), shopID); err == nil {
+			inquiry.Shop = &Shop{
+				ID:   shop.ID.Hex(),
+				Name: shop.Name,
+			}
+		}
+	}
+
+	// Replies
+	inquiry.Replies = []*InquiryReply{}
+	if repliesRaw, ok := doc["replies"].(primitive.A); ok {
+		for _, replyRaw := range repliesRaw {
+			if replyDoc, ok := replyRaw.(bson.M); ok {
+				reply := &InquiryReply{}
+
+				if replyID, ok := replyDoc["_id"].(primitive.ObjectID); ok {
+					reply.ID = replyID.Hex()
+				}
+
+				if message, ok := replyDoc["message"].(string); ok {
+					reply.Message = message
+				}
+
+				if createdAt, ok := replyDoc["created_at"].(primitive.DateTime); ok {
+					reply.CreatedAt = createdAt.Time()
+				}
+
+				// Fetch author data
+				if authorID, ok := replyDoc["author_id"].(primitive.ObjectID); ok && r.userRepo != nil {
+					if author, err := r.userRepo.GetUserByID(context.Background(), authorID); err == nil {
+						name := author.FirstName
+						if author.LastName != "" {
+							name = author.FirstName + " " + author.LastName
+						}
+						reply.Author = &User{
+							ID:           author.ID.Hex(),
+							Name:         name,
+							Email:        author.Email,
+							FirstName:    author.FirstName,
+							LastName:     author.LastName,
+							Role:         UserRole(author.Role),
+							ProfilePhoto: &author.ProfilePhoto,
+							IsActive:     author.IsActive,
+						}
+					}
+				}
+
+				inquiry.Replies = append(inquiry.Replies, reply)
+			}
+		}
+	}
+
+	// CreatedAt
+	if createdAt, ok := doc["created_at"].(primitive.DateTime); ok {
+		inquiry.CreatedAt = createdAt.Time()
+	}
+
+	// UpdatedAt
+	if updatedAt, ok := doc["updated_at"].(primitive.DateTime); ok {
+		t := updatedAt.Time()
+		inquiry.UpdatedAt = &t
+	}
+
+	return inquiry
+}
+
 // Helper to convert string IDs to ObjectIDs for MongoDB query
 func getObjectIDsFromMap(idMap map[string]bool) []primitive.ObjectID {
 	var result []primitive.ObjectID
@@ -3068,9 +3417,11 @@ func NewResolver(db *mongo.Database, jwtSecret string) *Resolver {
 		ownerResolver:   owner.NewOwnerResolver(db),
 		postResolver:    post.NewPostResolver(db),
 		reviewResolver:  review.NewReviewResolver(db),
+		inquiryResolver: inquiry.NewInquiryResolver(db),
 		storeRepo:       repository.NewStoreRepository(db),
 		productRepo:     repository.NewProductRepository(db),
 		userRepo:        repository.NewUserRepository(db),
+		inquiryRepo:     repository.NewInquiryRepository(db),
 		db:              db,
 		jwtSecret:       jwtSecret,
 		postNotifier:    NewPostNotifier(),
@@ -3334,6 +3685,133 @@ func (r *queryResolver) ReviewsByUser(ctx context.Context, userID string, page *
 	}, nil
 }
 
+// Inquiry query resolvers
+
+// Inquiry is the resolver for the inquiry field
+func (r *queryResolver) Inquiry(ctx context.Context, id string) (*InquiryPayload, error) {
+	result, err := r.inquiryResolver.GetInquiry(ctx, id)
+	if err != nil {
+		return &InquiryPayload{
+			Success: false,
+			Message: result["message"].(string),
+		}, nil
+	}
+
+	if !result["success"].(bool) {
+		return &InquiryPayload{
+			Success: false,
+			Message: result["message"].(string),
+		}, nil
+	}
+
+	inquiryData := result["data"].(*domain.Inquiry)
+	return &InquiryPayload{
+		Success: true,
+		Message: result["message"].(string),
+		Data:    r.formatInquiryData(inquiryData),
+	}, nil
+}
+
+// InquiriesForShop is the resolver for the inquiriesForShop field
+func (r *queryResolver) InquiriesForShop(ctx context.Context, shopID string, page *int, limit *int) (*InquiriesPayload, error) {
+	pageNum := 1
+	limitNum := 10
+	if page != nil {
+		pageNum = *page
+	}
+	if limit != nil {
+		limitNum = *limit
+	}
+
+	result, err := r.inquiryResolver.GetInquiriesForShop(ctx, shopID, pageNum, limitNum)
+	if err != nil {
+		return &InquiriesPayload{
+			Success:    false,
+			Message:    err.Error(),
+			Data:       []*Inquiry{},
+			Total:      0,
+			Page:       pageNum,
+			TotalPages: 0,
+		}, err
+	}
+
+	inquiries := make([]*Inquiry, 0)
+	if data, ok := result["data"].([]*domain.Inquiry); ok {
+		for _, inquiryData := range data {
+			inquiries = append(inquiries, r.formatInquiryData(inquiryData))
+		}
+	}
+
+	total := int64(0)
+	if t, ok := result["total"].(int64); ok {
+		total = t
+	}
+
+	totalPages := 0
+	if tp, ok := result["totalPages"].(int); ok {
+		totalPages = tp
+	}
+
+	return &InquiriesPayload{
+		Success:    result["success"].(bool),
+		Message:    result["message"].(string),
+		Data:       inquiries,
+		Total:      int(total),
+		Page:       pageNum,
+		TotalPages: totalPages,
+	}, nil
+}
+
+// InquiriesByUser is the resolver for the inquiriesByUser field
+func (r *queryResolver) InquiriesByUser(ctx context.Context, userID string, page *int, limit *int) (*InquiriesPayload, error) {
+	pageNum := 1
+	limitNum := 10
+	if page != nil {
+		pageNum = *page
+	}
+	if limit != nil {
+		limitNum = *limit
+	}
+
+	result, err := r.inquiryResolver.GetInquiriesByUser(ctx, userID, pageNum, limitNum)
+	if err != nil {
+		return &InquiriesPayload{
+			Success:    false,
+			Message:    err.Error(),
+			Data:       []*Inquiry{},
+			Total:      0,
+			Page:       pageNum,
+			TotalPages: 0,
+		}, err
+	}
+
+	inquiries := make([]*Inquiry, 0)
+	if data, ok := result["data"].([]*domain.Inquiry); ok {
+		for _, inquiryData := range data {
+			inquiries = append(inquiries, r.formatInquiryData(inquiryData))
+		}
+	}
+
+	total := int64(0)
+	if t, ok := result["total"].(int64); ok {
+		total = t
+	}
+
+	totalPages := 0
+	if tp, ok := result["totalPages"].(int); ok {
+		totalPages = tp
+	}
+
+	return &InquiriesPayload{
+		Success:    result["success"].(bool),
+		Message:    result["message"].(string),
+		Data:       inquiries,
+		Total:      int(total),
+		Page:       pageNum,
+		TotalPages: totalPages,
+	}, nil
+}
+
 // Review mutation resolvers
 
 // CreateReview is the resolver for the createReview field
@@ -3536,4 +4014,88 @@ func (r *Resolver) formatReviewData(data map[string]interface{}) *Review {
 	}
 
 	return review
+}
+
+// formatInquiryData converts domain.Inquiry to GraphQL Inquiry type
+func (r *Resolver) formatInquiryData(inquiry *domain.Inquiry) *Inquiry {
+	// Fetch user data
+	var user *User
+	if r.userRepo != nil {
+		if inquiryUser, err := r.userRepo.GetUserByID(context.Background(), inquiry.UserID); err == nil {
+			name := inquiryUser.FirstName
+			if inquiryUser.LastName != "" {
+				name = inquiryUser.FirstName + " " + inquiryUser.LastName
+			}
+			user = &User{
+				ID:           inquiryUser.ID.Hex(),
+				Name:         name,
+				Email:        inquiryUser.Email,
+				FirstName:    inquiryUser.FirstName,
+				LastName:     inquiryUser.LastName,
+				Role:         UserRole(inquiryUser.Role),
+				ProfilePhoto: &inquiryUser.ProfilePhoto,
+				IsActive:     inquiryUser.IsActive,
+			}
+		}
+	}
+
+	// Fetch shop data
+	var shop *Shop
+	if r.storeRepo != nil {
+		if inquiryShop, err := r.storeRepo.GetStoreByID(context.Background(), inquiry.ShopID); err == nil {
+			shop = &Shop{
+				ID:   inquiryShop.ID.Hex(),
+				Name: inquiryShop.Name,
+			}
+		}
+	}
+
+	// Format replies
+	replies := make([]*InquiryReply, len(inquiry.Replies))
+	for i, reply := range inquiry.Replies {
+		replies[i] = r.formatInquiryReplyData(reply)
+	}
+
+	return &Inquiry{
+		ID:        inquiry.ID.Hex(),
+		User:      user,
+		Shop:      shop,
+		Item:      inquiry.Item,
+		Message:   inquiry.Message,
+		Status:    InquiryStatus(inquiry.Status),
+		Replies:   replies,
+		CreatedAt: inquiry.CreatedAt,
+		UpdatedAt: &inquiry.UpdatedAt,
+	}
+}
+
+// formatInquiryReplyData converts domain.InquiryReply to GraphQL InquiryReply type
+func (r *Resolver) formatInquiryReplyData(reply domain.InquiryReply) *InquiryReply {
+	// Fetch author data
+	var author *User
+	if r.userRepo != nil {
+		if replyAuthor, err := r.userRepo.GetUserByID(context.Background(), reply.AuthorID); err == nil {
+			name := replyAuthor.FirstName
+			if replyAuthor.LastName != "" {
+				name = replyAuthor.FirstName + " " + replyAuthor.LastName
+			}
+			author = &User{
+				ID:           replyAuthor.ID.Hex(),
+				Name:         name,
+				Email:        replyAuthor.Email,
+				FirstName:    replyAuthor.FirstName,
+				LastName:     replyAuthor.LastName,
+				Role:         UserRole(replyAuthor.Role),
+				ProfilePhoto: &replyAuthor.ProfilePhoto,
+				IsActive:     replyAuthor.IsActive,
+			}
+		}
+	}
+
+	return &InquiryReply{
+		ID:        reply.ID.Hex(),
+		Author:    author,
+		Message:   reply.Message,
+		CreatedAt: reply.CreatedAt,
+	}
 }

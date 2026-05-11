@@ -1,0 +1,82 @@
+# Inquiry Schema - Customer inquiries to shops
+
+extend type Query {
+  inquiry(id: ID!): InquiryPayload
+  inquiriesForShop(shopID: ID!, page: Int, limit: Int): InquiriesPayload
+  inquiriesByUser(userID: ID!, page: Int, limit: Int): InquiriesPayload
+}
+
+extend type Mutation {
+  createInquiry(input: CreateInquiryInput!): InquiryPayload!
+  replyToInquiry(input: ReplyToInquiryInput!): InquiryReplyPayload!
+  updateInquiryStatus(input: UpdateInquiryStatusInput!): InquiryPayload!
+}
+
+extend type Subscription {
+  inquiryReplied(inquiryID: ID!): InquiryReply
+  newInquiryForShop(shopID: ID!): Inquiry
+}
+
+type Inquiry {
+  id: ID!
+  user: User
+  shop: Shop
+  item: String!
+  message: String!
+  status: InquiryStatus!
+  replies: [InquiryReply!]!
+  createdAt: Time!
+  updatedAt: Time
+}
+
+type InquiryReply {
+  id: ID!
+  inquiry: Inquiry
+  author: User
+  message: String!
+  createdAt: Time!
+}
+
+type InquiryPayload {
+  success: Boolean!
+  message: String!
+  data: Inquiry
+}
+
+type InquiryReplyPayload {
+  success: Boolean!
+  message: String!
+  data: InquiryReply
+}
+
+type InquiriesPayload {
+  success: Boolean!
+  message: String!
+  data: [Inquiry!]!
+  total: Int!
+  page: Int!
+  totalPages: Int!
+}
+
+input CreateInquiryInput {
+  shopId: ID!
+  item: String!
+  message: String!
+}
+
+input ReplyToInquiryInput {
+  inquiryId: ID!
+  message: String!
+}
+
+input UpdateInquiryStatusInput {
+  inquiryId: ID!
+  status: InquiryStatus!
+}
+
+enum InquiryStatus {
+  PENDING
+  RESPONDED
+  RESOLVED
+  CLOSED
+}

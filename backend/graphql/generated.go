@@ -114,6 +114,47 @@ type ComplexityRoot struct {
 		URL      func(childComplexity int) int
 	}
 
+	InquiriesPayload struct {
+		Data       func(childComplexity int) int
+		Message    func(childComplexity int) int
+		Page       func(childComplexity int) int
+		Success    func(childComplexity int) int
+		Total      func(childComplexity int) int
+		TotalPages func(childComplexity int) int
+	}
+
+	Inquiry struct {
+		CreatedAt func(childComplexity int) int
+		ID        func(childComplexity int) int
+		Item      func(childComplexity int) int
+		Message   func(childComplexity int) int
+		Replies   func(childComplexity int) int
+		Shop      func(childComplexity int) int
+		Status    func(childComplexity int) int
+		UpdatedAt func(childComplexity int) int
+		User      func(childComplexity int) int
+	}
+
+	InquiryPayload struct {
+		Data    func(childComplexity int) int
+		Message func(childComplexity int) int
+		Success func(childComplexity int) int
+	}
+
+	InquiryReply struct {
+		Author    func(childComplexity int) int
+		CreatedAt func(childComplexity int) int
+		ID        func(childComplexity int) int
+		Inquiry   func(childComplexity int) int
+		Message   func(childComplexity int) int
+	}
+
+	InquiryReplyPayload struct {
+		Data    func(childComplexity int) int
+		Message func(childComplexity int) int
+		Success func(childComplexity int) int
+	}
+
 	Item struct {
 		Barcode     func(childComplexity int) int
 		Brand       func(childComplexity int) int
@@ -160,35 +201,38 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		AddComment         func(childComplexity int, postID string, text string) int
-		CreateItem         func(childComplexity int, input CreateItemInput) int
-		CreatePost         func(childComplexity int, input CreatePostInput) int
-		CreateReview       func(childComplexity int, input CreateReviewInput) int
-		CreateShop         func(childComplexity int, input CreateShopInput) int
-		CreateUser         func(childComplexity int, input CreateUserInput) int
-		DeleteComment      func(childComplexity int, commentID string, postID string) int
-		DeleteItem         func(childComplexity int, id string) int
-		DeletePost         func(childComplexity int, id string) int
-		DeleteReview       func(childComplexity int, id string) int
-		DeleteShop         func(childComplexity int, id string) int
-		DeleteUser         func(childComplexity int, id string) int
-		FollowUser         func(childComplexity int, userID string) int
-		GoogleLogin        func(childComplexity int, input GoogleLoginInput) int
-		LikePost           func(childComplexity int, id string) int
-		Login              func(childComplexity int, input LoginInput) int
-		RefreshToken       func(childComplexity int, input RefreshTokenInput) int
-		Signup             func(childComplexity int, input SignupInput) int
-		UnfollowUser       func(childComplexity int, userID string) int
-		UnlikePost         func(childComplexity int, id string) int
-		UpdateItem         func(childComplexity int, id string, input UpdateItemInput) int
-		UpdatePost         func(childComplexity int, id string, input UpdatePostInput) int
-		UpdateProfile      func(childComplexity int, input UpdateProfileInput) int
-		UpdateReview       func(childComplexity int, id string, input UpdateReviewInput) int
-		UpdateShop         func(childComplexity int, id string, input UpdateShopInput) int
-		UpdateUserStatus   func(childComplexity int, id string, isActive bool) int
-		UploadCoverPhoto   func(childComplexity int, file graphql.Upload) int
-		UploadImage        func(childComplexity int, file graphql.Upload, folder *string) int
-		UploadProfilePhoto func(childComplexity int, file graphql.Upload) int
+		AddComment          func(childComplexity int, postID string, text string) int
+		CreateInquiry       func(childComplexity int, input CreateInquiryInput) int
+		CreateItem          func(childComplexity int, input CreateItemInput) int
+		CreatePost          func(childComplexity int, input CreatePostInput) int
+		CreateReview        func(childComplexity int, input CreateReviewInput) int
+		CreateShop          func(childComplexity int, input CreateShopInput) int
+		CreateUser          func(childComplexity int, input CreateUserInput) int
+		DeleteComment       func(childComplexity int, commentID string, postID string) int
+		DeleteItem          func(childComplexity int, id string) int
+		DeletePost          func(childComplexity int, id string) int
+		DeleteReview        func(childComplexity int, id string) int
+		DeleteShop          func(childComplexity int, id string) int
+		DeleteUser          func(childComplexity int, id string) int
+		FollowUser          func(childComplexity int, userID string) int
+		GoogleLogin         func(childComplexity int, input GoogleLoginInput) int
+		LikePost            func(childComplexity int, id string) int
+		Login               func(childComplexity int, input LoginInput) int
+		RefreshToken        func(childComplexity int, input RefreshTokenInput) int
+		ReplyToInquiry      func(childComplexity int, input ReplyToInquiryInput) int
+		Signup              func(childComplexity int, input SignupInput) int
+		UnfollowUser        func(childComplexity int, userID string) int
+		UnlikePost          func(childComplexity int, id string) int
+		UpdateInquiryStatus func(childComplexity int, input UpdateInquiryStatusInput) int
+		UpdateItem          func(childComplexity int, id string, input UpdateItemInput) int
+		UpdatePost          func(childComplexity int, id string, input UpdatePostInput) int
+		UpdateProfile       func(childComplexity int, input UpdateProfileInput) int
+		UpdateReview        func(childComplexity int, id string, input UpdateReviewInput) int
+		UpdateShop          func(childComplexity int, id string, input UpdateShopInput) int
+		UpdateUserStatus    func(childComplexity int, id string, isActive bool) int
+		UploadCoverPhoto    func(childComplexity int, file graphql.Upload) int
+		UploadImage         func(childComplexity int, file graphql.Upload, folder *string) int
+		UploadProfilePhoto  func(childComplexity int, file graphql.Upload) int
 	}
 
 	PaymentMethods struct {
@@ -234,6 +278,9 @@ type ComplexityRoot struct {
 		Followers         func(childComplexity int, userID string) int
 		Following         func(childComplexity int, userID string) int
 		Health            func(childComplexity int) int
+		InquiriesByUser   func(childComplexity int, userID string, page *int, limit *int) int
+		InquiriesForShop  func(childComplexity int, shopID string, page *int, limit *int) int
+		Inquiry           func(childComplexity int, id string) int
 		Item              func(childComplexity int, id string) int
 		Items             func(childComplexity int, input *ProductSearchInput) int
 		Me                func(childComplexity int) int
@@ -333,8 +380,10 @@ type ComplexityRoot struct {
 	}
 
 	Subscription struct {
+		InquiryReplied    func(childComplexity int, inquiryID string) int
 		ItemStockUpdates  func(childComplexity int, shopID string) int
 		LivePosts         func(childComplexity int) int
+		NewInquiryForShop func(childComplexity int, shopID string) int
 		ShopStatusUpdates func(childComplexity int) int
 	}
 
@@ -378,6 +427,9 @@ type MutationResolver interface {
 	Signup(ctx context.Context, input SignupInput) (*AuthPayload, error)
 	RefreshToken(ctx context.Context, input RefreshTokenInput) (*AuthPayload, error)
 	GoogleLogin(ctx context.Context, input GoogleLoginInput) (*AuthPayload, error)
+	CreateInquiry(ctx context.Context, input CreateInquiryInput) (*InquiryPayload, error)
+	ReplyToInquiry(ctx context.Context, input ReplyToInquiryInput) (*InquiryReplyPayload, error)
+	UpdateInquiryStatus(ctx context.Context, input UpdateInquiryStatusInput) (*InquiryPayload, error)
 	CreatePost(ctx context.Context, input CreatePostInput) (*PostPayload, error)
 	UpdatePost(ctx context.Context, id string, input UpdatePostInput) (*PostPayload, error)
 	DeletePost(ctx context.Context, id string) (*DeletePayload, error)
@@ -407,6 +459,9 @@ type MutationResolver interface {
 type QueryResolver interface {
 	Me(ctx context.Context) (*UserPayload, error)
 	Health(ctx context.Context) (string, error)
+	Inquiry(ctx context.Context, id string) (*InquiryPayload, error)
+	InquiriesForShop(ctx context.Context, shopID string, page *int, limit *int) (*InquiriesPayload, error)
+	InquiriesByUser(ctx context.Context, userID string, page *int, limit *int) (*InquiriesPayload, error)
 	Posts(ctx context.Context, page *int, limit *int) (*PostsPayload, error)
 	Post(ctx context.Context, id string) (*PostPayload, error)
 	MyPosts(ctx context.Context, page *int, limit *int) (*PostsPayload, error)
@@ -434,6 +489,8 @@ type SubscriptionResolver interface {
 	ItemStockUpdates(ctx context.Context, shopID string) (<-chan *Item, error)
 	ShopStatusUpdates(ctx context.Context) (<-chan *Shop, error)
 	LivePosts(ctx context.Context) (<-chan []*Post, error)
+	InquiryReplied(ctx context.Context, inquiryID string) (<-chan *InquiryReply, error)
+	NewInquiryForShop(ctx context.Context, shopID string) (<-chan *Inquiry, error)
 }
 
 type executableSchema graphql.ExecutableSchemaState[ResolverRoot, DirectiveRoot, ComplexityRoot]
@@ -708,6 +765,167 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.ComplexityRoot.ImageUploadPayload.URL(childComplexity), true
 
+	case "InquiriesPayload.data":
+		if e.ComplexityRoot.InquiriesPayload.Data == nil {
+			break
+		}
+
+		return e.ComplexityRoot.InquiriesPayload.Data(childComplexity), true
+	case "InquiriesPayload.message":
+		if e.ComplexityRoot.InquiriesPayload.Message == nil {
+			break
+		}
+
+		return e.ComplexityRoot.InquiriesPayload.Message(childComplexity), true
+	case "InquiriesPayload.page":
+		if e.ComplexityRoot.InquiriesPayload.Page == nil {
+			break
+		}
+
+		return e.ComplexityRoot.InquiriesPayload.Page(childComplexity), true
+	case "InquiriesPayload.success":
+		if e.ComplexityRoot.InquiriesPayload.Success == nil {
+			break
+		}
+
+		return e.ComplexityRoot.InquiriesPayload.Success(childComplexity), true
+	case "InquiriesPayload.total":
+		if e.ComplexityRoot.InquiriesPayload.Total == nil {
+			break
+		}
+
+		return e.ComplexityRoot.InquiriesPayload.Total(childComplexity), true
+	case "InquiriesPayload.totalPages":
+		if e.ComplexityRoot.InquiriesPayload.TotalPages == nil {
+			break
+		}
+
+		return e.ComplexityRoot.InquiriesPayload.TotalPages(childComplexity), true
+
+	case "Inquiry.createdAt":
+		if e.ComplexityRoot.Inquiry.CreatedAt == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Inquiry.CreatedAt(childComplexity), true
+	case "Inquiry.id":
+		if e.ComplexityRoot.Inquiry.ID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Inquiry.ID(childComplexity), true
+	case "Inquiry.item":
+		if e.ComplexityRoot.Inquiry.Item == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Inquiry.Item(childComplexity), true
+	case "Inquiry.message":
+		if e.ComplexityRoot.Inquiry.Message == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Inquiry.Message(childComplexity), true
+	case "Inquiry.replies":
+		if e.ComplexityRoot.Inquiry.Replies == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Inquiry.Replies(childComplexity), true
+	case "Inquiry.shop":
+		if e.ComplexityRoot.Inquiry.Shop == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Inquiry.Shop(childComplexity), true
+	case "Inquiry.status":
+		if e.ComplexityRoot.Inquiry.Status == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Inquiry.Status(childComplexity), true
+	case "Inquiry.updatedAt":
+		if e.ComplexityRoot.Inquiry.UpdatedAt == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Inquiry.UpdatedAt(childComplexity), true
+	case "Inquiry.user":
+		if e.ComplexityRoot.Inquiry.User == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Inquiry.User(childComplexity), true
+
+	case "InquiryPayload.data":
+		if e.ComplexityRoot.InquiryPayload.Data == nil {
+			break
+		}
+
+		return e.ComplexityRoot.InquiryPayload.Data(childComplexity), true
+	case "InquiryPayload.message":
+		if e.ComplexityRoot.InquiryPayload.Message == nil {
+			break
+		}
+
+		return e.ComplexityRoot.InquiryPayload.Message(childComplexity), true
+	case "InquiryPayload.success":
+		if e.ComplexityRoot.InquiryPayload.Success == nil {
+			break
+		}
+
+		return e.ComplexityRoot.InquiryPayload.Success(childComplexity), true
+
+	case "InquiryReply.author":
+		if e.ComplexityRoot.InquiryReply.Author == nil {
+			break
+		}
+
+		return e.ComplexityRoot.InquiryReply.Author(childComplexity), true
+	case "InquiryReply.createdAt":
+		if e.ComplexityRoot.InquiryReply.CreatedAt == nil {
+			break
+		}
+
+		return e.ComplexityRoot.InquiryReply.CreatedAt(childComplexity), true
+	case "InquiryReply.id":
+		if e.ComplexityRoot.InquiryReply.ID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.InquiryReply.ID(childComplexity), true
+	case "InquiryReply.inquiry":
+		if e.ComplexityRoot.InquiryReply.Inquiry == nil {
+			break
+		}
+
+		return e.ComplexityRoot.InquiryReply.Inquiry(childComplexity), true
+	case "InquiryReply.message":
+		if e.ComplexityRoot.InquiryReply.Message == nil {
+			break
+		}
+
+		return e.ComplexityRoot.InquiryReply.Message(childComplexity), true
+
+	case "InquiryReplyPayload.data":
+		if e.ComplexityRoot.InquiryReplyPayload.Data == nil {
+			break
+		}
+
+		return e.ComplexityRoot.InquiryReplyPayload.Data(childComplexity), true
+	case "InquiryReplyPayload.message":
+		if e.ComplexityRoot.InquiryReplyPayload.Message == nil {
+			break
+		}
+
+		return e.ComplexityRoot.InquiryReplyPayload.Message(childComplexity), true
+	case "InquiryReplyPayload.success":
+		if e.ComplexityRoot.InquiryReplyPayload.Success == nil {
+			break
+		}
+
+		return e.ComplexityRoot.InquiryReplyPayload.Success(childComplexity), true
+
 	case "Item.barcode":
 		if e.ComplexityRoot.Item.Barcode == nil {
 			break
@@ -921,6 +1139,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Mutation.AddComment(childComplexity, args["postId"].(string), args["text"].(string)), true
+	case "Mutation.createInquiry":
+		if e.ComplexityRoot.Mutation.CreateInquiry == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_createInquiry_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.CreateInquiry(childComplexity, args["input"].(CreateInquiryInput)), true
 	case "Mutation.createItem":
 		if e.ComplexityRoot.Mutation.CreateItem == nil {
 			break
@@ -1097,6 +1326,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Mutation.RefreshToken(childComplexity, args["input"].(RefreshTokenInput)), true
+	case "Mutation.replyToInquiry":
+		if e.ComplexityRoot.Mutation.ReplyToInquiry == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_replyToInquiry_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.ReplyToInquiry(childComplexity, args["input"].(ReplyToInquiryInput)), true
 	case "Mutation.signup":
 		if e.ComplexityRoot.Mutation.Signup == nil {
 			break
@@ -1130,6 +1370,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Mutation.UnlikePost(childComplexity, args["id"].(string)), true
+	case "Mutation.updateInquiryStatus":
+		if e.ComplexityRoot.Mutation.UpdateInquiryStatus == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_updateInquiryStatus_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.UpdateInquiryStatus(childComplexity, args["input"].(UpdateInquiryStatusInput)), true
 	case "Mutation.updateItem":
 		if e.ComplexityRoot.Mutation.UpdateItem == nil {
 			break
@@ -1429,6 +1680,39 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Query.Health(childComplexity), true
+	case "Query.inquiriesByUser":
+		if e.ComplexityRoot.Query.InquiriesByUser == nil {
+			break
+		}
+
+		args, err := ec.field_Query_inquiriesByUser_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Query.InquiriesByUser(childComplexity, args["userID"].(string), args["page"].(*int), args["limit"].(*int)), true
+	case "Query.inquiriesForShop":
+		if e.ComplexityRoot.Query.InquiriesForShop == nil {
+			break
+		}
+
+		args, err := ec.field_Query_inquiriesForShop_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Query.InquiriesForShop(childComplexity, args["shopID"].(string), args["page"].(*int), args["limit"].(*int)), true
+	case "Query.inquiry":
+		if e.ComplexityRoot.Query.Inquiry == nil {
+			break
+		}
+
+		args, err := ec.field_Query_inquiry_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Query.Inquiry(childComplexity, args["id"].(string)), true
 
 	case "Query.item":
 		if e.ComplexityRoot.Query.Item == nil {
@@ -1966,6 +2250,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.ComplexityRoot.SocialMedia.Instagram(childComplexity), true
 
+	case "Subscription.inquiryReplied":
+		if e.ComplexityRoot.Subscription.InquiryReplied == nil {
+			break
+		}
+
+		args, err := ec.field_Subscription_inquiryReplied_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Subscription.InquiryReplied(childComplexity, args["inquiryID"].(string)), true
 	case "Subscription.itemStockUpdates":
 		if e.ComplexityRoot.Subscription.ItemStockUpdates == nil {
 			break
@@ -1983,6 +2278,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Subscription.LivePosts(childComplexity), true
+	case "Subscription.newInquiryForShop":
+		if e.ComplexityRoot.Subscription.NewInquiryForShop == nil {
+			break
+		}
+
+		args, err := ec.field_Subscription_newInquiryForShop_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Subscription.NewInquiryForShop(childComplexity, args["shopID"].(string)), true
 	case "Subscription.shopStatusUpdates":
 		if e.ComplexityRoot.Subscription.ShopStatusUpdates == nil {
 			break
@@ -2154,6 +2460,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputBusinessHoursInput,
 		ec.unmarshalInputContactDetailsInput,
 		ec.unmarshalInputCoordinatesInput,
+		ec.unmarshalInputCreateInquiryInput,
 		ec.unmarshalInputCreateItemInput,
 		ec.unmarshalInputCreatePostInput,
 		ec.unmarshalInputCreateReviewInput,
@@ -2167,9 +2474,11 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputPaymentMethodsInput,
 		ec.unmarshalInputProductSearchInput,
 		ec.unmarshalInputRefreshTokenInput,
+		ec.unmarshalInputReplyToInquiryInput,
 		ec.unmarshalInputShopSearchInput,
 		ec.unmarshalInputSignupInput,
 		ec.unmarshalInputSocialMediaInput,
+		ec.unmarshalInputUpdateInquiryStatusInput,
 		ec.unmarshalInputUpdateItemInput,
 		ec.unmarshalInputUpdatePostInput,
 		ec.unmarshalInputUpdateProfileInput,
@@ -2266,7 +2575,7 @@ func newExecutionContext(
 	}
 }
 
-//go:embed "schema/auth.graphql" "schema/common.graphql" "schema/post.graphql" "schema/product.graphql" "schema/review.graphql" "schema/shop.graphql" "schema/subscription.graphql" "schema/user.graphql"
+//go:embed "schema/auth.graphql" "schema/common.graphql" "schema/inquiry.graphql" "schema/post.graphql" "schema/product.graphql" "schema/review.graphql" "schema/shop.graphql" "schema/subscription.graphql" "schema/user.graphql"
 var sourcesFS embed.FS
 
 func sourceData(filename string) string {
@@ -2280,6 +2589,7 @@ func sourceData(filename string) string {
 var sources = []*ast.Source{
 	{Name: "schema/auth.graphql", Input: sourceData("schema/auth.graphql"), BuiltIn: false},
 	{Name: "schema/common.graphql", Input: sourceData("schema/common.graphql"), BuiltIn: false},
+	{Name: "schema/inquiry.graphql", Input: sourceData("schema/inquiry.graphql"), BuiltIn: false},
 	{Name: "schema/post.graphql", Input: sourceData("schema/post.graphql"), BuiltIn: false},
 	{Name: "schema/product.graphql", Input: sourceData("schema/product.graphql"), BuiltIn: false},
 	{Name: "schema/review.graphql", Input: sourceData("schema/review.graphql"), BuiltIn: false},
@@ -2306,6 +2616,17 @@ func (ec *executionContext) field_Mutation_addComment_args(ctx context.Context, 
 		return nil, err
 	}
 	args["text"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_createInquiry_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNCreateInquiryInput2tindahanᚑbackendᚋgraphqlᚐCreateInquiryInput)
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
 	return args, nil
 }
 
@@ -2490,6 +2811,17 @@ func (ec *executionContext) field_Mutation_refreshToken_args(ctx context.Context
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_replyToInquiry_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNReplyToInquiryInput2tindahanᚑbackendᚋgraphqlᚐReplyToInquiryInput)
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_signup_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -2520,6 +2852,17 @@ func (ec *executionContext) field_Mutation_unlikePost_args(ctx context.Context, 
 		return nil, err
 	}
 	args["id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_updateInquiryStatus_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNUpdateInquiryStatusInput2tindahanᚑbackendᚋgraphqlᚐUpdateInquiryStatusInput)
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
 	return args, nil
 }
 
@@ -2703,6 +3046,59 @@ func (ec *executionContext) field_Query_following_args(ctx context.Context, rawA
 		return nil, err
 	}
 	args["userId"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_inquiriesByUser_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "userID", ec.unmarshalNID2string)
+	if err != nil {
+		return nil, err
+	}
+	args["userID"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "page", ec.unmarshalOInt2ᚖint)
+	if err != nil {
+		return nil, err
+	}
+	args["page"] = arg1
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "limit", ec.unmarshalOInt2ᚖint)
+	if err != nil {
+		return nil, err
+	}
+	args["limit"] = arg2
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_inquiriesForShop_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "shopID", ec.unmarshalNID2string)
+	if err != nil {
+		return nil, err
+	}
+	args["shopID"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "page", ec.unmarshalOInt2ᚖint)
+	if err != nil {
+		return nil, err
+	}
+	args["page"] = arg1
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "limit", ec.unmarshalOInt2ᚖint)
+	if err != nil {
+		return nil, err
+	}
+	args["limit"] = arg2
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_inquiry_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNID2string)
+	if err != nil {
+		return nil, err
+	}
+	args["id"] = arg0
 	return args, nil
 }
 
@@ -3005,6 +3401,17 @@ func (ec *executionContext) field_Query_users_args(ctx context.Context, rawArgs 
 	return args, nil
 }
 
+func (ec *executionContext) field_Subscription_inquiryReplied_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "inquiryID", ec.unmarshalNID2string)
+	if err != nil {
+		return nil, err
+	}
+	args["inquiryID"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Subscription_itemStockUpdates_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -3013,6 +3420,17 @@ func (ec *executionContext) field_Subscription_itemStockUpdates_args(ctx context
 		return nil, err
 	}
 	args["shopId"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Subscription_newInquiryForShop_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "shopID", ec.unmarshalNID2string)
+	if err != nil {
+		return nil, err
+	}
+	args["shopID"] = arg0
 	return args, nil
 }
 
@@ -4369,6 +4787,966 @@ func (ec *executionContext) fieldContext_ImageUploadPayload_publicID(_ context.C
 	return fc, nil
 }
 
+func (ec *executionContext) _InquiriesPayload_success(ctx context.Context, field graphql.CollectedField, obj *InquiriesPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_InquiriesPayload_success,
+		func(ctx context.Context) (any, error) {
+			return obj.Success, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_InquiriesPayload_success(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "InquiriesPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _InquiriesPayload_message(ctx context.Context, field graphql.CollectedField, obj *InquiriesPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_InquiriesPayload_message,
+		func(ctx context.Context) (any, error) {
+			return obj.Message, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_InquiriesPayload_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "InquiriesPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _InquiriesPayload_data(ctx context.Context, field graphql.CollectedField, obj *InquiriesPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_InquiriesPayload_data,
+		func(ctx context.Context) (any, error) {
+			return obj.Data, nil
+		},
+		nil,
+		ec.marshalNInquiry2ᚕᚖtindahanᚑbackendᚋgraphqlᚐInquiryᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_InquiriesPayload_data(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "InquiriesPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Inquiry_id(ctx, field)
+			case "user":
+				return ec.fieldContext_Inquiry_user(ctx, field)
+			case "shop":
+				return ec.fieldContext_Inquiry_shop(ctx, field)
+			case "item":
+				return ec.fieldContext_Inquiry_item(ctx, field)
+			case "message":
+				return ec.fieldContext_Inquiry_message(ctx, field)
+			case "status":
+				return ec.fieldContext_Inquiry_status(ctx, field)
+			case "replies":
+				return ec.fieldContext_Inquiry_replies(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Inquiry_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_Inquiry_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Inquiry", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _InquiriesPayload_total(ctx context.Context, field graphql.CollectedField, obj *InquiriesPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_InquiriesPayload_total,
+		func(ctx context.Context) (any, error) {
+			return obj.Total, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_InquiriesPayload_total(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "InquiriesPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _InquiriesPayload_page(ctx context.Context, field graphql.CollectedField, obj *InquiriesPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_InquiriesPayload_page,
+		func(ctx context.Context) (any, error) {
+			return obj.Page, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_InquiriesPayload_page(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "InquiriesPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _InquiriesPayload_totalPages(ctx context.Context, field graphql.CollectedField, obj *InquiriesPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_InquiriesPayload_totalPages,
+		func(ctx context.Context) (any, error) {
+			return obj.TotalPages, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_InquiriesPayload_totalPages(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "InquiriesPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Inquiry_id(ctx context.Context, field graphql.CollectedField, obj *Inquiry) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Inquiry_id,
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		ec.marshalNID2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Inquiry_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Inquiry",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Inquiry_user(ctx context.Context, field graphql.CollectedField, obj *Inquiry) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Inquiry_user,
+		func(ctx context.Context) (any, error) {
+			return obj.User, nil
+		},
+		nil,
+		ec.marshalOUser2ᚖtindahanᚑbackendᚋgraphqlᚐUser,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Inquiry_user(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Inquiry",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_User_id(ctx, field)
+			case "name":
+				return ec.fieldContext_User_name(ctx, field)
+			case "email":
+				return ec.fieldContext_User_email(ctx, field)
+			case "firstName":
+				return ec.fieldContext_User_firstName(ctx, field)
+			case "lastName":
+				return ec.fieldContext_User_lastName(ctx, field)
+			case "role":
+				return ec.fieldContext_User_role(ctx, field)
+			case "phone":
+				return ec.fieldContext_User_phone(ctx, field)
+			case "birthday":
+				return ec.fieldContext_User_birthday(ctx, field)
+			case "profilePhoto":
+				return ec.fieldContext_User_profilePhoto(ctx, field)
+			case "coverPhoto":
+				return ec.fieldContext_User_coverPhoto(ctx, field)
+			case "shops":
+				return ec.fieldContext_User_shops(ctx, field)
+			case "followers":
+				return ec.fieldContext_User_followers(ctx, field)
+			case "following":
+				return ec.fieldContext_User_following(ctx, field)
+			case "followersCount":
+				return ec.fieldContext_User_followersCount(ctx, field)
+			case "followingCount":
+				return ec.fieldContext_User_followingCount(ctx, field)
+			case "isFollowing":
+				return ec.fieldContext_User_isFollowing(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_User_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_User_updatedAt(ctx, field)
+			case "isActive":
+				return ec.fieldContext_User_isActive(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Inquiry_shop(ctx context.Context, field graphql.CollectedField, obj *Inquiry) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Inquiry_shop,
+		func(ctx context.Context) (any, error) {
+			return obj.Shop, nil
+		},
+		nil,
+		ec.marshalOShop2ᚖtindahanᚑbackendᚋgraphqlᚐShop,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Inquiry_shop(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Inquiry",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Shop_id(ctx, field)
+			case "name":
+				return ec.fieldContext_Shop_name(ctx, field)
+			case "description":
+				return ec.fieldContext_Shop_description(ctx, field)
+			case "location":
+				return ec.fieldContext_Shop_location(ctx, field)
+			case "coordinates":
+				return ec.fieldContext_Shop_coordinates(ctx, field)
+			case "coverPhoto":
+				return ec.fieldContext_Shop_coverPhoto(ctx, field)
+			case "otherPhotos":
+				return ec.fieldContext_Shop_otherPhotos(ctx, field)
+			case "businessHours":
+				return ec.fieldContext_Shop_businessHours(ctx, field)
+			case "businessType":
+				return ec.fieldContext_Shop_businessType(ctx, field)
+			case "paymentMethods":
+				return ec.fieldContext_Shop_paymentMethods(ctx, field)
+			case "delivery":
+				return ec.fieldContext_Shop_delivery(ctx, field)
+			case "socialMedia":
+				return ec.fieldContext_Shop_socialMedia(ctx, field)
+			case "verification":
+				return ec.fieldContext_Shop_verification(ctx, field)
+			case "contactDetails":
+				return ec.fieldContext_Shop_contactDetails(ctx, field)
+			case "inventory":
+				return ec.fieldContext_Shop_inventory(ctx, field)
+			case "rating":
+				return ec.fieldContext_Shop_rating(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Shop_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_Shop_updatedAt(ctx, field)
+			case "createdBy":
+				return ec.fieldContext_Shop_createdBy(ctx, field)
+			case "status":
+				return ec.fieldContext_Shop_status(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Shop", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Inquiry_item(ctx context.Context, field graphql.CollectedField, obj *Inquiry) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Inquiry_item,
+		func(ctx context.Context) (any, error) {
+			return obj.Item, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Inquiry_item(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Inquiry",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Inquiry_message(ctx context.Context, field graphql.CollectedField, obj *Inquiry) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Inquiry_message,
+		func(ctx context.Context) (any, error) {
+			return obj.Message, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Inquiry_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Inquiry",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Inquiry_status(ctx context.Context, field graphql.CollectedField, obj *Inquiry) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Inquiry_status,
+		func(ctx context.Context) (any, error) {
+			return obj.Status, nil
+		},
+		nil,
+		ec.marshalNInquiryStatus2tindahanᚑbackendᚋgraphqlᚐInquiryStatus,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Inquiry_status(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Inquiry",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type InquiryStatus does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Inquiry_replies(ctx context.Context, field graphql.CollectedField, obj *Inquiry) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Inquiry_replies,
+		func(ctx context.Context) (any, error) {
+			return obj.Replies, nil
+		},
+		nil,
+		ec.marshalNInquiryReply2ᚕᚖtindahanᚑbackendᚋgraphqlᚐInquiryReplyᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Inquiry_replies(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Inquiry",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_InquiryReply_id(ctx, field)
+			case "inquiry":
+				return ec.fieldContext_InquiryReply_inquiry(ctx, field)
+			case "author":
+				return ec.fieldContext_InquiryReply_author(ctx, field)
+			case "message":
+				return ec.fieldContext_InquiryReply_message(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_InquiryReply_createdAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type InquiryReply", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Inquiry_createdAt(ctx context.Context, field graphql.CollectedField, obj *Inquiry) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Inquiry_createdAt,
+		func(ctx context.Context) (any, error) {
+			return obj.CreatedAt, nil
+		},
+		nil,
+		ec.marshalNTime2timeᚐTime,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Inquiry_createdAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Inquiry",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Inquiry_updatedAt(ctx context.Context, field graphql.CollectedField, obj *Inquiry) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Inquiry_updatedAt,
+		func(ctx context.Context) (any, error) {
+			return obj.UpdatedAt, nil
+		},
+		nil,
+		ec.marshalOTime2ᚖtimeᚐTime,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Inquiry_updatedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Inquiry",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _InquiryPayload_success(ctx context.Context, field graphql.CollectedField, obj *InquiryPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_InquiryPayload_success,
+		func(ctx context.Context) (any, error) {
+			return obj.Success, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_InquiryPayload_success(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "InquiryPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _InquiryPayload_message(ctx context.Context, field graphql.CollectedField, obj *InquiryPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_InquiryPayload_message,
+		func(ctx context.Context) (any, error) {
+			return obj.Message, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_InquiryPayload_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "InquiryPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _InquiryPayload_data(ctx context.Context, field graphql.CollectedField, obj *InquiryPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_InquiryPayload_data,
+		func(ctx context.Context) (any, error) {
+			return obj.Data, nil
+		},
+		nil,
+		ec.marshalOInquiry2ᚖtindahanᚑbackendᚋgraphqlᚐInquiry,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_InquiryPayload_data(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "InquiryPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Inquiry_id(ctx, field)
+			case "user":
+				return ec.fieldContext_Inquiry_user(ctx, field)
+			case "shop":
+				return ec.fieldContext_Inquiry_shop(ctx, field)
+			case "item":
+				return ec.fieldContext_Inquiry_item(ctx, field)
+			case "message":
+				return ec.fieldContext_Inquiry_message(ctx, field)
+			case "status":
+				return ec.fieldContext_Inquiry_status(ctx, field)
+			case "replies":
+				return ec.fieldContext_Inquiry_replies(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Inquiry_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_Inquiry_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Inquiry", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _InquiryReply_id(ctx context.Context, field graphql.CollectedField, obj *InquiryReply) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_InquiryReply_id,
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		ec.marshalNID2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_InquiryReply_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "InquiryReply",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _InquiryReply_inquiry(ctx context.Context, field graphql.CollectedField, obj *InquiryReply) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_InquiryReply_inquiry,
+		func(ctx context.Context) (any, error) {
+			return obj.Inquiry, nil
+		},
+		nil,
+		ec.marshalOInquiry2ᚖtindahanᚑbackendᚋgraphqlᚐInquiry,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_InquiryReply_inquiry(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "InquiryReply",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Inquiry_id(ctx, field)
+			case "user":
+				return ec.fieldContext_Inquiry_user(ctx, field)
+			case "shop":
+				return ec.fieldContext_Inquiry_shop(ctx, field)
+			case "item":
+				return ec.fieldContext_Inquiry_item(ctx, field)
+			case "message":
+				return ec.fieldContext_Inquiry_message(ctx, field)
+			case "status":
+				return ec.fieldContext_Inquiry_status(ctx, field)
+			case "replies":
+				return ec.fieldContext_Inquiry_replies(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Inquiry_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_Inquiry_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Inquiry", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _InquiryReply_author(ctx context.Context, field graphql.CollectedField, obj *InquiryReply) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_InquiryReply_author,
+		func(ctx context.Context) (any, error) {
+			return obj.Author, nil
+		},
+		nil,
+		ec.marshalOUser2ᚖtindahanᚑbackendᚋgraphqlᚐUser,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_InquiryReply_author(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "InquiryReply",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_User_id(ctx, field)
+			case "name":
+				return ec.fieldContext_User_name(ctx, field)
+			case "email":
+				return ec.fieldContext_User_email(ctx, field)
+			case "firstName":
+				return ec.fieldContext_User_firstName(ctx, field)
+			case "lastName":
+				return ec.fieldContext_User_lastName(ctx, field)
+			case "role":
+				return ec.fieldContext_User_role(ctx, field)
+			case "phone":
+				return ec.fieldContext_User_phone(ctx, field)
+			case "birthday":
+				return ec.fieldContext_User_birthday(ctx, field)
+			case "profilePhoto":
+				return ec.fieldContext_User_profilePhoto(ctx, field)
+			case "coverPhoto":
+				return ec.fieldContext_User_coverPhoto(ctx, field)
+			case "shops":
+				return ec.fieldContext_User_shops(ctx, field)
+			case "followers":
+				return ec.fieldContext_User_followers(ctx, field)
+			case "following":
+				return ec.fieldContext_User_following(ctx, field)
+			case "followersCount":
+				return ec.fieldContext_User_followersCount(ctx, field)
+			case "followingCount":
+				return ec.fieldContext_User_followingCount(ctx, field)
+			case "isFollowing":
+				return ec.fieldContext_User_isFollowing(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_User_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_User_updatedAt(ctx, field)
+			case "isActive":
+				return ec.fieldContext_User_isActive(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _InquiryReply_message(ctx context.Context, field graphql.CollectedField, obj *InquiryReply) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_InquiryReply_message,
+		func(ctx context.Context) (any, error) {
+			return obj.Message, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_InquiryReply_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "InquiryReply",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _InquiryReply_createdAt(ctx context.Context, field graphql.CollectedField, obj *InquiryReply) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_InquiryReply_createdAt,
+		func(ctx context.Context) (any, error) {
+			return obj.CreatedAt, nil
+		},
+		nil,
+		ec.marshalNTime2timeᚐTime,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_InquiryReply_createdAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "InquiryReply",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _InquiryReplyPayload_success(ctx context.Context, field graphql.CollectedField, obj *InquiryReplyPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_InquiryReplyPayload_success,
+		func(ctx context.Context) (any, error) {
+			return obj.Success, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_InquiryReplyPayload_success(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "InquiryReplyPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _InquiryReplyPayload_message(ctx context.Context, field graphql.CollectedField, obj *InquiryReplyPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_InquiryReplyPayload_message,
+		func(ctx context.Context) (any, error) {
+			return obj.Message, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_InquiryReplyPayload_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "InquiryReplyPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _InquiryReplyPayload_data(ctx context.Context, field graphql.CollectedField, obj *InquiryReplyPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_InquiryReplyPayload_data,
+		func(ctx context.Context) (any, error) {
+			return obj.Data, nil
+		},
+		nil,
+		ec.marshalOInquiryReply2ᚖtindahanᚑbackendᚋgraphqlᚐInquiryReply,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_InquiryReplyPayload_data(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "InquiryReplyPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_InquiryReply_id(ctx, field)
+			case "inquiry":
+				return ec.fieldContext_InquiryReply_inquiry(ctx, field)
+			case "author":
+				return ec.fieldContext_InquiryReply_author(ctx, field)
+			case "message":
+				return ec.fieldContext_InquiryReply_message(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_InquiryReply_createdAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type InquiryReply", field.Name)
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Item_id(ctx context.Context, field graphql.CollectedField, obj *Item) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -5622,6 +7000,153 @@ func (ec *executionContext) fieldContext_Mutation_googleLogin(ctx context.Contex
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_googleLogin_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_createInquiry(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_createInquiry,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().CreateInquiry(ctx, fc.Args["input"].(CreateInquiryInput))
+		},
+		nil,
+		ec.marshalNInquiryPayload2ᚖtindahanᚑbackendᚋgraphqlᚐInquiryPayload,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_createInquiry(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "success":
+				return ec.fieldContext_InquiryPayload_success(ctx, field)
+			case "message":
+				return ec.fieldContext_InquiryPayload_message(ctx, field)
+			case "data":
+				return ec.fieldContext_InquiryPayload_data(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type InquiryPayload", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_createInquiry_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_replyToInquiry(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_replyToInquiry,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().ReplyToInquiry(ctx, fc.Args["input"].(ReplyToInquiryInput))
+		},
+		nil,
+		ec.marshalNInquiryReplyPayload2ᚖtindahanᚑbackendᚋgraphqlᚐInquiryReplyPayload,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_replyToInquiry(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "success":
+				return ec.fieldContext_InquiryReplyPayload_success(ctx, field)
+			case "message":
+				return ec.fieldContext_InquiryReplyPayload_message(ctx, field)
+			case "data":
+				return ec.fieldContext_InquiryReplyPayload_data(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type InquiryReplyPayload", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_replyToInquiry_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_updateInquiryStatus(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_updateInquiryStatus,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().UpdateInquiryStatus(ctx, fc.Args["input"].(UpdateInquiryStatusInput))
+		},
+		nil,
+		ec.marshalNInquiryPayload2ᚖtindahanᚑbackendᚋgraphqlᚐInquiryPayload,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_updateInquiryStatus(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "success":
+				return ec.fieldContext_InquiryPayload_success(ctx, field)
+			case "message":
+				return ec.fieldContext_InquiryPayload_message(ctx, field)
+			case "data":
+				return ec.fieldContext_InquiryPayload_data(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type InquiryPayload", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_updateInquiryStatus_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -7775,6 +9300,165 @@ func (ec *executionContext) fieldContext_Query_health(_ context.Context, field g
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
 		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_inquiry(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_inquiry,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Query().Inquiry(ctx, fc.Args["id"].(string))
+		},
+		nil,
+		ec.marshalOInquiryPayload2ᚖtindahanᚑbackendᚋgraphqlᚐInquiryPayload,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_inquiry(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "success":
+				return ec.fieldContext_InquiryPayload_success(ctx, field)
+			case "message":
+				return ec.fieldContext_InquiryPayload_message(ctx, field)
+			case "data":
+				return ec.fieldContext_InquiryPayload_data(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type InquiryPayload", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_inquiry_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_inquiriesForShop(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_inquiriesForShop,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Query().InquiriesForShop(ctx, fc.Args["shopID"].(string), fc.Args["page"].(*int), fc.Args["limit"].(*int))
+		},
+		nil,
+		ec.marshalOInquiriesPayload2ᚖtindahanᚑbackendᚋgraphqlᚐInquiriesPayload,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_inquiriesForShop(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "success":
+				return ec.fieldContext_InquiriesPayload_success(ctx, field)
+			case "message":
+				return ec.fieldContext_InquiriesPayload_message(ctx, field)
+			case "data":
+				return ec.fieldContext_InquiriesPayload_data(ctx, field)
+			case "total":
+				return ec.fieldContext_InquiriesPayload_total(ctx, field)
+			case "page":
+				return ec.fieldContext_InquiriesPayload_page(ctx, field)
+			case "totalPages":
+				return ec.fieldContext_InquiriesPayload_totalPages(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type InquiriesPayload", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_inquiriesForShop_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_inquiriesByUser(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_inquiriesByUser,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Query().InquiriesByUser(ctx, fc.Args["userID"].(string), fc.Args["page"].(*int), fc.Args["limit"].(*int))
+		},
+		nil,
+		ec.marshalOInquiriesPayload2ᚖtindahanᚑbackendᚋgraphqlᚐInquiriesPayload,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_inquiriesByUser(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "success":
+				return ec.fieldContext_InquiriesPayload_success(ctx, field)
+			case "message":
+				return ec.fieldContext_InquiriesPayload_message(ctx, field)
+			case "data":
+				return ec.fieldContext_InquiriesPayload_data(ctx, field)
+			case "total":
+				return ec.fieldContext_InquiriesPayload_total(ctx, field)
+			case "page":
+				return ec.fieldContext_InquiriesPayload_page(ctx, field)
+			case "totalPages":
+				return ec.fieldContext_InquiriesPayload_totalPages(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type InquiriesPayload", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_inquiriesByUser_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
 	}
 	return fc, nil
 }
@@ -11138,6 +12822,120 @@ func (ec *executionContext) fieldContext_Subscription_livePosts(_ context.Contex
 	return fc, nil
 }
 
+func (ec *executionContext) _Subscription_inquiryReplied(ctx context.Context, field graphql.CollectedField) (ret func(ctx context.Context) graphql.Marshaler) {
+	return graphql.ResolveFieldStream(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Subscription_inquiryReplied,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Subscription().InquiryReplied(ctx, fc.Args["inquiryID"].(string))
+		},
+		nil,
+		ec.marshalOInquiryReply2ᚖtindahanᚑbackendᚋgraphqlᚐInquiryReply,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Subscription_inquiryReplied(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Subscription",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_InquiryReply_id(ctx, field)
+			case "inquiry":
+				return ec.fieldContext_InquiryReply_inquiry(ctx, field)
+			case "author":
+				return ec.fieldContext_InquiryReply_author(ctx, field)
+			case "message":
+				return ec.fieldContext_InquiryReply_message(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_InquiryReply_createdAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type InquiryReply", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Subscription_inquiryReplied_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Subscription_newInquiryForShop(ctx context.Context, field graphql.CollectedField) (ret func(ctx context.Context) graphql.Marshaler) {
+	return graphql.ResolveFieldStream(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Subscription_newInquiryForShop,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Subscription().NewInquiryForShop(ctx, fc.Args["shopID"].(string))
+		},
+		nil,
+		ec.marshalOInquiry2ᚖtindahanᚑbackendᚋgraphqlᚐInquiry,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Subscription_newInquiryForShop(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Subscription",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Inquiry_id(ctx, field)
+			case "user":
+				return ec.fieldContext_Inquiry_user(ctx, field)
+			case "shop":
+				return ec.fieldContext_Inquiry_shop(ctx, field)
+			case "item":
+				return ec.fieldContext_Inquiry_item(ctx, field)
+			case "message":
+				return ec.fieldContext_Inquiry_message(ctx, field)
+			case "status":
+				return ec.fieldContext_Inquiry_status(ctx, field)
+			case "replies":
+				return ec.fieldContext_Inquiry_replies(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Inquiry_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_Inquiry_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Inquiry", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Subscription_newInquiryForShop_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _User_id(ctx context.Context, field graphql.CollectedField, obj *User) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -13474,6 +15272,50 @@ func (ec *executionContext) unmarshalInputCoordinatesInput(ctx context.Context, 
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputCreateInquiryInput(ctx context.Context, obj any) (CreateInquiryInput, error) {
+	var it CreateInquiryInput
+	if obj == nil {
+		return it, nil
+	}
+
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"shopId", "item", "message"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "shopId":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("shopId"))
+			data, err := ec.unmarshalNID2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ShopID = data
+		case "item":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("item"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Item = data
+		case "message":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("message"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Message = data
+		}
+	}
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputCreateItemInput(ctx context.Context, obj any) (CreateItemInput, error) {
 	var it CreateItemInput
 	if obj == nil {
@@ -14277,6 +16119,43 @@ func (ec *executionContext) unmarshalInputRefreshTokenInput(ctx context.Context,
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputReplyToInquiryInput(ctx context.Context, obj any) (ReplyToInquiryInput, error) {
+	var it ReplyToInquiryInput
+	if obj == nil {
+		return it, nil
+	}
+
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"inquiryId", "message"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "inquiryId":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("inquiryId"))
+			data, err := ec.unmarshalNID2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.InquiryID = data
+		case "message":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("message"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Message = data
+		}
+	}
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputShopSearchInput(ctx context.Context, obj any) (ShopSearchInput, error) {
 	var it ShopSearchInput
 	if obj == nil {
@@ -14453,6 +16332,43 @@ func (ec *executionContext) unmarshalInputSocialMediaInput(ctx context.Context, 
 				return it, err
 			}
 			it.Instagram = data
+		}
+	}
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputUpdateInquiryStatusInput(ctx context.Context, obj any) (UpdateInquiryStatusInput, error) {
+	var it UpdateInquiryStatusInput
+	if obj == nil {
+		return it, nil
+	}
+
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"inquiryId", "status"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "inquiryId":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("inquiryId"))
+			data, err := ec.unmarshalNID2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.InquiryID = data
+		case "status":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("status"))
+			data, err := ec.unmarshalNInquiryStatus2tindahanᚑbackendᚋgraphqlᚐInquiryStatus(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Status = data
 		}
 	}
 	return it, nil
@@ -15500,6 +17416,285 @@ func (ec *executionContext) _ImageUploadPayload(ctx context.Context, sel ast.Sel
 	return out
 }
 
+var inquiriesPayloadImplementors = []string{"InquiriesPayload"}
+
+func (ec *executionContext) _InquiriesPayload(ctx context.Context, sel ast.SelectionSet, obj *InquiriesPayload) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, inquiriesPayloadImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("InquiriesPayload")
+		case "success":
+			out.Values[i] = ec._InquiriesPayload_success(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "message":
+			out.Values[i] = ec._InquiriesPayload_message(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "data":
+			out.Values[i] = ec._InquiriesPayload_data(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "total":
+			out.Values[i] = ec._InquiriesPayload_total(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "page":
+			out.Values[i] = ec._InquiriesPayload_page(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "totalPages":
+			out.Values[i] = ec._InquiriesPayload_totalPages(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.ProcessDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var inquiryImplementors = []string{"Inquiry"}
+
+func (ec *executionContext) _Inquiry(ctx context.Context, sel ast.SelectionSet, obj *Inquiry) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, inquiryImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Inquiry")
+		case "id":
+			out.Values[i] = ec._Inquiry_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "user":
+			out.Values[i] = ec._Inquiry_user(ctx, field, obj)
+		case "shop":
+			out.Values[i] = ec._Inquiry_shop(ctx, field, obj)
+		case "item":
+			out.Values[i] = ec._Inquiry_item(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "message":
+			out.Values[i] = ec._Inquiry_message(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "status":
+			out.Values[i] = ec._Inquiry_status(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "replies":
+			out.Values[i] = ec._Inquiry_replies(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "createdAt":
+			out.Values[i] = ec._Inquiry_createdAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "updatedAt":
+			out.Values[i] = ec._Inquiry_updatedAt(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.ProcessDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var inquiryPayloadImplementors = []string{"InquiryPayload"}
+
+func (ec *executionContext) _InquiryPayload(ctx context.Context, sel ast.SelectionSet, obj *InquiryPayload) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, inquiryPayloadImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("InquiryPayload")
+		case "success":
+			out.Values[i] = ec._InquiryPayload_success(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "message":
+			out.Values[i] = ec._InquiryPayload_message(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "data":
+			out.Values[i] = ec._InquiryPayload_data(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.ProcessDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var inquiryReplyImplementors = []string{"InquiryReply"}
+
+func (ec *executionContext) _InquiryReply(ctx context.Context, sel ast.SelectionSet, obj *InquiryReply) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, inquiryReplyImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("InquiryReply")
+		case "id":
+			out.Values[i] = ec._InquiryReply_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "inquiry":
+			out.Values[i] = ec._InquiryReply_inquiry(ctx, field, obj)
+		case "author":
+			out.Values[i] = ec._InquiryReply_author(ctx, field, obj)
+		case "message":
+			out.Values[i] = ec._InquiryReply_message(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "createdAt":
+			out.Values[i] = ec._InquiryReply_createdAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.ProcessDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var inquiryReplyPayloadImplementors = []string{"InquiryReplyPayload"}
+
+func (ec *executionContext) _InquiryReplyPayload(ctx context.Context, sel ast.SelectionSet, obj *InquiryReplyPayload) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, inquiryReplyPayloadImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("InquiryReplyPayload")
+		case "success":
+			out.Values[i] = ec._InquiryReplyPayload_success(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "message":
+			out.Values[i] = ec._InquiryReplyPayload_message(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "data":
+			out.Values[i] = ec._InquiryReplyPayload_data(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.ProcessDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var itemImplementors = []string{"Item"}
 
 func (ec *executionContext) _Item(ctx context.Context, sel ast.SelectionSet, obj *Item) graphql.Marshaler {
@@ -15802,6 +17997,27 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "googleLogin":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_googleLogin(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "createInquiry":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_createInquiry(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "replyToInquiry":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_replyToInquiry(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "updateInquiryStatus":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_updateInquiryStatus(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
@@ -16309,6 +18525,63 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "inquiry":
+			field := field
+
+			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_inquiry(ctx, field)
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "inquiriesForShop":
+			field := field
+
+			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_inquiriesForShop(ctx, field)
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "inquiriesByUser":
+			field := field
+
+			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_inquiriesByUser(ctx, field)
 				return res
 			}
 
@@ -17309,6 +19582,10 @@ func (ec *executionContext) _Subscription(ctx context.Context, sel ast.Selection
 		return ec._Subscription_shopStatusUpdates(ctx, fields[0])
 	case "livePosts":
 		return ec._Subscription_livePosts(ctx, fields[0])
+	case "inquiryReplied":
+		return ec._Subscription_inquiryReplied(ctx, fields[0])
+	case "newInquiryForShop":
+		return ec._Subscription_newInquiryForShop(ctx, fields[0])
 	default:
 		panic("unknown field " + strconv.Quote(fields[0].Name))
 	}
@@ -17968,6 +20245,11 @@ func (ec *executionContext) unmarshalNCoordinatesInput2ᚖtindahanᚑbackendᚋg
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
+func (ec *executionContext) unmarshalNCreateInquiryInput2tindahanᚑbackendᚋgraphqlᚐCreateInquiryInput(ctx context.Context, v any) (CreateInquiryInput, error) {
+	res, err := ec.unmarshalInputCreateInquiryInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) unmarshalNCreateItemInput2tindahanᚑbackendᚋgraphqlᚐCreateItemInput(ctx context.Context, v any) (CreateItemInput, error) {
 	res, err := ec.unmarshalInputCreateItemInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -18071,6 +20353,96 @@ func (ec *executionContext) marshalNImageUploadPayload2ᚖtindahanᚑbackendᚋg
 		return graphql.Null
 	}
 	return ec._ImageUploadPayload(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNInquiry2ᚕᚖtindahanᚑbackendᚋgraphqlᚐInquiryᚄ(ctx context.Context, sel ast.SelectionSet, v []*Inquiry) graphql.Marshaler {
+	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
+		fc := graphql.GetFieldContext(ctx)
+		fc.Result = &v[i]
+		return ec.marshalNInquiry2ᚖtindahanᚑbackendᚋgraphqlᚐInquiry(ctx, sel, v[i])
+	})
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNInquiry2ᚖtindahanᚑbackendᚋgraphqlᚐInquiry(ctx context.Context, sel ast.SelectionSet, v *Inquiry) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._Inquiry(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNInquiryPayload2tindahanᚑbackendᚋgraphqlᚐInquiryPayload(ctx context.Context, sel ast.SelectionSet, v InquiryPayload) graphql.Marshaler {
+	return ec._InquiryPayload(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNInquiryPayload2ᚖtindahanᚑbackendᚋgraphqlᚐInquiryPayload(ctx context.Context, sel ast.SelectionSet, v *InquiryPayload) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._InquiryPayload(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNInquiryReply2ᚕᚖtindahanᚑbackendᚋgraphqlᚐInquiryReplyᚄ(ctx context.Context, sel ast.SelectionSet, v []*InquiryReply) graphql.Marshaler {
+	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
+		fc := graphql.GetFieldContext(ctx)
+		fc.Result = &v[i]
+		return ec.marshalNInquiryReply2ᚖtindahanᚑbackendᚋgraphqlᚐInquiryReply(ctx, sel, v[i])
+	})
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNInquiryReply2ᚖtindahanᚑbackendᚋgraphqlᚐInquiryReply(ctx context.Context, sel ast.SelectionSet, v *InquiryReply) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._InquiryReply(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNInquiryReplyPayload2tindahanᚑbackendᚋgraphqlᚐInquiryReplyPayload(ctx context.Context, sel ast.SelectionSet, v InquiryReplyPayload) graphql.Marshaler {
+	return ec._InquiryReplyPayload(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNInquiryReplyPayload2ᚖtindahanᚑbackendᚋgraphqlᚐInquiryReplyPayload(ctx context.Context, sel ast.SelectionSet, v *InquiryReplyPayload) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._InquiryReplyPayload(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNInquiryStatus2tindahanᚑbackendᚋgraphqlᚐInquiryStatus(ctx context.Context, v any) (InquiryStatus, error) {
+	var res InquiryStatus
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNInquiryStatus2tindahanᚑbackendᚋgraphqlᚐInquiryStatus(ctx context.Context, sel ast.SelectionSet, v InquiryStatus) graphql.Marshaler {
+	return v
 }
 
 func (ec *executionContext) unmarshalNInt2int(ctx context.Context, v any) (int, error) {
@@ -18211,6 +20583,11 @@ func (ec *executionContext) marshalNPostPayload2ᚖtindahanᚑbackendᚋgraphql�
 
 func (ec *executionContext) unmarshalNRefreshTokenInput2tindahanᚑbackendᚋgraphqlᚐRefreshTokenInput(ctx context.Context, v any) (RefreshTokenInput, error) {
 	res, err := ec.unmarshalInputRefreshTokenInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNReplyToInquiryInput2tindahanᚑbackendᚋgraphqlᚐReplyToInquiryInput(ctx context.Context, v any) (ReplyToInquiryInput, error) {
+	res, err := ec.unmarshalInputReplyToInquiryInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
@@ -18416,6 +20793,11 @@ func (ec *executionContext) marshalNTime2timeᚐTime(ctx context.Context, sel as
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) unmarshalNUpdateInquiryStatusInput2tindahanᚑbackendᚋgraphqlᚐUpdateInquiryStatusInput(ctx context.Context, v any) (UpdateInquiryStatusInput, error) {
+	res, err := ec.unmarshalInputUpdateInquiryStatusInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalNUpdateItemInput2tindahanᚑbackendᚋgraphqlᚐUpdateItemInput(ctx context.Context, v any) (UpdateItemInput, error) {
@@ -18812,6 +21194,34 @@ func (ec *executionContext) marshalOFloat2ᚖfloat64(ctx context.Context, sel as
 	_ = ctx
 	res := graphql.MarshalFloat(*v)
 	return res
+}
+
+func (ec *executionContext) marshalOInquiriesPayload2ᚖtindahanᚑbackendᚋgraphqlᚐInquiriesPayload(ctx context.Context, sel ast.SelectionSet, v *InquiriesPayload) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._InquiriesPayload(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOInquiry2ᚖtindahanᚑbackendᚋgraphqlᚐInquiry(ctx context.Context, sel ast.SelectionSet, v *Inquiry) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._Inquiry(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOInquiryPayload2ᚖtindahanᚑbackendᚋgraphqlᚐInquiryPayload(ctx context.Context, sel ast.SelectionSet, v *InquiryPayload) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._InquiryPayload(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOInquiryReply2ᚖtindahanᚑbackendᚋgraphqlᚐInquiryReply(ctx context.Context, sel ast.SelectionSet, v *InquiryReply) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._InquiryReply(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOInt2ᚖint(ctx context.Context, v any) (*int, error) {
