@@ -17,7 +17,14 @@ export function ProductStoreMarkers({ stores, onStoreClick }: ProductStoreMarker
   onClickRef.current = onStoreClick;
   
   useEffect(() => {
-    if (!stores || stores.length === 0) return;
+    if (!stores || stores.length === 0) {
+      // Clear existing markers if no stores
+      markersRef.current.forEach(marker => {
+        if (marker) map.removeLayer(marker);
+      });
+      markersRef.current = [];
+      return;
+    }
     
     // Create a key to detect actual stores changes
     const storesKey = stores.map(s => `${s.id}-${s.lat}-${s.lng}`).sort().join('|');
@@ -40,10 +47,10 @@ export function ProductStoreMarkers({ stores, onStoreClick }: ProductStoreMarker
       
       // Create markers for each store
       const newMarkers = stores.map(store => {
-        // Create shop icon using emoji - SMALLER with different color for product search
+        // Create shop icon using emoji - same style as shop marker
         const icon = L.divIcon({
           html: `
-            <div style="width: 28px; height: 28px; background: #FEF3C7; border-radius: 50%; border: 2px solid #F59E0B; display: flex; align-items: center; justify-content: center; font-size: 16px; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.3); transition: transform 0.2s;">
+            <div style="position: relative; width: 28px; height: 28px; background: white; border-radius: 50%; border: 2px solid #3B82F6; display: flex; align-items: center; justify-content: center; font-size: 16px; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.3); transition: transform 0.2s; will-change: transform;">
               🏪
             </div>
           `,
@@ -53,7 +60,12 @@ export function ProductStoreMarkers({ stores, onStoreClick }: ProductStoreMarker
           popupAnchor: [0, -14]
         });
         
-        const marker = L.marker([store.lat, store.lng], { icon });
+        const marker = L.marker([store.lat, store.lng], { 
+          icon,
+          zIndexOffset: 1000,
+          riseOnHover: false,
+          bubblingMouseEvents: false
+        });
         
         // Add click handler using ref
         marker.on('click', () => {
@@ -64,22 +76,29 @@ export function ProductStoreMarkers({ stores, onStoreClick }: ProductStoreMarker
         marker.on('mouseover', () => {
           const element = marker.getElement();
           if (element) {
-            element.style.transform = 'scale(1.1)';
+            const innerDiv = element.querySelector('div');
+            if (innerDiv) {
+              (innerDiv as HTMLElement).style.transform = 'scale(1.1)';
+            }
           }
         });
         
         marker.on('mouseout', () => {
           const element = marker.getElement();
           if (element) {
-            element.style.transform = 'scale(1)';
+            const innerDiv = element.querySelector('div');
+            if (innerDiv) {
+              (innerDiv as HTMLElement).style.transform = 'scale(1)';
+            }
           }
         });
         
         // Add popup with store info
+        const storeName = store.name || (store as any).title || 'Store';
         const popupContent = `
-          <div style="font-family: system-ui; font-size: 14px; padding: 8px; min-width: 150px;">
-            <div style="font-weight: 600; margin-bottom: 4px; color: #92400E;">${store.name}</div>
-            ${store.address ? `<div style="color: #78350F; font-size: 12px;">${store.address}</div>` : ''}
+          <div style="font-family: system-ui; font-size: 14px; min-width: 110px; max-wdith: 130px; width: 100%">
+            <div style="font-weight: 600; margin-bottom: 4px; color: #000000;">${storeName}</div>
+            ${store.address ? `<div style="color: #333333; font-size: 12px;">${store.address}</div>` : ''}
           </div>
         `;
         marker.bindPopup(popupContent);
@@ -92,14 +111,21 @@ export function ProductStoreMarkers({ stores, onStoreClick }: ProductStoreMarker
     };
     
     init();
-    
+  }, [stores, map]);
+
+  // Separate effect to handle component unmount cleanup
+  useEffect(() => {
     return () => {
       markersRef.current.forEach(marker => {
-        if (marker) map.removeLayer(marker);
+        if (marker) {
+          map.removeLayer(marker);
+        }
       });
       markersRef.current = [];
+      storesRef.current = '';
     };
-  }, [stores, map]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return null;
 }

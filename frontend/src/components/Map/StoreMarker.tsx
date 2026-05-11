@@ -41,7 +41,7 @@ export function StoreMarker({ store, onClick }: StoreMarkerProps) {
       // Create shop icon using emoji - SMALLER with background
       const icon = L.divIcon({
         html: `
-          <div style="width: 32px; height: 32px; background: white; border-radius: 50%; border: 2px solid #3B82F6; display: flex; align-items: center; justify-content: center; font-size: 18px; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.3); transition: transform 0.2s;">
+          <div style="position: relative; width: 32px; height: 32px; background: white; border-radius: 50%; border: 2px solid #3B82F6; display: flex; align-items: center; justify-content: center; font-size: 18px; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.3); transition: transform 0.2s; will-change: transform;">
             🏪
           </div>
         `,
@@ -51,7 +51,12 @@ export function StoreMarker({ store, onClick }: StoreMarkerProps) {
         popupAnchor: [0, -16]
       });
       
-      const marker = L.marker([store.lat, store.lng], { icon });
+      const marker = L.marker([store.lat, store.lng], { 
+        icon,
+        zIndexOffset: 1000,
+        riseOnHover: false,
+        bubblingMouseEvents: false
+      });
       
       // Add click handler using ref
       marker.on('click', () => {
@@ -62,14 +67,20 @@ export function StoreMarker({ store, onClick }: StoreMarkerProps) {
       marker.on('mouseover', () => {
         const element = marker.getElement();
         if (element) {
-          element.style.transform = 'scale(1.1)';
+          const innerDiv = element.querySelector('div');
+          if (innerDiv) {
+            (innerDiv as HTMLElement).style.transform = 'scale(1.1)';
+          }
         }
       });
       
       marker.on('mouseout', () => {
         const element = marker.getElement();
         if (element) {
-          element.style.transform = 'scale(1)';
+          const innerDiv = element.querySelector('div');
+          if (innerDiv) {
+            (innerDiv as HTMLElement).style.transform = 'scale(1)';
+          }
         }
       });
       
