@@ -86,11 +86,17 @@ function EditPostModalInner({ isOpen, onClose, post, onSuccess, onError }: EditP
 
   const handleSubmit = async () => {
     setError('');
-
+    
+    // Prevent editing if post has no images
+    if (!post || (existingPhotos.length === 0 && newFiles.length === 0)) {
+      setError('Posts must have at least one image to be edited');
+      return;
+    }
+    
     try {
       const result = await updatePost({
         variables: {
-          id: post.id,
+          id: post!.id,
           input: {
             title: title || undefined,
             text: text || undefined,
@@ -99,8 +105,8 @@ function EditPostModalInner({ isOpen, onClose, post, onSuccess, onError }: EditP
             newPhotos: newFiles,
           },
         },
-      });
-
+      }) as any;
+      
       // Get updated post data from mutation result
       const updatedPost = result.data?.updatePost?.data;
       onSuccess?.(updatedPost);
