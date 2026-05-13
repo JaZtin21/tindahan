@@ -17,6 +17,7 @@ type InquiryRepository interface {
 	GetInquiryByID(ctx context.Context, inquiryID primitive.ObjectID) (*domain.Inquiry, error)
 	GetInquiriesForShop(ctx context.Context, shopID primitive.ObjectID, page, limit int) ([]*domain.Inquiry, int64, error)
 	GetInquiriesByUser(ctx context.Context, userID primitive.ObjectID, page, limit int) ([]*domain.Inquiry, int64, error)
+	GetUserInquiryForShop(ctx context.Context, userID, shopID primitive.ObjectID) (*domain.Inquiry, error)
 	AddReply(ctx context.Context, inquiryID primitive.ObjectID, reply domain.InquiryReply) error
 	UpdateStatus(ctx context.Context, inquiryID primitive.ObjectID, status domain.InquiryStatus) error
 	WatchInquiries(ctx context.Context, shopID primitive.ObjectID) (*mongo.ChangeStream, error)
@@ -110,6 +111,15 @@ func (r *inquiryRepository) GetInquiriesByUser(ctx context.Context, userID primi
 	return inquiries, total, nil
 }
 
+func (r *inquiryRepository) GetUserInquiryForShop(ctx context.Context, userID, shopID primitive.ObjectID) (*domain.Inquiry, error) {
+	var inquiry domain.Inquiry
+	err := r.collection.FindOne(ctx, bson.M{"user_id": userID, "shop_id": shopID}).Decode(&inquiry)
+	if err != nil {
+		return nil, err
+	}
+	return &inquiry, nil
+}
+
 func (r *inquiryRepository) AddReply(ctx context.Context, inquiryID primitive.ObjectID, reply domain.InquiryReply) error {
 	reply.CreatedAt = time.Now()
 	reply.InquiryID = inquiryID
@@ -140,7 +150,7 @@ func (r *inquiryRepository) UpdateStatus(ctx context.Context, inquiryID primitiv
 func (r *inquiryRepository) WatchInquiries(ctx context.Context, shopID primitive.ObjectID) (*mongo.ChangeStream, error) {
 	pipeline := mongo.Pipeline{
 		{{Key: "$match", Value: bson.M{
-			"operationType": bson.M{"$in": []string{"insert", "update", "replace"}},
+			"operationType":        bson.M{"$in": []string{"insert", "update", "replace"}},
 			"fullDocument.shop_id": shopID,
 		}}},
 	}
@@ -151,8 +161,8 @@ func (r *inquiryRepository) WatchInquiries(ctx context.Context, shopID primitive
 func (r *inquiryRepository) WatchReplies(ctx context.Context, inquiryID primitive.ObjectID) (*mongo.ChangeStream, error) {
 	pipeline := mongo.Pipeline{
 		{{Key: "$match", Value: bson.M{
-			"operationType":         bson.M{"$in": []string{"update"}},
-			"documentKey._id":       inquiryID,
+			"operationType":   bson.M{"$in": []string{"update"}},
+			"documentKey._id": inquiryID,
 			"updateDescription.updatedFields.replies": bson.M{"$exists": true},
 		}}},
 	}

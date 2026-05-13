@@ -3812,6 +3812,33 @@ func (r *queryResolver) InquiriesByUser(ctx context.Context, userID string, page
 	}, nil
 }
 
+// UserInquiryForShop is the resolver for the userInquiryForShop field
+func (r *queryResolver) UserInquiryForShop(ctx context.Context, userID string, shopID string) (*InquiryPayload, error) {
+	result, err := r.inquiryResolver.GetUserInquiryForShop(ctx, userID, shopID)
+	if err != nil {
+		return &InquiryPayload{
+			Success: false,
+			Message: "Inquiry not found",
+			Data:    nil,
+		}, nil
+	}
+
+	inquiry, ok := result["data"].(*domain.Inquiry)
+	if !ok {
+		return &InquiryPayload{
+			Success: false,
+			Message: "Failed to parse inquiry data",
+			Data:    nil,
+		}, nil
+	}
+
+	return &InquiryPayload{
+		Success: true,
+		Message: result["message"].(string),
+		Data:    r.formatInquiryData(inquiry),
+	}, nil
+}
+
 // Review mutation resolvers
 
 // CreateReview is the resolver for the createReview field

@@ -54,7 +54,6 @@ export const INQUIRIES_BY_USER_QUERY = gql`
         shop {
           id
           name
-          coverPhoto
         }
         item
         message
@@ -75,6 +74,42 @@ export const INQUIRIES_BY_USER_QUERY = gql`
       total
       page
       totalPages
+    }
+  }
+`;
+
+export const USER_INQUIRY_FOR_SHOP_QUERY = gql`
+  query UserInquiryForShop($userID: ID!, $shopID: ID!) {
+    userInquiryForShop(userID: $userID, shopID: $shopID) {
+      success
+      message
+      data {
+        id
+        user {
+          id
+          name
+          profilePhoto
+        }
+        shop {
+          id
+          name
+        }
+        item
+        message
+        status
+        replies {
+          id
+          author {
+            id
+            name
+            profilePhoto
+          }
+          message
+          createdAt
+        }
+        createdAt
+        updatedAt
+      }
     }
   }
 `;

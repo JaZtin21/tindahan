@@ -4,6 +4,7 @@ extend type Query {
   inquiry(id: ID!): InquiryPayload
   inquiriesForShop(shopID: ID!, page: Int, limit: Int): InquiriesPayload
   inquiriesByUser(userID: ID!, page: Int, limit: Int): InquiriesPayload
+  userInquiryForShop(userID: ID!, shopID: ID!): InquiryPayload
 }
 
 extend type Mutation {

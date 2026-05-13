@@ -232,12 +232,47 @@ func (r *InquiryResolver) GetInquiriesForShop(ctx context.Context, shopID string
 	}
 
 	return map[string]interface{}{
-		"success":     true,
-		"message":     "Inquiries fetched successfully",
-		"data":        inquiries,
-		"total":       total,
-		"page":        page,
-		"totalPages":  totalPages,
+		"success":    true,
+		"message":    "Inquiries fetched successfully",
+		"data":       inquiries,
+		"total":      total,
+		"page":       page,
+		"totalPages": totalPages,
+	}, nil
+}
+
+// GetUserInquiryForShop gets a user's inquiry for a specific shop
+func (r *InquiryResolver) GetUserInquiryForShop(ctx context.Context, userID, shopID string) (map[string]interface{}, error) {
+	// Convert IDs to ObjectIDs
+	userObjectID, err := primitive.ObjectIDFromHex(userID)
+	if err != nil {
+		return map[string]interface{}{
+			"success": false,
+			"message": "Invalid user ID format",
+		}, err
+	}
+
+	shopObjectID, err := primitive.ObjectIDFromHex(shopID)
+	if err != nil {
+		return map[string]interface{}{
+			"success": false,
+			"message": "Invalid shop ID format",
+		}, err
+	}
+
+	// Get inquiry for user and shop
+	inquiry, err := r.inquiryRepo.GetUserInquiryForShop(ctx, userObjectID, shopObjectID)
+	if err != nil {
+		return map[string]interface{}{
+			"success": false,
+			"message": "Inquiry not found",
+		}, err
+	}
+
+	return map[string]interface{}{
+		"success": true,
+		"message": "Inquiry found",
+		"data":    inquiry,
 	}, nil
 }
 
@@ -266,11 +301,11 @@ func (r *InquiryResolver) GetInquiriesByUser(ctx context.Context, userID string,
 	}
 
 	return map[string]interface{}{
-		"success":     true,
-		"message":     "Inquiries fetched successfully",
-		"data":        inquiries,
-		"total":       total,
-		"page":        page,
-		"totalPages":  totalPages,
+		"success":    true,
+		"message":    "Inquiries fetched successfully",
+		"data":       inquiries,
+		"total":      total,
+		"page":       page,
+		"totalPages": totalPages,
 	}, nil
 }

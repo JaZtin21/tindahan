@@ -1,13 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
 import { useDispatch } from 'react-redux';
-import { useMutation } from '@apollo/client/react';
+import { useQuery, useMutation } from '@apollo/client/react';
 import { clearSideNavContent } from '../../store';
 import { ReviewsList } from '../reviews/ReviewsList';
 import { AddReviewModal } from '../reviews/AddReviewModal';
 import { Modal as CommonModal } from '../common/Modal';
 import { Modal } from '../Modal';
 import { DELETE_REVIEW_MUTATION } from '../../api/graphql/review/review-queries';
-import { CREATE_INQUIRY_MUTATION } from '../../api/graphql/inquiry/inquiry-queries';
+import { CREATE_INQUIRY_MUTATION, USER_INQUIRY_FOR_SHOP_QUERY } from '../../api/graphql/inquiry/inquiry-queries';
+import { useAuth } from '../../api/graphql/apolloProviderWithAuth';
+import { InquiryConversationModal } from '../inquiry/InquiryConversationModal';
 import type { Review } from '../../types/review';
 import { useIsMobile } from '../../hooks/useIsMobile';
 
@@ -34,6 +36,7 @@ type TabType = 'about' | 'reviews';
 export function SideNav({ isOpen, onClose, selectedLocation }: SideNavProps) {
   const dispatch = useDispatch();
   const isMobile = useIsMobile(768);
+  const { userInfo } = useAuth();
   
   // Tab state - always start on 'about'
   const [activeTab, setActiveTab] = useState<TabType>('about');
@@ -98,6 +101,51 @@ export function SideNav({ isOpen, onClose, selectedLocation }: SideNavProps) {
   const [inquiryItem, setInquiryItem] = useState('');
   const [inquiryMessage, setInquiryMessage] = useState('');
   const [isSubmittingInquiry, setIsSubmittingInquiry] = useState(false);
+  const [isConversationModalOpen, setIsConversationModalOpen] = useState(false);
+
+  // Check if user has existing inquiry for this shop
+  const { data: userInquiryData, refetch: refetchUserInquiry } = useQuery<{
+    userInquiryForShop: {
+      success: boolean;
+      message: string;
+      data?: {
+        id: string;
+        user?: {
+          id: string;
+          name: string;
+          profilePhoto?: string;
+        };
+        shop?: {
+          id: string;
+          name: string;
+        };
+        item: string;
+        message: string;
+        status: string;
+        replies: Array<{
+          id: string;
+          author?: {
+            id: string;
+            name: string;
+            profilePhoto?: string;
+          };
+          message: string;
+          createdAt: string;
+        }>;
+        createdAt: string;
+        updatedAt?: string;
+      };
+    };
+  }>(USER_INQUIRY_FOR_SHOP_QUERY, {
+    variables: { 
+      userID: userInfo?.id || '',
+      shopID: selectedLocation?.storeId || '' 
+    },
+    skip: !selectedLocation?.storeId || !userInfo?.id,
+    fetchPolicy: 'cache-and-network'
+  });
+
+  const existingInquiry = userInquiryData?.userInquiryForShop?.data;
 
   const handleSubmitInquiry = async () => {
     if (!selectedLocation?.storeId || !inquiryItem.trim() || !inquiryMessage.trim()) return;
@@ -118,6 +166,8 @@ export function SideNav({ isOpen, onClose, selectedLocation }: SideNavProps) {
         showSuccess('Inquiry Sent', 'Your inquiry has been sent to the shop owner.');
         setInquiryItem('');
         setInquiryMessage('');
+        // Refetch user inquiry to update UI
+        refetchUserInquiry();
       } else {
         showError('Error', result.data?.createInquiry?.message || 'Failed to send inquiry.');
       }
@@ -196,6 +246,8 @@ export function SideNav({ isOpen, onClose, selectedLocation }: SideNavProps) {
             setInquiryMessage={setInquiryMessage}
             isSubmittingInquiry={isSubmittingInquiry}
             handleSubmitInquiry={handleSubmitInquiry}
+            existingInquiry={existingInquiry}
+            setIsConversationModalOpen={setIsConversationModalOpen}
           />
         </div>
       )}
@@ -229,6 +281,8 @@ export function SideNav({ isOpen, onClose, selectedLocation }: SideNavProps) {
             setInquiryMessage={setInquiryMessage}
             isSubmittingInquiry={isSubmittingInquiry}
             handleSubmitInquiry={handleSubmitInquiry}
+            existingInquiry={existingInquiry}
+            setIsConversationModalOpen={setIsConversationModalOpen}
           />
         </CommonModal>
       )}
@@ -262,11 +316,20 @@ export function SideNav({ isOpen, onClose, selectedLocation }: SideNavProps) {
 
       {/* Feedback Modal */}
       <Modal isOpen={feedbackModal.isOpen} onClose={() => setFeedbackModal(prev => ({ ...prev, isOpen: false }))} title={feedbackModal.title} message={feedbackModal.message} type={feedbackModal.type} />
+
+      {/* Inquiry Conversation Modal */}
+      {existingInquiry && (
+        <InquiryConversationModal
+          isOpen={isConversationModalOpen}
+          onClose={() => setIsConversationModalOpen(false)}
+          inquiry={existingInquiry}
+          currentUserId={userInfo?.id}
+        />
+      )}
     </>
   );
 }
 
-// Extracted content component to keep SideNav clean
 interface SideNavContentProps {
   selectedLocation?: SideNavProps['selectedLocation'];
   activeTab: TabType;
@@ -287,6 +350,8 @@ interface SideNavContentProps {
   setInquiryMessage: (value: string) => void;
   isSubmittingInquiry: boolean;
   handleSubmitInquiry: () => void;
+  existingInquiry?: any;
+  setIsConversationModalOpen: (value: boolean) => void;
 }
 
 function SideNavContent({ 
@@ -307,7 +372,9 @@ function SideNavContent({
   inquiryMessage,
   setInquiryMessage,
   isSubmittingInquiry,
-  handleSubmitInquiry
+  handleSubmitInquiry,
+  existingInquiry,
+  setIsConversationModalOpen
 }: SideNavContentProps) {
   return (
     <>
@@ -359,42 +426,52 @@ function SideNavContent({
                     {selectedLocation.hours && <div className="flex items-center gap-3"><div className="w-8 h-8 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center text-sm">🕐</div><div><p className="font-medium text-zinc-900 dark:text-zinc-100">Hours</p><p className="text-zinc-600 dark:text-zinc-400">{selectedLocation.hours}</p></div></div>}
                   </div>
                   
-                  {/* Inquiry Form - Only show for stores */}
+                  {/* Inquiry Section - Only show for stores */}
                   {isStore && selectedLocation.storeId && (
                     <div className="pt-4 border-t border-zinc-200 dark:border-zinc-700">
                       <h4 className="font-semibold text-zinc-900 dark:text-zinc-100 mb-3 flex items-center gap-2">
                         <span className="w-6 h-6 bg-orange-100 dark:bg-orange-900 rounded-full flex items-center justify-center text-sm">💬</span>
-                        Send Inquiry
+                        {existingInquiry ? 'Your Conversation' : 'Send Inquiry'}
                       </h4>
-                      <div className="space-y-3">
-                        <div>
-                          <label className="block text-sm text-zinc-600 dark:text-zinc-400 mb-1">Item/Product</label>
-                          <input
-                            type="text"
-                            value={inquiryItem}
-                            onChange={(e) => setInquiryItem(e.target.value)}
-                            placeholder="What item are you asking about?"
-                            className="w-full px-3 py-2 text-sm rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm text-zinc-600 dark:text-zinc-400 mb-1">Message</label>
-                          <textarea
-                            value={inquiryMessage}
-                            onChange={(e) => setInquiryMessage(e.target.value)}
-                            placeholder="Your inquiry message..."
-                            rows={3}
-                            className="w-full px-3 py-2 text-sm rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                          />
-                        </div>
+                      
+                      {existingInquiry ? (
                         <button
-                          onClick={handleSubmitInquiry}
-                          disabled={!inquiryItem.trim() || !inquiryMessage.trim() || isSubmittingInquiry}
-                          className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-400 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
+                          onClick={() => setIsConversationModalOpen(true)}
+                          className="w-full py-2 px-4 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors"
                         >
-                          {isSubmittingInquiry ? 'Sending...' : 'Send Inquiry'}
+                          See Messages
                         </button>
-                      </div>
+                      ) : (
+                        <div className="space-y-3">
+                          <div>
+                            <label className="block text-sm text-zinc-600 dark:text-zinc-400 mb-1">Item/Product</label>
+                            <input
+                              type="text"
+                              value={inquiryItem}
+                              onChange={(e) => setInquiryItem(e.target.value)}
+                              placeholder="What item are you asking about?"
+                              className="w-full px-3 py-2 text-sm rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm text-zinc-600 dark:text-zinc-400 mb-1">Message</label>
+                            <textarea
+                              value={inquiryMessage}
+                              onChange={(e) => setInquiryMessage(e.target.value)}
+                              placeholder="Your inquiry message..."
+                              rows={3}
+                              className="w-full px-3 py-2 text-sm rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                            />
+                          </div>
+                          <button
+                            onClick={handleSubmitInquiry}
+                            disabled={!inquiryItem.trim() || !inquiryMessage.trim() || isSubmittingInquiry}
+                            className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-400 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
+                          >
+                            {isSubmittingInquiry ? 'Sending...' : 'Send Inquiry'}
+                          </button>
+                        </div>
+                      )}
                     </div>
                   )}
                   

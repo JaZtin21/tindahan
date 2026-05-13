@@ -274,33 +274,34 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		Comments          func(childComplexity int, postID string, page *int, limit *int) int
-		Followers         func(childComplexity int, userID string) int
-		Following         func(childComplexity int, userID string) int
-		Health            func(childComplexity int) int
-		InquiriesByUser   func(childComplexity int, userID string, page *int, limit *int) int
-		InquiriesForShop  func(childComplexity int, shopID string, page *int, limit *int) int
-		Inquiry           func(childComplexity int, id string) int
-		Item              func(childComplexity int, id string) int
-		Items             func(childComplexity int, input *ProductSearchInput) int
-		Me                func(childComplexity int) int
-		MyItems           func(childComplexity int, page *int, limit *int) int
-		MyPosts           func(childComplexity int, page *int, limit *int) int
-		MyReviewForStore  func(childComplexity int, storeID string) int
-		MyShops           func(childComplexity int, page *int, limit *int) int
-		Post              func(childComplexity int, id string) int
-		Posts             func(childComplexity int, page *int, limit *int) int
-		PostsNearLocation func(childComplexity int, lat float64, lng float64, radius *float64, page *int, limit *int) int
-		ReviewStats       func(childComplexity int, storeID string) int
-		ReviewsByStore    func(childComplexity int, storeID string, page *int, limit *int) int
-		ReviewsByUser     func(childComplexity int, userID string, page *int, limit *int) int
-		SearchShops       func(childComplexity int, query string, page *int, limit *int) int
-		Shop              func(childComplexity int, id string) int
-		ShopsByProduct    func(childComplexity int, productName string) int
-		TopRatedItems     func(childComplexity int, shopID string, limit *int) int
-		User              func(childComplexity int, id string) int
-		UserPosts         func(childComplexity int, userID string, page *int, limit *int) int
-		Users             func(childComplexity int, page *int, limit *int) int
+		Comments           func(childComplexity int, postID string, page *int, limit *int) int
+		Followers          func(childComplexity int, userID string) int
+		Following          func(childComplexity int, userID string) int
+		Health             func(childComplexity int) int
+		InquiriesByUser    func(childComplexity int, userID string, page *int, limit *int) int
+		InquiriesForShop   func(childComplexity int, shopID string, page *int, limit *int) int
+		Inquiry            func(childComplexity int, id string) int
+		Item               func(childComplexity int, id string) int
+		Items              func(childComplexity int, input *ProductSearchInput) int
+		Me                 func(childComplexity int) int
+		MyItems            func(childComplexity int, page *int, limit *int) int
+		MyPosts            func(childComplexity int, page *int, limit *int) int
+		MyReviewForStore   func(childComplexity int, storeID string) int
+		MyShops            func(childComplexity int, page *int, limit *int) int
+		Post               func(childComplexity int, id string) int
+		Posts              func(childComplexity int, page *int, limit *int) int
+		PostsNearLocation  func(childComplexity int, lat float64, lng float64, radius *float64, page *int, limit *int) int
+		ReviewStats        func(childComplexity int, storeID string) int
+		ReviewsByStore     func(childComplexity int, storeID string, page *int, limit *int) int
+		ReviewsByUser      func(childComplexity int, userID string, page *int, limit *int) int
+		SearchShops        func(childComplexity int, query string, page *int, limit *int) int
+		Shop               func(childComplexity int, id string) int
+		ShopsByProduct     func(childComplexity int, productName string) int
+		TopRatedItems      func(childComplexity int, shopID string, limit *int) int
+		User               func(childComplexity int, id string) int
+		UserInquiryForShop func(childComplexity int, userID string, shopID string) int
+		UserPosts          func(childComplexity int, userID string, page *int, limit *int) int
+		Users              func(childComplexity int, page *int, limit *int) int
 	}
 
 	Review struct {
@@ -462,6 +463,7 @@ type QueryResolver interface {
 	Inquiry(ctx context.Context, id string) (*InquiryPayload, error)
 	InquiriesForShop(ctx context.Context, shopID string, page *int, limit *int) (*InquiriesPayload, error)
 	InquiriesByUser(ctx context.Context, userID string, page *int, limit *int) (*InquiriesPayload, error)
+	UserInquiryForShop(ctx context.Context, userID string, shopID string) (*InquiryPayload, error)
 	Posts(ctx context.Context, page *int, limit *int) (*PostsPayload, error)
 	Post(ctx context.Context, id string) (*PostPayload, error)
 	MyPosts(ctx context.Context, page *int, limit *int) (*PostsPayload, error)
@@ -1907,6 +1909,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Query.User(childComplexity, args["id"].(string)), true
+	case "Query.userInquiryForShop":
+		if e.ComplexityRoot.Query.UserInquiryForShop == nil {
+			break
+		}
+
+		args, err := ec.field_Query_userInquiryForShop_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Query.UserInquiryForShop(childComplexity, args["userID"].(string), args["shopID"].(string)), true
 	case "Query.userPosts":
 		if e.ComplexityRoot.Query.UserPosts == nil {
 			break
@@ -3350,6 +3363,22 @@ func (ec *executionContext) field_Query_topRatedItems_args(ctx context.Context, 
 		return nil, err
 	}
 	args["limit"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_userInquiryForShop_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "userID", ec.unmarshalNID2string)
+	if err != nil {
+		return nil, err
+	}
+	args["userID"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "shopID", ec.unmarshalNID2string)
+	if err != nil {
+		return nil, err
+	}
+	args["shopID"] = arg1
 	return args, nil
 }
 
@@ -9457,6 +9486,55 @@ func (ec *executionContext) fieldContext_Query_inquiriesByUser(ctx context.Conte
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Query_inquiriesByUser_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_userInquiryForShop(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_userInquiryForShop,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Query().UserInquiryForShop(ctx, fc.Args["userID"].(string), fc.Args["shopID"].(string))
+		},
+		nil,
+		ec.marshalOInquiryPayload2ᚖtindahanᚑbackendᚋgraphqlᚐInquiryPayload,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_userInquiryForShop(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "success":
+				return ec.fieldContext_InquiryPayload_success(ctx, field)
+			case "message":
+				return ec.fieldContext_InquiryPayload_message(ctx, field)
+			case "data":
+				return ec.fieldContext_InquiryPayload_data(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type InquiryPayload", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_userInquiryForShop_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -18582,6 +18660,25 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_inquiriesByUser(ctx, field)
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "userInquiryForShop":
+			field := field
+
+			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_userInquiryForShop(ctx, field)
 				return res
 			}
 
