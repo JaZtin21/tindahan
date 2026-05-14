@@ -17,7 +17,7 @@ const ImageIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
-export function ShopForm({ shop, onSaveShop, onCancel }: ShopFormProps) {
+export function ShopForm({ shop, onSaveShop, onCancel, isLoading }: ShopFormProps) {
   const [formData, setFormData] = useState({
     name: shop?.name || '',
     description: shop?.description || '',
@@ -334,14 +334,23 @@ export function ShopForm({ shop, onSaveShop, onCancel }: ShopFormProps) {
           <div className="flex gap-4">
             <button
               type="submit"
-              className="px-6 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors"
+              disabled={isLoading}
+              className="px-6 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 disabled:bg-zinc-400 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
             >
-              {shop ? 'Update Shop' : 'Add Shop'}
+              {isLoading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  <span>{shop ? 'Updating...' : 'Adding...'}</span>
+                </>
+              ) : (
+                <span>{shop ? 'Update Shop' : 'Add Shop'}</span>
+              )}
             </button>
             <button
               type="button"
               onClick={onCancel}
-              className="px-6 py-2 bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-300 dark:hover:bg-zinc-600 transition-colors"
+              disabled={isLoading}
+              className="px-6 py-2 bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-300 dark:hover:bg-zinc-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               Cancel
             </button>

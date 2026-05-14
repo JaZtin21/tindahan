@@ -43,7 +43,7 @@ export function OwnerPage() {
   };
 
   // Use custom hooks for data management
-  const { shops, shopsLoading, shopsError, createShop, updateShop, deleteShop, refreshShops } = useShopManagement({
+  const { shops, shopsLoading, shopsError, createShop, updateShop, deleteShop, createLoading, updateLoading, refreshShops } = useShopManagement({
     isAuthenticated,
     authLoading,
     onSuccess: showSuccess,
@@ -252,6 +252,7 @@ export function OwnerPage() {
             shop={null}
             onSaveShop={handleSaveShop}
             onCancel={handleCancelShopForm}
+            isLoading={createLoading}
           />
         )}
 
@@ -276,6 +277,7 @@ export function OwnerPage() {
             shop={shopWithInventory || selectedShop}
             onSaveShop={handleSaveShop}
             onCancel={handleCancelShopForm}
+            isLoading={updateLoading}
           />
         )}
 

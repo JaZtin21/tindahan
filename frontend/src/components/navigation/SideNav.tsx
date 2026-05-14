@@ -324,6 +324,7 @@ export function SideNav({ isOpen, onClose, selectedLocation }: SideNavProps) {
           onClose={() => setIsConversationModalOpen(false)}
           inquiry={existingInquiry}
           currentUserId={userInfo?.id}
+          onRefetch={refetchUserInquiry}
         />
       )}
     </>
@@ -379,7 +380,7 @@ function SideNavContent({
   return (
     <>
       {!isMobile && (
-        <div className="flex items-center justify-between p-4 border-b border-zinc-200 dark:border-zinc-700">
+        <div className="flex items-center justify-between px-4 border-b border-zinc-200 dark:border-zinc-700" style={{ height: '77px' }}>
           <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">
             {selectedLocation?.type === 'store' ? 'Store Details' : 'Location Details'}
           </h2>
@@ -437,7 +438,7 @@ function SideNavContent({
                       {existingInquiry ? (
                         <button
                           onClick={() => setIsConversationModalOpen(true)}
-                          className="w-full py-2 px-4 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors"
+                          className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
                         >
                           See Messages
                         </button>

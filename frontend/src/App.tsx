@@ -1,5 +1,5 @@
-import { useCallback } from 'react'
-import { Outlet } from 'react-router-dom'
+import { useCallback, useEffect } from 'react'
+import { Outlet, useLocation } from 'react-router-dom'
 import { useSelector, useDispatch } from 'react-redux'
 import { TopNav, SideNav } from './components/navigation'
 import { closeSideNav } from './store'
@@ -7,12 +7,21 @@ import type { RootState } from './store'
 
 export function App() {
   const dispatch = useDispatch()
+  const location = useLocation()
   const { isOpen, selectedLocation } = useSelector((state: RootState) => state.sideNav)
 
   // Memoize onClose to prevent unnecessary SideNav re-renders
   const handleCloseSideNav = useCallback(() => {
     dispatch(closeSideNav())
   }, [dispatch])
+
+  // Close side nav when route changes (when clicking top nav buttons)
+  useEffect(() => {
+    console.log(isOpen)
+    if (isOpen && location.pathname !== '/map') {
+      handleCloseSideNav()
+    }
+  }, [location.pathname, isOpen, handleCloseSideNav])
 
   return (
     <div className="min-h-dvh bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-900">

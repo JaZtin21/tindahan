@@ -1,12 +1,17 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useQuery, useMutation } from '@apollo/client/react';
 import { INQUIRIES_FOR_SHOP_QUERY, REPLY_TO_INQUIRY_MUTATION, UPDATE_INQUIRY_STATUS_MUTATION } from '../../api/graphql/inquiry/inquiry-queries';
-import type { Inquiry, InquiriesProps } from '../../types/owner';
+import { InquiryConversationModal } from '../inquiry/InquiryConversationModal';
+import { useAuth } from '../../api/graphql/apolloProviderWithAuth';
+import type { InquiriesProps } from '../../types/owner';
 
 export function Inquiries({ shop }: InquiriesProps) {
   const [page, setPage] = useState(1);
   const [replyText, setReplyText] = useState<{ [key: string]: string }>({});
   const [isSubmitting, setIsSubmitting] = useState<{ [key: string]: boolean }>({});
+  const [selectedInquiry, setSelectedInquiry] = useState<any>(null);
+  const [isConversationModalOpen, setIsConversationModalOpen] = useState(false);
+  const { userInfo } = useAuth();
 
   const { data, loading, error, refetch } = useQuery<{
     inquiriesForShop: {
@@ -217,34 +222,19 @@ export function Inquiries({ shop }: InquiriesProps) {
                   
                   {/* Replies */}
                   {inquiry.replies && inquiry.replies.length > 0 && (
-                    <div className="space-y-2 mt-4">
-                      <p className="text-sm font-medium text-zinc-600 dark:text-zinc-400">Replies:</p>
-                      {inquiry.replies.map(reply => (
-                        <div key={reply.id} className="bg-zinc-50 dark:bg-zinc-900 rounded-lg p-4 border border-zinc-200 dark:border-zinc-700">
-                          <div className="flex items-start gap-3">
-                            <div className="flex-shrink-0">
-                              {reply.author?.profilePhoto ? (
-                                <img src={reply.author.profilePhoto} alt={reply.author?.name} className="w-8 h-8 rounded-full" />
-                              ) : (
-                                <div className="w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center text-white text-sm font-medium">
-                                  {reply.author?.name?.charAt(0) || '?'}
-                                </div>
-                              )}
-                            </div>
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-1">
-                                <span className="font-medium text-zinc-900 dark:text-zinc-100">
-                                  {reply.author?.name || 'Unknown'}
-                                </span>
-                                <span className="text-xs text-zinc-500 dark:text-zinc-400">
-                                  {formatTimestamp(reply.createdAt)}
-                                </span>
-                              </div>
-                              <p className="text-zinc-700 dark:text-zinc-300 text-sm">{reply.message}</p>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
+                    <div className="mt-4">
+                      <p className="text-sm font-medium text-zinc-600 dark:text-zinc-400 mb-2">
+                        {inquiry.replies.length} {inquiry.replies.length === 1 ? 'reply' : 'replies'}
+                      </p>
+                      <button
+                        onClick={() => {
+                          setSelectedInquiry(inquiry);
+                          setIsConversationModalOpen(true);
+                        }}
+                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+                      >
+                        See Conversation
+                      </button>
                     </div>
                   )}
                   
@@ -313,6 +303,28 @@ export function Inquiries({ shop }: InquiriesProps) {
             </div>
           )}
         </>
+      )}
+
+      {/* Inquiry Conversation Modal */}
+      {selectedInquiry && (
+        <InquiryConversationModal
+          isOpen={isConversationModalOpen}
+          onClose={() => {
+            setIsConversationModalOpen(false);
+            setSelectedInquiry(null);
+          }}
+          inquiry={{
+            id: selectedInquiry.id,
+            item: selectedInquiry.item,
+            message: selectedInquiry.message,
+            status: selectedInquiry.status,
+            user: selectedInquiry.user,
+            replies: selectedInquiry.replies || [],
+            createdAt: selectedInquiry.createdAt
+          }}
+          currentUserId={userInfo?.id}
+          onRefetch={() => refetch()}
+        />
       )}
     </div>
   );

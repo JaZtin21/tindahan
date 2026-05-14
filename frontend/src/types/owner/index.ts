@@ -70,6 +70,7 @@ export interface ShopFormProps {
   shop?: ShopType | null;
   onSaveShop: (shop: ShopType, existingCoverPhoto?: string, newCoverFile?: File) => void;
   onCancel: () => void;
+  isLoading?: boolean;
 }
 
 export interface TabsProps {
@@ -110,5 +111,8 @@ export interface UseShopManagementReturn {
   createShop: (shop: ShopType, existingCoverPhoto?: string, newCoverFile?: File, otherPhotoFiles?: File[]) => Promise<{ success: boolean; message?: string }>;
   updateShop: (shop: ShopType, existingCoverPhoto?: string, newCoverFile?: File, newOtherPhotoFiles?: File[]) => Promise<{ success: boolean; message?: string }>;
   deleteShop: (shopId: string) => Promise<{ success: boolean; message?: string }>;
+  createLoading: boolean;
+  updateLoading: boolean;
+  deleteLoading: boolean;
   refreshShops: () => Promise<void>;
 }

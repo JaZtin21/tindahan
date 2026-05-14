@@ -158,9 +158,9 @@ export function useShopManagement({
     skip: authLoading || !isAuthenticated,
   });
 
-  const [createShopMut] = useMutation(CREATE_SHOP_MUTATION);
-  const [updateShopMut] = useMutation(UPDATE_SHOP_MUTATION);
-  const [deleteShopMut] = useMutation(DELETE_SHOP_MUTATION);
+  const [createShopMut, { loading: createLoading }] = useMutation(CREATE_SHOP_MUTATION);
+  const [updateShopMut, { loading: updateLoading }] = useMutation(UPDATE_SHOP_MUTATION);
+  const [deleteShopMut, { loading: deleteLoading }] = useMutation(DELETE_SHOP_MUTATION);
 
   const createShop = useCallback(
     async (shop: Shop, _existingCoverPhoto?: string, newCoverFile?: File, otherPhotoFiles?: File[]): Promise<{ success: boolean; message?: string }> => {
@@ -252,6 +252,9 @@ export function useShopManagement({
     createShop,
     updateShop,
     deleteShop,
+    createLoading,
+    updateLoading,
+    deleteLoading,
     refreshShops: async () => { await refetchShops(); },
   };
 }
