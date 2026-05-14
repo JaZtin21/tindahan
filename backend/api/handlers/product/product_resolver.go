@@ -60,6 +60,23 @@ func (r *ProductResolver) Items(ctx context.Context, page, limit int, query *str
 		searchQuery = *query
 	}
 
+	// Validate that query is not blank/empty
+	if searchQuery == "" {
+		return map[string]interface{}{
+			"success": false,
+			"message": "Search query cannot be empty",
+			"data":    []map[string]interface{}{},
+		}, nil
+	}
+
+	// Cap limit at 10 to prevent scraping/spamming
+	if limit > 10 {
+		limit = 10
+	}
+	if limit <= 0 {
+		limit = 10
+	}
+
 	// Search all products (no filter to get public items)
 	products, _, err := r.productRepo.SearchProducts(ctx, &domain.ProductSearchRequest{
 		Query: searchQuery,

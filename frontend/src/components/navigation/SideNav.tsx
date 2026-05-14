@@ -10,6 +10,7 @@ import { DELETE_REVIEW_MUTATION } from '../../api/graphql/review/review-queries'
 import { CREATE_INQUIRY_MUTATION, USER_INQUIRY_FOR_SHOP_QUERY } from '../../api/graphql/inquiry/inquiry-queries';
 import { useAuth } from '../../api/graphql/apolloProviderWithAuth';
 import { InquiryConversationModal } from '../inquiry/InquiryConversationModal';
+import { SearchProductModal } from '../product/SearchProductModal';
 import type { Review } from '../../types/review';
 import { useIsMobile } from '../../hooks/useIsMobile';
 
@@ -102,6 +103,7 @@ export function SideNav({ isOpen, onClose, selectedLocation }: SideNavProps) {
   const [inquiryMessage, setInquiryMessage] = useState('');
   const [isSubmittingInquiry, setIsSubmittingInquiry] = useState(false);
   const [isConversationModalOpen, setIsConversationModalOpen] = useState(false);
+  const [isSearchProductModalOpen, setIsSearchProductModalOpen] = useState(false);
 
   // Check if user has existing inquiry for this shop
   const { data: userInquiryData, refetch: refetchUserInquiry } = useQuery<{
@@ -248,6 +250,8 @@ export function SideNav({ isOpen, onClose, selectedLocation }: SideNavProps) {
             handleSubmitInquiry={handleSubmitInquiry}
             existingInquiry={existingInquiry}
             setIsConversationModalOpen={setIsConversationModalOpen}
+            isSearchProductModalOpen={isSearchProductModalOpen}
+            setIsSearchProductModalOpen={setIsSearchProductModalOpen}
           />
         </div>
       )}
@@ -283,6 +287,8 @@ export function SideNav({ isOpen, onClose, selectedLocation }: SideNavProps) {
             handleSubmitInquiry={handleSubmitInquiry}
             existingInquiry={existingInquiry}
             setIsConversationModalOpen={setIsConversationModalOpen}
+            isSearchProductModalOpen={isSearchProductModalOpen}
+            setIsSearchProductModalOpen={setIsSearchProductModalOpen}
           />
         </CommonModal>
       )}
@@ -327,6 +333,15 @@ export function SideNav({ isOpen, onClose, selectedLocation }: SideNavProps) {
           onRefetch={refetchUserInquiry}
         />
       )}
+
+      {/* Search Product Modal */}
+      {selectedLocation?.storeId && (
+        <SearchProductModal
+          isOpen={isSearchProductModalOpen}
+          onClose={() => setIsSearchProductModalOpen(false)}
+          shopId={selectedLocation.storeId}
+        />
+      )}
     </>
   );
 }
@@ -353,6 +368,9 @@ interface SideNavContentProps {
   handleSubmitInquiry: () => void;
   existingInquiry?: any;
   setIsConversationModalOpen: (value: boolean) => void;
+  // Search product props
+  isSearchProductModalOpen: boolean;
+  setIsSearchProductModalOpen: (value: boolean) => void;
 }
 
 function SideNavContent({ 
@@ -375,7 +393,9 @@ function SideNavContent({
   isSubmittingInquiry,
   handleSubmitInquiry,
   existingInquiry,
-  setIsConversationModalOpen
+  setIsConversationModalOpen,
+  isSearchProductModalOpen,
+  setIsSearchProductModalOpen
 }: SideNavContentProps) {
   return (
     <>
@@ -426,6 +446,21 @@ function SideNavContent({
                     {selectedLocation.email && <div className="flex items-center gap-3"><div className="w-8 h-8 bg-purple-100 dark:bg-purple-900 rounded-full flex items-center justify-center text-sm">📧</div><div><p className="font-medium text-zinc-900 dark:text-zinc-100">Email</p><p className="text-zinc-600 dark:text-zinc-400">{selectedLocation.email}</p></div></div>}
                     {selectedLocation.hours && <div className="flex items-center gap-3"><div className="w-8 h-8 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center text-sm">🕐</div><div><p className="font-medium text-zinc-900 dark:text-zinc-100">Hours</p><p className="text-zinc-600 dark:text-zinc-400">{selectedLocation.hours}</p></div></div>}
                   </div>
+                  
+                  {/* Search Product Section - Only show for stores */}
+                  {isStore && selectedLocation.storeId && (
+                    <div className="pt-4 border-t border-zinc-200 dark:border-zinc-700">
+                      <button
+                        onClick={() => setIsSearchProductModalOpen(true)}
+                        className="w-full py-2 px-4 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                        Search Products
+                      </button>
+                    </div>
+                  )}
                   
                   {/* Inquiry Section - Only show for stores */}
                   {isStore && selectedLocation.storeId && (

@@ -34,9 +34,13 @@ export function InventoryTable({ shops, onEditItem, onDeleteItem }: InventoryTab
                     <tr key={item.id} className="border-b border-zinc-200 dark:border-zinc-700">
                       <td className="py-3 px-4 font-medium">{item.name}</td>
                       <td className="py-3 px-4">
-                        <span className="px-2 py-1 bg-zinc-200 dark:bg-zinc-700 rounded-full text-xs whitespace-nowrap">
-                          {item.category}
-                        </span>
+                        {item.category ? (
+                          <span className="px-2 py-1 bg-zinc-200 dark:bg-zinc-700 rounded-full text-xs whitespace-nowrap">
+                            {item.category}
+                          </span>
+                        ) : (
+                          <span className="text-zinc-400 dark:text-zinc-500 text-xs">-</span>
+                        )}
                       </td>
                       <td className="py-3 px-4">₱{item.price.toFixed(2)}</td>
                       <td className="py-3 px-4">

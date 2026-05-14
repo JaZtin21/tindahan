@@ -3,6 +3,7 @@ import type { NewItemForm, Item, AddItemFormProps } from '../../types/owner';
 
 export function AddItemForm({ onAddItem, item, onCancel }: AddItemFormProps) {
   const isEditMode = !!item;
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [newItem, setNewItem] = useState<NewItemForm>({
     name: '',
@@ -25,33 +26,38 @@ export function AddItemForm({ onAddItem, item, onCancel }: AddItemFormProps) {
     }
   }, [item]);
 
-  const handleSubmit = () => {
-    if (newItem.name && newItem.price && newItem.category && newItem.stock) {
-      const itemData: Item = {
-        id: item?.id || Date.now().toString(),
-        name: newItem.name,
-        price: parseFloat(newItem.price),
-        description: newItem.description,
-        category: newItem.category,
-        stock: parseInt(newItem.stock),
-        // Required fields with defaults
-        coverPhoto: item?.coverPhoto || 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=400',
-        otherPhotos: item?.otherPhotos || [],
-        tags: item?.tags || [],
-        isActive: item?.isActive ?? true
-      };
+  const handleSubmit = async () => {
+    if (newItem.name && newItem.price && newItem.stock) {
+      setIsSubmitting(true);
+      try {
+        const itemData: Item = {
+          id: item?.id || Date.now().toString(),
+          name: newItem.name,
+          price: parseFloat(newItem.price),
+          description: newItem.description,
+          category: newItem.category || '',
+          stock: parseInt(newItem.stock),
+          // Required fields with defaults
+          coverPhoto: item?.coverPhoto || 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=400',
+          otherPhotos: item?.otherPhotos || [],
+          tags: item?.tags || [],
+          isActive: item?.isActive ?? true
+        };
 
-      onAddItem(itemData);
+        await onAddItem(itemData);
 
-      // Reset form only if adding (not editing)
-      if (!isEditMode) {
-        setNewItem({
-          name: '',
-          price: '',
-          description: '',
-          category: '',
-          stock: ''
-        });
+        // Reset form only if adding (not editing)
+        if (!isEditMode) {
+          setNewItem({
+            name: '',
+            price: '',
+            description: '',
+            category: '',
+            stock: ''
+          });
+        }
+      } finally {
+        setIsSubmitting(false);
       }
     }
   };
@@ -71,7 +77,7 @@ export function AddItemForm({ onAddItem, item, onCancel }: AddItemFormProps) {
     <div className="bg-zinc-50 dark:bg-zinc-800 rounded-lg p-6 shadow-lg">
       <div className="space-y-4">
         <div>
-          <label className="block text-sm font-medium mb-2">Item Name</label>
+          <label className="block text-sm font-medium mb-2">Item Name <span className="text-red-500">*</span></label>
           <input
             type="text"
             value={newItem.name}
@@ -80,10 +86,10 @@ export function AddItemForm({ onAddItem, item, onCancel }: AddItemFormProps) {
             placeholder="Enter item name"
           />
         </div>
-        
+
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium mb-2">Price (₱)</label>
+            <label className="block text-sm font-medium mb-2">Price (₱) <span className="text-red-500">*</span></label>
             <input
               type="number"
               value={newItem.price}
@@ -92,9 +98,9 @@ export function AddItemForm({ onAddItem, item, onCancel }: AddItemFormProps) {
               placeholder="0.00"
             />
           </div>
-          
+
           <div>
-            <label className="block text-sm font-medium mb-2">Stock Quantity</label>
+            <label className="block text-sm font-medium mb-2">Stock Quantity <span className="text-red-500">*</span></label>
             <input
               type="number"
               value={newItem.stock}
@@ -104,9 +110,9 @@ export function AddItemForm({ onAddItem, item, onCancel }: AddItemFormProps) {
             />
           </div>
         </div>
-        
+
         <div>
-          <label className="block text-sm font-medium mb-2">Category</label>
+          <label className="block text-sm font-medium mb-2">Category (optional)</label>
           <select
             value={newItem.category}
             onChange={(e) => setNewItem({...newItem, category: e.target.value})}
@@ -118,9 +124,9 @@ export function AddItemForm({ onAddItem, item, onCancel }: AddItemFormProps) {
             ))}
           </select>
         </div>
-        
+
         <div>
-          <label className="block text-sm font-medium mb-2">Description</label>
+          <label className="block text-sm font-medium mb-2">Description <span className="text-red-500">*</span></label>
           <textarea
             value={newItem.description}
             onChange={(e) => setNewItem({...newItem, description: e.target.value})}
@@ -133,14 +139,16 @@ export function AddItemForm({ onAddItem, item, onCancel }: AddItemFormProps) {
         <div className="flex gap-4">
           <button
             onClick={handleSubmit}
-            className="px-6 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors"
+            disabled={!newItem.name || !newItem.price || !newItem.stock || isSubmitting}
+            className="px-6 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 disabled:bg-zinc-400 disabled:cursor-not-allowed transition-colors"
           >
-            {isEditMode ? 'Save Changes' : 'Add Item'}
+            {isSubmitting ? 'Saving...' : (isEditMode ? 'Save Changes' : 'Add Item')}
           </button>
           {isEditMode ? (
             <button
               onClick={onCancel}
-              className="px-6 py-2 bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-300 dark:hover:bg-zinc-600 transition-colors"
+              disabled={isSubmitting}
+              className="px-6 py-2 bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-300 dark:hover:bg-zinc-600 disabled:bg-zinc-300 disabled:cursor-not-allowed transition-colors"
             >
               Cancel
             </button>
@@ -153,7 +161,8 @@ export function AddItemForm({ onAddItem, item, onCancel }: AddItemFormProps) {
                 category: '',
                 stock: ''
               })}
-              className="px-6 py-2 bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-300 dark:hover:bg-zinc-600 transition-colors"
+              disabled={isSubmitting}
+              className="px-6 py-2 bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-300 dark:hover:bg-zinc-600 disabled:bg-zinc-300 disabled:cursor-not-allowed transition-colors"
             >
               Clear
             </button>
