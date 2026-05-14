@@ -122,6 +122,9 @@ export function InquiryConversationModal({ isOpen, onClose, inquiry, currentUser
       <div className="flex flex-col">
         {/* Item info */}
         <div className="p-4 border-b border-zinc-200 dark:border-zinc-700">
+          <p className="font-bold text-lg text-zinc-900 dark:text-zinc-100 mb-1">
+            {inquiry.user?.name || 'You'}
+          </p>
           <p className="text-sm text-zinc-600 dark:text-zinc-400">Item: {inquiry.item}</p>
         </div>
 
@@ -131,9 +134,6 @@ export function InquiryConversationModal({ isOpen, onClose, inquiry, currentUser
           <div className="flex flex-col space-y-1 items-start">
             <div className="flex items-center space-x-2">
               <ProfilePhoto user={inquiry.user} />
-              <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
-                {inquiry.user?.name || 'You'}
-              </span>
               <span className="text-xs text-zinc-500 dark:text-zinc-400">
                 {new Date(inquiry.createdAt).toLocaleString()}
               </span>
@@ -157,17 +157,11 @@ export function InquiryConversationModal({ isOpen, onClose, inquiry, currentUser
                     <span className="text-xs text-zinc-500 dark:text-zinc-400">
                       {new Date(reply.createdAt).toLocaleString()}
                     </span>
-                    <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
-                      {reply.author?.name || 'You'}
-                    </span>
                     <ProfilePhoto user={reply.author} />
                   </>
                 ) : (
                   <>
                     <ProfilePhoto user={reply.author} />
-                    <span className="text-sm font-medium text-zinc-900 dark:text-zinc-100">
-                      {reply.author?.name || 'Shop Owner'}
-                    </span>
                     <span className="text-xs text-zinc-500 dark:text-zinc-400">
                       {new Date(reply.createdAt).toLocaleString()}
                     </span>
