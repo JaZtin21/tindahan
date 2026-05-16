@@ -62,6 +62,8 @@ export function OwnerPage() {
     ),
   });
 
+  console.log(items)
+
   // Wrapper for edit item that opens edit form
   const handleEditItem = useCallback((_shopId: string, itemId: string) => {
     const item = items.find((i) => i.id === itemId);
@@ -84,18 +86,10 @@ export function OwnerPage() {
     setActiveTab('inventory');
   }, []);
 
-  // Debug logging
-  useEffect(() => {
-    console.log('DEBUG - selectedShop:', selectedShop?.id, selectedShop?.name);
-    console.log('DEBUG - items count:', items.length);
-    console.log('DEBUG - items:', items.map(i => ({ id: i.id, name: i.name, shopId: i.shopId })));
-  }, [selectedShop, items]);
-
   // Update shopWithInventory when selectedShop or items change
   useEffect(() => {
     if (selectedShop) {
       const shopItems = items.filter((item) => item.shopId === selectedShop.id);
-      console.log('DEBUG - filtered shopItems:', shopItems.length, 'for shop', selectedShop.id);
       setShopWithInventory({
         ...selectedShop,
         inventory: shopItems.map((item) => ({

@@ -411,20 +411,13 @@ func (r *OwnerResolver) GetOwnerItems(ctx context.Context, ownerId string, page,
 	// Collect all products from all stores
 	var allProducts []*domain.Product
 	var totalCount int64
-	seenProductIDs := make(map[primitive.ObjectID]bool)
 
 	for _, store := range stores {
 		products, count, err := r.productRepo.GetMyProducts(ctx, store.ID, 1, 1000)
 		if err != nil {
 			continue // Skip stores with errors
 		}
-		// Only add products that haven't been seen before (by ID, not name)
-		for _, product := range products {
-			if !seenProductIDs[product.ID] {
-				seenProductIDs[product.ID] = true
-				allProducts = append(allProducts, product)
-			}
-		}
+		allProducts = append(allProducts, products...)
 		totalCount += count
 	}
 
