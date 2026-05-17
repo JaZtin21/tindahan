@@ -3,13 +3,12 @@ import { gql } from '@apollo/client';
 // Auth GraphQL Queries and Mutations
 
 export const REFRESH_TOKEN_MUTATION = gql`
-  mutation RefreshToken($input: RefreshTokenInput!) {
-    refreshToken(input: $input) {
+  mutation RefreshToken {
+    refreshToken {
       success
       message
       data {
         accessToken
-        refreshToken
       }
     }
   }
@@ -35,17 +34,12 @@ export const GOOGLE_LOGIN_MUTATION = gql`
           isActive
         }
         accessToken
-        refreshToken
       }
     }
   }
 `;
 
 // Types for GraphQL
-export interface RefreshTokenInput {
-  refreshToken: string;
-}
-
 export interface GoogleLoginInput {
   credential: string;
   role?: 'CUSTOMER' | 'OWNER' | 'ADMIN';
@@ -66,7 +60,6 @@ export interface AuthResponse {
     isActive: boolean;
   };
   accessToken: string;
-  refreshToken: string;
 }
 
 export interface AuthPayload {

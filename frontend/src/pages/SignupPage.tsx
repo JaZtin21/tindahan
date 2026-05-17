@@ -4,7 +4,6 @@ import { useMutation } from '@apollo/client/react'
 import { GoogleLogin } from '@react-oauth/google'
 import { GOOGLE_LOGIN_MUTATION } from '../api/graphql/auth/auth-queries'
 import type { GoogleLoginResponse } from '../api/graphql/auth/auth-queries'
-import { TokenStorage } from '../utils/tokenStorage'
 
 export function SignupPage() {
   const navigate = useNavigate()
@@ -14,9 +13,8 @@ export function SignupPage() {
   const [googleLogin, { loading }] = useMutation<GoogleLoginResponse>(GOOGLE_LOGIN_MUTATION, {
     onCompleted: async (data) => {
       if (data?.googleLogin?.success && data?.googleLogin?.data) {
-        // Refresh token stored in IndexedDB (secure, works on iOS/Safari)
-        await TokenStorage.setRefreshToken(data.googleLogin.data.refreshToken)
-        // Note: Access token is NOT stored - it exists only in ApolloProvider memory
+        // Refresh token is stored in httpOnly secure same-site cookie by backend
+        // Access token is in response and will be stored in ApolloProvider memory
         navigate('/')
       } else {
         setError(data?.googleLogin?.message || 'Signup failed')

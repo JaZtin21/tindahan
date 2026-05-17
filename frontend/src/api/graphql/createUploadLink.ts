@@ -9,7 +9,7 @@ import type { CreateUploadLinkOptions, FileEntry } from '../../types/graphql';
  * Compatible with Vite and the graphql-multipart-request-spec.
  */
 export function createUploadLink(options: CreateUploadLinkOptions): ApolloLink {
-  const { uri, headers: defaultHeaders = {} } = options;
+  const { uri, headers: defaultHeaders = {}, credentials } = options;
 
   return new ApolloLink((operation: Operation) => {
     return new Observable((observer) => {
@@ -25,6 +25,7 @@ export function createUploadLink(options: CreateUploadLinkOptions): ApolloLink {
           ...defaultHeaders,
           ...contextHeaders,
         },
+        credentials: credentials || 'same-origin',
       };
 
       let body: BodyInit;

@@ -13,6 +13,7 @@ import (
 	"tindahan-backend/internal/tokenutil"
 	"tindahan-backend/repository"
 
+	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"golang.org/x/crypto/bcrypt"
@@ -78,6 +79,9 @@ func (r *AuthResolver) Login(ctx context.Context, email, password string) (map[s
 		}, err
 	}
 
+	// Set refresh token as secure same-site cookie
+	setRefreshTokenCookie(ctx, refreshToken)
+
 	return map[string]interface{}{
 		"success": true,
 		"message": "Login successful",
@@ -95,8 +99,7 @@ func (r *AuthResolver) Login(ctx context.Context, email, password string) (map[s
 				"createdAt":    user.CreatedAt.Format(time.RFC3339),
 				"updatedAt":    user.UpdatedAt.Format(time.RFC3339),
 			},
-			"accessToken":  accessToken,
-			"refreshToken": refreshToken,
+			"accessToken": accessToken,
 		},
 	}, nil
 }
@@ -173,6 +176,9 @@ func (r *AuthResolver) Signup(ctx context.Context, firstName, lastName, email, p
 		}, err
 	}
 
+	// Set refresh token as secure same-site cookie
+	setRefreshTokenCookie(ctx, refreshToken)
+
 	// Prepare response data with proper structure
 	responseData := map[string]interface{}{
 		"user": map[string]interface{}{
@@ -188,8 +194,7 @@ func (r *AuthResolver) Signup(ctx context.Context, firstName, lastName, email, p
 			"createdAt":    user.CreatedAt.Format(time.RFC3339),
 			"updatedAt":    user.UpdatedAt.Format(time.RFC3339),
 		},
-		"accessToken":  accessToken,
-		"refreshToken": refreshToken,
+		"accessToken": accessToken,
 	}
 
 	log.Printf("✅ SIGNUP SUCCESS: Response data prepared - user createdAt=%v", responseData["user"].(map[string]interface{})["createdAt"])
@@ -205,8 +210,18 @@ func (r *AuthResolver) Signup(ctx context.Context, firstName, lastName, email, p
 func (r *AuthResolver) RefreshToken(ctx context.Context, refreshToken string) (map[string]interface{}, error) {
 	log.Printf("🔍 REFRESH TOKEN: Starting token refresh")
 
+	// Get refresh token from cookie instead of input
+	refreshTokenFromCookie, err := getRefreshTokenFromCookie(ctx)
+	if err != nil {
+		log.Printf("❌ REFRESH TOKEN: Failed to get refresh token from cookie: %v", err)
+		return map[string]interface{}{
+			"success": false,
+			"message": "No refresh token cookie found",
+		}, nil
+	}
+
 	// Verify the refresh token and extract user info
-	claims, err := tokenutil.ValidateToken(refreshToken, r.jwtSecret)
+	claims, err := tokenutil.ValidateToken(refreshTokenFromCookie, r.jwtSecret)
 	if err != nil {
 		log.Printf("❌ REFRESH TOKEN: Invalid refresh token: %v", err)
 		return map[string]interface{}{
@@ -241,14 +256,16 @@ func (r *AuthResolver) RefreshToken(ctx context.Context, refreshToken string) (m
 		}, err
 	}
 
+	// Set new refresh token as cookie
+	setRefreshTokenCookie(ctx, newRefreshToken)
+
 	log.Printf("✅ REFRESH TOKEN: New tokens generated successfully")
 
 	return map[string]interface{}{
 		"success": true,
 		"message": "Token refreshed successfully",
 		"data": map[string]interface{}{
-			"accessToken":  newAccessToken,
-			"refreshToken": newRefreshToken,
+			"accessToken": newAccessToken,
 		},
 	}, nil
 }
@@ -298,6 +315,9 @@ func (r *AuthResolver) GoogleLogin(ctx context.Context, credential, role string)
 		}, err
 	}
 
+	// Set refresh token as secure same-site cookie
+	setRefreshTokenCookie(ctx, refreshToken)
+
 	log.Printf("🔍 GOOGLE LOGIN RESPONSE: UserID=%s, ProfilePhoto='%s', CoverPhoto='%s'", user.ID.Hex(), user.ProfilePhoto, user.CoverPhoto)
 
 	return map[string]interface{}{
@@ -317,8 +337,7 @@ func (r *AuthResolver) GoogleLogin(ctx context.Context, credential, role string)
 				"createdAt":    user.CreatedAt.Format(time.RFC3339),
 				"updatedAt":    user.UpdatedAt.Format(time.RFC3339),
 			},
-			"accessToken":  accessToken,
-			"refreshToken": refreshToken,
+			"accessToken": accessToken,
 		},
 	}, nil
 }
@@ -430,4 +449,49 @@ func splitName(name string) []string {
 		parts = append(parts, name[start:])
 	}
 	return parts
+}
+
+// setRefreshTokenCookie sets the refresh token as a secure same-site cookie
+func setRefreshTokenCookie(ctx context.Context, token string) {
+	// Get the Gin context from the GraphQL context
+	ginCtx, ok := ctx.Value("ginContext").(*gin.Context)
+	if !ok {
+		log.Printf("❌ Failed to get Gin context for setting cookie")
+		return
+	}
+
+	// Determine if we're in development (localhost) or production
+	isDevelopment := ginCtx.Request.Host == "localhost:8080" ||
+		ginCtx.Request.Host == "127.0.0.1:8080" ||
+		ginCtx.Request.Host == "localhost:3000" ||
+		ginCtx.Request.Host == "127.0.0.1:3000"
+
+	// Set the refresh token as a secure, httpOnly, same-site cookie
+	// Secure flag is false for development (localhost), true for production
+	http.SetCookie(ginCtx.Writer, &http.Cookie{
+		Name:     "refresh_token",
+		Value:    token,
+		Path:     "/",
+		MaxAge:   7 * 24 * 60 * 60,     // 7 days
+		Secure:   !isDevelopment,       // HTTPS only (false for localhost)
+		HttpOnly: true,                 // Not accessible via JavaScript
+		SameSite: http.SameSiteLaxMode, // Lax mode for better compatibility
+	})
+	log.Printf("✅ Refresh token set as secure cookie (development=%v)", isDevelopment)
+}
+
+// getRefreshTokenFromCookie retrieves the refresh token from the cookie
+func getRefreshTokenFromCookie(ctx context.Context) (string, error) {
+	// Get the Gin context from the GraphQL context
+	ginCtx, ok := ctx.Value("ginContext").(*gin.Context)
+	if !ok {
+		return "", errors.New("failed to get Gin context")
+	}
+
+	cookie, err := ginCtx.Request.Cookie("refresh_token")
+	if err != nil {
+		return "", errors.New("refresh token cookie not found")
+	}
+
+	return cookie.Value, nil
 }

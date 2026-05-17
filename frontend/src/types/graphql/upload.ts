@@ -20,6 +20,8 @@ export interface CreateUploadLinkOptions {
   uri: string;
   /** Default headers to include with requests */
   headers?: Record<string, string>;
+  /** Credentials policy for requests (e.g., 'include' for cookies) */
+  credentials?: RequestCredentials;
 }
 
 /**

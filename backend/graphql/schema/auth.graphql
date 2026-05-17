@@ -8,7 +8,7 @@ extend type Query {
 extend type Mutation {
   login(input: LoginInput!): AuthPayload!
   signup(input: SignupInput!): AuthPayload!
-  refreshToken(input: RefreshTokenInput!): AuthPayload!
+  refreshToken: AuthPayload!
   googleLogin(input: GoogleLoginInput!): AuthPayload!
 }
 
@@ -37,7 +37,6 @@ type User {
 type AuthResponse {
   user: User!
   accessToken: String!
-  refreshToken: String!
 }
 
 type AuthPayload {
@@ -63,10 +62,6 @@ input SignupInput {
   email: String!
   password: String!
   role: UserRole
-}
-
-input RefreshTokenInput {
-  refreshToken: String!
 }
 
 input GoogleLoginInput {

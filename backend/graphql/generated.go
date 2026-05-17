@@ -44,9 +44,8 @@ type ComplexityRoot struct {
 	}
 
 	AuthResponse struct {
-		AccessToken  func(childComplexity int) int
-		RefreshToken func(childComplexity int) int
-		User         func(childComplexity int) int
+		AccessToken func(childComplexity int) int
+		User        func(childComplexity int) int
 	}
 
 	BusinessHours struct {
@@ -218,7 +217,7 @@ type ComplexityRoot struct {
 		GoogleLogin         func(childComplexity int, input GoogleLoginInput) int
 		LikePost            func(childComplexity int, id string) int
 		Login               func(childComplexity int, input LoginInput) int
-		RefreshToken        func(childComplexity int, input RefreshTokenInput) int
+		RefreshToken        func(childComplexity int) int
 		ReplyToInquiry      func(childComplexity int, input ReplyToInquiryInput) int
 		Signup              func(childComplexity int, input SignupInput) int
 		UnfollowUser        func(childComplexity int, userID string) int
@@ -426,7 +425,7 @@ type ComplexityRoot struct {
 type MutationResolver interface {
 	Login(ctx context.Context, input LoginInput) (*AuthPayload, error)
 	Signup(ctx context.Context, input SignupInput) (*AuthPayload, error)
-	RefreshToken(ctx context.Context, input RefreshTokenInput) (*AuthPayload, error)
+	RefreshToken(ctx context.Context) (*AuthPayload, error)
 	GoogleLogin(ctx context.Context, input GoogleLoginInput) (*AuthPayload, error)
 	CreateInquiry(ctx context.Context, input CreateInquiryInput) (*InquiryPayload, error)
 	ReplyToInquiry(ctx context.Context, input ReplyToInquiryInput) (*InquiryReplyPayload, error)
@@ -534,12 +533,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.AuthResponse.AccessToken(childComplexity), true
-	case "AuthResponse.refreshToken":
-		if e.ComplexityRoot.AuthResponse.RefreshToken == nil {
-			break
-		}
-
-		return e.ComplexityRoot.AuthResponse.RefreshToken(childComplexity), true
 	case "AuthResponse.user":
 		if e.ComplexityRoot.AuthResponse.User == nil {
 			break
@@ -1322,12 +1315,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			break
 		}
 
-		args, err := ec.field_Mutation_refreshToken_args(ctx, rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.ComplexityRoot.Mutation.RefreshToken(childComplexity, args["input"].(RefreshTokenInput)), true
+		return e.ComplexityRoot.Mutation.RefreshToken(childComplexity), true
 	case "Mutation.replyToInquiry":
 		if e.ComplexityRoot.Mutation.ReplyToInquiry == nil {
 			break
@@ -2486,7 +2474,6 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputLoginInput,
 		ec.unmarshalInputPaymentMethodsInput,
 		ec.unmarshalInputProductSearchInput,
-		ec.unmarshalInputRefreshTokenInput,
 		ec.unmarshalInputReplyToInquiryInput,
 		ec.unmarshalInputShopSearchInput,
 		ec.unmarshalInputSignupInput,
@@ -2806,17 +2793,6 @@ func (ec *executionContext) field_Mutation_login_args(ctx context.Context, rawAr
 	var err error
 	args := map[string]any{}
 	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNLoginInput2tindahanᚑbackendᚋgraphqlᚐLoginInput)
-	if err != nil {
-		return nil, err
-	}
-	args["input"] = arg0
-	return args, nil
-}
-
-func (ec *executionContext) field_Mutation_refreshToken_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
-	var err error
-	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNRefreshTokenInput2tindahanᚑbackendᚋgraphqlᚐRefreshTokenInput)
 	if err != nil {
 		return nil, err
 	}
@@ -3601,8 +3577,6 @@ func (ec *executionContext) fieldContext_AuthPayload_data(_ context.Context, fie
 				return ec.fieldContext_AuthResponse_user(ctx, field)
 			case "accessToken":
 				return ec.fieldContext_AuthResponse_accessToken(ctx, field)
-			case "refreshToken":
-				return ec.fieldContext_AuthResponse_refreshToken(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type AuthResponse", field.Name)
 		},
@@ -3696,35 +3670,6 @@ func (ec *executionContext) _AuthResponse_accessToken(ctx context.Context, field
 }
 
 func (ec *executionContext) fieldContext_AuthResponse_accessToken(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "AuthResponse",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _AuthResponse_refreshToken(ctx context.Context, field graphql.CollectedField, obj *AuthResponse) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_AuthResponse_refreshToken,
-		func(ctx context.Context) (any, error) {
-			return obj.RefreshToken, nil
-		},
-		nil,
-		ec.marshalNString2string,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_AuthResponse_refreshToken(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "AuthResponse",
 		Field:      field,
@@ -6944,8 +6889,7 @@ func (ec *executionContext) _Mutation_refreshToken(ctx context.Context, field gr
 		field,
 		ec.fieldContext_Mutation_refreshToken,
 		func(ctx context.Context) (any, error) {
-			fc := graphql.GetFieldContext(ctx)
-			return ec.Resolvers.Mutation().RefreshToken(ctx, fc.Args["input"].(RefreshTokenInput))
+			return ec.Resolvers.Mutation().RefreshToken(ctx)
 		},
 		nil,
 		ec.marshalNAuthPayload2ᚖtindahanᚑbackendᚋgraphqlᚐAuthPayload,
@@ -6954,7 +6898,7 @@ func (ec *executionContext) _Mutation_refreshToken(ctx context.Context, field gr
 	)
 }
 
-func (ec *executionContext) fieldContext_Mutation_refreshToken(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Mutation_refreshToken(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Mutation",
 		Field:      field,
@@ -6971,17 +6915,6 @@ func (ec *executionContext) fieldContext_Mutation_refreshToken(ctx context.Conte
 			}
 			return nil, fmt.Errorf("no field named %q was found under type AuthPayload", field.Name)
 		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_refreshToken_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return fc, err
 	}
 	return fc, nil
 }
@@ -16167,36 +16100,6 @@ func (ec *executionContext) unmarshalInputProductSearchInput(ctx context.Context
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputRefreshTokenInput(ctx context.Context, obj any) (RefreshTokenInput, error) {
-	var it RefreshTokenInput
-	if obj == nil {
-		return it, nil
-	}
-
-	asMap := map[string]any{}
-	for k, v := range obj.(map[string]any) {
-		asMap[k] = v
-	}
-
-	fieldsInOrder := [...]string{"refreshToken"}
-	for _, k := range fieldsInOrder {
-		v, ok := asMap[k]
-		if !ok {
-			continue
-		}
-		switch k {
-		case "refreshToken":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("refreshToken"))
-			data, err := ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.RefreshToken = data
-		}
-	}
-	return it, nil
-}
-
 func (ec *executionContext) unmarshalInputReplyToInquiryInput(ctx context.Context, obj any) (ReplyToInquiryInput, error) {
 	var it ReplyToInquiryInput
 	if obj == nil {
@@ -16975,11 +16878,6 @@ func (ec *executionContext) _AuthResponse(ctx context.Context, sel ast.Selection
 			}
 		case "accessToken":
 			out.Values[i] = ec._AuthResponse_accessToken(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "refreshToken":
-			out.Values[i] = ec._AuthResponse_refreshToken(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -20676,11 +20574,6 @@ func (ec *executionContext) marshalNPostPayload2ᚖtindahanᚑbackendᚋgraphql�
 		return graphql.Null
 	}
 	return ec._PostPayload(ctx, sel, v)
-}
-
-func (ec *executionContext) unmarshalNRefreshTokenInput2tindahanᚑbackendᚋgraphqlᚐRefreshTokenInput(ctx context.Context, v any) (RefreshTokenInput, error) {
-	res, err := ec.unmarshalInputRefreshTokenInput(ctx, v)
-	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalNReplyToInquiryInput2tindahanᚑbackendᚋgraphqlᚐReplyToInquiryInput(ctx context.Context, v any) (ReplyToInquiryInput, error) {

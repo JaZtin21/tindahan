@@ -1,6 +1,7 @@
 package route
 
 import (
+	"context"
 	"net/http"
 	"tindahan-backend/api/handlers/middleware"
 	"tindahan-backend/bootstrap"
@@ -78,6 +79,10 @@ func Setup(router *gin.Engine, app *bootstrap.Application) {
 		if c.IsAborted() {
 			return
 		}
+
+		// Inject Gin context into request context for resolvers
+		ctx := context.WithValue(c.Request.Context(), "ginContext", c)
+		c.Request = c.Request.WithContext(ctx)
 
 		// Serve GraphQL (WebSocket or HTTP)
 		if isWebSocket {

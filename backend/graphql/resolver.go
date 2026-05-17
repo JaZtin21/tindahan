@@ -160,8 +160,7 @@ func (r *mutationResolver) Login(ctx context.Context, input LoginInput) (*AuthPa
 				CreatedAt:    createdAt,
 				UpdatedAt:    &updatedAt,
 			},
-			AccessToken:  data["accessToken"].(string),
-			RefreshToken: data["refreshToken"].(string),
+			AccessToken: data["accessToken"].(string),
 		},
 	}, nil
 }
@@ -205,15 +204,14 @@ func (r *mutationResolver) Signup(ctx context.Context, input SignupInput) (*Auth
 				CreatedAt:    createdAt,
 				UpdatedAt:    &updatedAt,
 			},
-			AccessToken:  data["accessToken"].(string),
-			RefreshToken: data["refreshToken"].(string),
+			AccessToken: data["accessToken"].(string),
 		},
 	}, nil
 }
 
 // RefreshToken is the resolver for the refreshToken field.
-func (r *mutationResolver) RefreshToken(ctx context.Context, input RefreshTokenInput) (*AuthPayload, error) {
-	result, _ := r.authResolver.RefreshToken(ctx, input.RefreshToken)
+func (r *mutationResolver) RefreshToken(ctx context.Context) (*AuthPayload, error) {
+	result, _ := r.authResolver.RefreshToken(ctx, "")
 	if !result["success"].(bool) {
 		return &AuthPayload{
 			Success: false,
@@ -226,8 +224,7 @@ func (r *mutationResolver) RefreshToken(ctx context.Context, input RefreshTokenI
 		Success: result["success"].(bool),
 		Message: result["message"].(string),
 		Data: &AuthResponse{
-			AccessToken:  data["accessToken"].(string),
-			RefreshToken: data["refreshToken"].(string),
+			AccessToken: data["accessToken"].(string),
 		},
 	}, nil
 }
@@ -271,8 +268,7 @@ func (r *mutationResolver) GoogleLogin(ctx context.Context, input GoogleLoginInp
 				CreatedAt:    createdAt,
 				UpdatedAt:    &updatedAt,
 			},
-			AccessToken:  data["accessToken"].(string),
-			RefreshToken: data["refreshToken"].(string),
+			AccessToken: data["accessToken"].(string),
 		},
 	}, nil
 }

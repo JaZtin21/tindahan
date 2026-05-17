@@ -19,9 +19,8 @@ type AuthPayload struct {
 }
 
 type AuthResponse struct {
-	User         *User  `json:"user"`
-	AccessToken  string `json:"accessToken"`
-	RefreshToken string `json:"refreshToken"`
+	User        *User  `json:"user"`
+	AccessToken string `json:"accessToken"`
 }
 
 type BusinessHours struct {
@@ -347,10 +346,6 @@ type ProductSearchInput struct {
 }
 
 type Query struct {
-}
-
-type RefreshTokenInput struct {
-	RefreshToken string `json:"refreshToken"`
 }
 
 type ReplyToInquiryInput struct {
