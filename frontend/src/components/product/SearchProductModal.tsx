@@ -13,33 +13,39 @@ interface SearchProductModalProps {
 export function SearchProductModal({ isOpen, onClose, shopId }: SearchProductModalProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
-  const [minLoadingTimeElapsed, setMinLoadingTimeElapsed] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [minLoadingTimeElapsed, setMinLoadingTimeElapsed] = useState(true);
 
   // Debounce search term to avoid too many API calls
   useEffect(() => {
+    setMinLoadingTimeElapsed(false)
     const timer = setTimeout(() => {
       setDebouncedSearchTerm(searchTerm);
     }, 300);
-    return () => clearTimeout(timer);
+    
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [searchTerm]);
+  
+   useEffect(() => {
+    const customEllapseTimer = setTimeout(() => {
+      setMinLoadingTimeElapsed(true);
+    }, 1000);
+    
+    return () => {
+      clearTimeout(customEllapseTimer);
+    };
   }, [searchTerm]);
 
-  // Ensure minimum loading time of 300ms to prevent flashing
-  useEffect(() => {
-    if (debouncedSearchTerm && isOpen) {
-      setMinLoadingTimeElapsed(false);
-      const timer = setTimeout(() => {
-        setMinLoadingTimeElapsed(true);
-      }, 300);
-      return () => clearTimeout(timer);
-    }
-  }, [debouncedSearchTerm, isOpen]);
 
-  const { data, loading } = useQuery<{
+  //add onsucess function
+  const { data, loading,  } = useQuery<{
     items: {
       success: boolean;
       message: string;
       data: Item[];
-    };
+    }; 
   }>(ITEMS_QUERY, {
     variables: {
       input: {
@@ -76,16 +82,16 @@ export function SearchProductModal({ isOpen, onClose, shopId }: SearchProductMod
             <div className="flex items-center justify-center py-8">
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
             </div>
-          ) : searchTerm && items.length === 0 ? (
+          ) : !searchTerm && !loading ? (
+            <div className="text-center py-8 text-zinc-500 dark:text-zinc-400">
+              <p>Start searching for products</p>
+            </div> 
+          ) : !loading && items.length === 0 && minLoadingTimeElapsed ? (
             <div className="text-center py-8 text-zinc-500 dark:text-zinc-400">
               <p>No products found for "{searchTerm}"</p>
             </div>
-          ) : !searchTerm ? (
-            <div className="text-center py-8 text-zinc-500 dark:text-zinc-400">
-              <p>Type a product name to search</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
+          ) : items.length > 0 && minLoadingTimeElapsed && !loading ? (
+            <div className="space-y-3"> 
               {items.map((item) => (
                 <div
                   key={item.id}
@@ -123,7 +129,7 @@ export function SearchProductModal({ isOpen, onClose, shopId }: SearchProductMod
                 </div>
               ))}
             </div>
-          )}
+          ): null}
         </div>
       </div>
     </Modal>

@@ -79,9 +79,11 @@ export function TopNav() {
           <Link to="/map" className="hover:text-zinc-900 dark:hover:text-zinc-50">
             Map
           </Link>
-          <Link to="/owner" className="hover:text-zinc-900 dark:hover:text-zinc-50">
-            Owner
-          </Link>
+          {isAuthenticated && (
+            <Link to="/owner" className="hover:text-zinc-900 dark:hover:text-zinc-50">
+              Owner
+            </Link>
+          )}
           
           {isAuthenticated && userInfo ? (
             <div className="relative" ref={dropdownRef}>

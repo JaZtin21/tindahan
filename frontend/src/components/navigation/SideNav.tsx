@@ -37,7 +37,7 @@ type TabType = 'about' | 'reviews';
 export function SideNav({ isOpen, onClose, selectedLocation }: SideNavProps) {
   const dispatch = useDispatch();
   const isMobile = useIsMobile(768);
-  const { userInfo } = useAuth();
+  const { userInfo, isAuthenticated } = useAuth();
   
   // Tab state - always start on 'about'
   const [activeTab, setActiveTab] = useState<TabType>('about');
@@ -242,6 +242,7 @@ export function SideNav({ isOpen, onClose, selectedLocation }: SideNavProps) {
             onDeleteReview={handleDeleteReviewClick}
             onReviewsChange={handleReviewsChange}
             isMobile={false}
+            isAuthenticated={isAuthenticated}
             inquiryItem={inquiryItem}
             setInquiryItem={setInquiryItem}
             inquiryMessage={inquiryMessage}
@@ -279,6 +280,7 @@ export function SideNav({ isOpen, onClose, selectedLocation }: SideNavProps) {
             onDeleteReview={handleDeleteReviewClick}
             onReviewsChange={handleReviewsChange}
             isMobile={true}
+            isAuthenticated={isAuthenticated}
             inquiryItem={inquiryItem}
             setInquiryItem={setInquiryItem}
             inquiryMessage={inquiryMessage}
@@ -359,6 +361,7 @@ interface SideNavContentProps {
   onDeleteReview: (review: Review) => void;
   onReviewsChange: (actions: { refetchReviews: () => void; refetchStats: () => void; addReviewToCache: (r: Review) => void; removeReviewFromCache: (id: string) => void }) => void;
   isMobile?: boolean;
+  isAuthenticated: boolean;
   // Inquiry props
   inquiryItem: string;
   setInquiryItem: (value: string) => void;
@@ -386,6 +389,7 @@ function SideNavContent({
   onDeleteReview, 
   onReviewsChange, 
   isMobile = false,
+  isAuthenticated,
   inquiryItem,
   setInquiryItem,
   inquiryMessage,
@@ -462,8 +466,8 @@ function SideNavContent({
                     </div>
                   )}
                   
-                  {/* Inquiry Section - Only show for stores */}
-                  {isStore && selectedLocation.storeId && (
+                  {/* Inquiry Section - Only show for stores and authenticated users */}
+                  {isStore && selectedLocation.storeId && isAuthenticated && (
                     <div className="pt-4 border-t border-zinc-200 dark:border-zinc-700">
                       <h4 className="font-semibold text-zinc-900 dark:text-zinc-100 mb-3 flex items-center gap-2">
                         <span className="w-6 h-6 bg-orange-100 dark:bg-orange-900 rounded-full flex items-center justify-center text-sm">💬</span>

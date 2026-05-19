@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ShopCard, AddItemForm, InventoryTable, Tabs, Inquiries, ShopForm } from '../../components/owner';
 import { Modal } from '../../components';
 import { useItemManagement, useShopManagement } from '../../hooks';
@@ -18,6 +19,7 @@ export function OwnerPage() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('shops');
   const [selectedShop, setSelectedShop] = useState<Shop | null>(null);
   const { isLoading: authLoading, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
   const [modal, setModal] = useState<ModalState>({
     isOpen: false,
     type: 'success',
@@ -41,6 +43,13 @@ export function OwnerPage() {
   const showConfirm = (title: string, message: string, onConfirm: () => void) => {
     setModal({ isOpen: true, type: 'info', title, message, onConfirm, showCancel: true });
   };
+
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      navigate('/login');
+    }
+  }, [authLoading, isAuthenticated, navigate]);
 
   // Use custom hooks for data management
   const { shops, shopsLoading, shopsError, createShop, updateShop, deleteShop, createLoading, updateLoading, refreshShops } = useShopManagement({
