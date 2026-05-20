@@ -20,6 +20,7 @@ export interface Post {
   title?: string;
   text?: string;
   photos?: string[];
+  types?: string[];
   author?: {
     id: string;
     name: string;
@@ -62,15 +63,20 @@ export interface PostPreviewModalProps {
   onClose: () => void;
 }
 
-// Post type options
+// Post type options - Food classifications
 export const POST_TYPES = [
-  'Looking for',
-  'Selling',
-  'Recommendation',
-  'Review',
-  'Question',
-  'Announcement',
-  'Event',
-  'Service',
+  'Beverage',
+  'Snack',
+  'Sweets',
+  'Main Dish',
+  'Side Dish',
+  'Dessert',
+  'Bakery',
+  'Canned Goods',
+  'Condiments',
+  'Dairy',
+  'Frozen Food',
+  'Fruits',
+  'Vegetables',
   'Other'
 ] as const;

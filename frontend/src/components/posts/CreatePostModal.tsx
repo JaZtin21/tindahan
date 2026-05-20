@@ -44,7 +44,7 @@ function CreatePostModalInner({ isOpen, onClose, onSubmit, isSubmitting: externa
     const files = e.target.files;
     if (!files) return;
 
-    const newPhotos = Array.from(files).slice(0, 4 - photos.length); // Max 4 photos
+    const newPhotos = Array.from(files).slice(0, 5 - photos.length); // Max 5 photos
     const newPreviews = newPhotos.map(file => URL.createObjectURL(file));
 
     setPhotos(prev => [...prev, ...newPhotos]);
@@ -126,12 +126,12 @@ function CreatePostModalInner({ isOpen, onClose, onSubmit, isSubmitting: externa
       mobileBottomSheet
     >
       <div>
-          {/* Title input */}
+          {/* Food name input */}
           <input
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="Post title..."
+            placeholder="Food name..."
             className="w-full p-3 mb-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 font-medium"
           />
 

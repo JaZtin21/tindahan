@@ -158,13 +158,13 @@ function EditPostModalInner({ isOpen, onClose, post, onSuccess, onError }: EditP
         {/* Title */}
         <div>
           <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-            Title
+            Food name
           </label>
           <input
             type="text"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder="Enter post title..."
+            placeholder="Enter food name..."
             className="w-full px-4 py-3 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
             maxLength={200}
           />

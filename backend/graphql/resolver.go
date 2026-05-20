@@ -3282,13 +3282,26 @@ func (r *Resolver) docToPost(doc bson.M) *Post {
 		}
 	}
 
-	// Types
-	if types, ok := doc["types"].([]interface{}); ok {
-		post.Types = make([]string, 0, len(types))
-		for _, t := range types {
-			if s, ok := t.(string); ok {
-				post.Types = append(post.Types, s)
+	// Types - handle both []interface{} and primitive.A (bson array)
+	post.Types = []string{}
+	if typesRaw, ok := doc["types"]; ok {
+		switch types := typesRaw.(type) {
+		case []interface{}:
+			post.Types = make([]string, 0, len(types))
+			for _, t := range types {
+				if s, ok := t.(string); ok {
+					post.Types = append(post.Types, s)
+				}
 			}
+		case primitive.A:
+			post.Types = make([]string, 0, len(types))
+			for _, t := range types {
+				if s, ok := t.(string); ok {
+					post.Types = append(post.Types, s)
+				}
+			}
+		case []string:
+			post.Types = types
 		}
 	}
 

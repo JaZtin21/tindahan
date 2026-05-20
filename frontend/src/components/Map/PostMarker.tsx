@@ -2,6 +2,29 @@ import type { Post } from '../../types';
 import { optimizeCloudinaryUrl } from '../../utils/cloudinary';
 import { getPhotoGridHtml } from '../common/PhotoGallery';
 
+// Food type icon mapping using emoji for simplicity and colorful display
+const FOOD_TYPE_ICONS: Record<string, string> = {
+  'Beverage': '🥤',
+  'Snack': '🍿',
+  'Sweets': '🍬',
+  'Main Dish': '🍽️',
+  'Side Dish': '🥗',
+  'Dessert': '🍰',
+  'Bakery': '🥐',
+  'Canned Goods': '🥫',
+  'Condiments': '🧂',
+  'Dairy': '🥛',
+  'Frozen Food': '🧊',
+  'Fruits': '🍎',
+  'Vegetables': '🥦',
+  'Other': '🍴'
+};
+
+// Get icon for a food type
+export function getFoodTypeIcon(type: string): string {
+  return FOOD_TYPE_ICONS[type] || FOOD_TYPE_ICONS['Other'];
+}
+
 /**
  * Generate HTML for post bubble marker (the icon shown on map)
  * Uses PhotoGallery's getPhotoGridHtml for consistent grid layout
@@ -22,12 +45,21 @@ export function getPostBubbleHtml(post: Post): string {
     ? getPhotoGridHtml(post.photos, 'small') 
     : '';
 
+  // Generate food type icons HTML
+  const foodTypesHtml = post.types && post.types.length > 0
+    ? `<div class="food-type-icons">
+        ${post.types.slice(0, 2).map((type: string) => `<span class="food-type-icon">${getFoodTypeIcon(type)}</span>`).join('')}
+      
+      </div>`
+    : '';
+
   return `
     <div class="post-marker-wrapper">
       <div class="post-bubble-avatar-new">
         ${avatarHtml}
       </div>
       <div class="post-bubble-container">
+        ${foodTypesHtml}
         <div class="post-bubble-new">
           <div style="font-size: 13px; font-weight: 500; color: #333; line-height: 1.4; margin-bottom: 8px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis;">${shortText}</div>
           ${photosHtml}

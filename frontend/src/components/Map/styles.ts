@@ -547,6 +547,42 @@ export function getMapMarkerStyles(): string {
       color: #5f6368;
       font-size: 12px;
     }
+
+    /* Food type icons on post markers */
+    .food-type-icons {
+      position: absolute;
+      top: -8px;
+      right: -8px;
+      display: flex;
+      gap: 2px;
+      z-index: 20;
+      background: white;
+      border-radius: 12px;
+      padding: 2px 4px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+      border: 1px solid #e0e0e0;
+    }
+
+    .food-type-icon {
+      font-size: 14px;
+      line-height: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .food-type-icon-more {
+      font-size: 10px;
+      font-weight: 600;
+      color: #666;
+      background: #f0f0f0;
+      border-radius: 50%;
+      width: 16px;
+      height: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
   `;
 }
 

@@ -118,11 +118,11 @@ export function PhotoGallery({ photos, className = '', maxDisplay = 6, size = 'l
   return (
     <div className={className}>
       <div className={`grid gap-1 rounded-xl overflow-hidden ${
-        photos.length === 1 ? `grid-cols-1 ${size === 'large' ? 'h-72 lg:h-96' : size === 'medium' ? 'h-48 lg:h-64' : 'h-20'}` :
-        photos.length === 2 ? `grid-cols-2 ${size === 'large' ? 'h-72 lg:h-96' : size === 'medium' ? 'h-48 lg:h-64' : 'h-20'}` :
-        photos.length === 3 ? `grid-cols-2 grid-rows-2 ${size === 'large' ? 'h-72 lg:h-96' : size === 'medium' ? 'h-48 lg:h-64' : 'h-20'}` :
-        photos.length === 4 ? `grid-cols-2 grid-rows-2 ${size === 'large' ? 'h-72 lg:h-96' : size === 'medium' ? 'h-48 lg:h-64' : 'h-20'}` :
-        `grid-cols-3 grid-rows-2 ${size === 'large' ? 'h-72 lg:h-96' : size === 'medium' ? 'h-48 lg:h-64' : 'h-20'}`
+        photos.length === 1 ? `grid-cols-1 ${size === 'large' ? 'h-72 lg:h-96' : size === 'medium' ? 'h-48 lg:h-64' : 'h-40'}` :
+        photos.length === 2 ? `grid-cols-2 ${size === 'large' ? 'h-72 lg:h-96' : size === 'medium' ? 'h-48 lg:h-64' : 'h-40'}` :
+        photos.length === 3 ? `grid-cols-2 grid-rows-2 ${size === 'large' ? 'h-72 lg:h-96' : size === 'medium' ? 'h-48 lg:h-64' : 'h-40'}` :
+        photos.length === 4 ? `grid-cols-2 grid-rows-2 ${size === 'large' ? 'h-72 lg:h-96' : size === 'medium' ? 'h-48 lg:h-64' : 'h-40'}` :
+        `grid-cols-2 grid-rows-2 ${size === 'large' ? 'h-72 lg:h-96' : size === 'medium' ? 'h-48 lg:h-64' : 'h-40'}`
       }`}>
         {photos.slice(0, Math.min(maxDisplay, 4)).map((photo, index) => {
           const isLastVisible = index === 3 && photos.length > 4;
