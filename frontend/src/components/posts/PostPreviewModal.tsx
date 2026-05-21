@@ -18,11 +18,14 @@ import { Modal, DropdownMenu, DropdownItem } from '../common/Modal';
 function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: PostPreviewModalProps & { onEdit?: (post: Post) => void; onDelete?: (post: Post) => void }) {
   const navigate = useNavigate();
   const currentUser = useSelector((state: RootState) => state.user);
-  
+
+  // Track the current post ID to prevent race conditions
+  const currentPostIdRef = useRef<string | null>(post?.id || null);
+
   // Like state
   const [isLiked, setIsLiked] = useState(post?.isLiked || false);
   const [likesCount, setLikesCount] = useState(post?.likes || 0);
-  
+
   // Comments state
   const [comments, setComments] = useState<Comment[]>([]);
   const [commentPage, setCommentPage] = useState(1);
@@ -30,20 +33,20 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
   const [commentText, setCommentText] = useState('');
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
   const [localCommentCount, setLocalCommentCount] = useState(post?.commentCount || 0);
-  
+
   // Track if like mutation is pending to prevent POST_QUERY from overriding
   const likePendingRef = useRef(false);
-  
+
   // Mutations
   const [likePost] = useMutation(LIKE_POST_MUTATION);
   const [unlikePost] = useMutation(UNLIKE_POST_MUTATION);
   const [addComment] = useMutation(ADD_COMMENT_MUTATION);
   const [deleteComment] = useMutation(DELETE_COMMENT_MUTATION);
-  
+
   // Dropdown menu state
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-  
+
   // Close menu when clicking outside
   useEffect(() => {
     if (!showMenu) return;
@@ -55,60 +58,71 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showMenu]);
-  
-  // Fetch fresh post details when modal opens (to get correct likes/isLiked)
-  const { data: postData } = useQuery(POST_QUERY, {
+
+  // Reset state when post changes or modal closes
+  useEffect(() => {
+    if (!isOpen || !post?.id) {
+      // Reset state when modal closes
+      setComments([]);
+      setCommentPage(1);
+      setHasMoreComments(false);
+      setCommentText('');
+      setIsSubmittingComment(false);
+      setLocalCommentCount(0);
+      currentPostIdRef.current = null;
+      return;
+    }
+
+    // If post ID changed, reset state for new post
+    if (currentPostIdRef.current !== post.id) {
+      currentPostIdRef.current = post.id;
+      setComments([]);
+      setCommentPage(1);
+      setHasMoreComments(false);
+      setCommentText('');
+      setIsSubmittingComment(false);
+      setLocalCommentCount(post?.commentCount || 0);
+      setIsLiked(post?.isLiked || false);
+      setLikesCount(post?.likes || 0);
+    }
+  }, [isOpen, post?.id]);
+
+  // Fetch fresh post details when modal opens
+  const { data: postData, loading: postLoading } = useQuery(POST_QUERY, {
     variables: { id: post?.id },
     skip: !isOpen || !post?.id,
     fetchPolicy: 'network-only',
   });
-  
+
   // Update likes from fresh post data (but not if mutation is pending)
   useEffect(() => {
-    if (postData?.post?.data && !likePendingRef.current) {
+    if (postData?.post?.data && !likePendingRef.current && currentPostIdRef.current === post?.id) {
       const freshPost = postData.post.data;
       setIsLiked(freshPost.isLiked || false);
       setLikesCount(freshPost.likes || 0);
     }
-  }, [postData]);
-  
-  // Fetch comments - initial load only
-  const [fetchComments, { data: commentsData }] = useLazyQuery(COMMENTS_QUERY, {
+  }, [postData, post?.id]);
+
+  // Fetch comments - use lazy query with proper dependencies
+  const [fetchComments, { data: commentsData, loading: commentsLoading }] = useLazyQuery(COMMENTS_QUERY, {
     fetchPolicy: 'network-only',
   });
-  
-  // Clear comments when post changes
+
+  // Load comments when modal opens with a post
   useEffect(() => {
-    if (post?.id) {
-      setComments([]);
-      setCommentPage(1);
-      setHasMoreComments(false);
-    }
-  }, [post?.id]);
-  
-  // Load comments when modal opens
-  useEffect(() => {
-    if (isOpen && post?.id) {
+    if (isOpen && post?.id && currentPostIdRef.current === post.id) {
       fetchComments({ variables: { postId: post.id, page: 1, limit: 5 } });
     }
-  }, [isOpen, post?.id, fetchComments]);
-  
-  // Track current post to prevent race conditions
-  const currentPostIdRef = useRef(post?.id);
-  
-  useEffect(() => {
-    currentPostIdRef.current = post?.id;
-  }, [post?.id]);
-  
+  }, [isOpen, post?.id]);
+
   // Update comments when data changes - ONLY for current post
   useEffect(() => {
-    // Only update if data is for current post and we're on page 1
-    if (commentsData?.comments?.data && commentPage === 1 && currentPostIdRef.current === post?.id) {
+    if (commentsData?.comments?.data && currentPostIdRef.current === post?.id) {
       setComments(commentsData.comments.data);
       setHasMoreComments(commentsData.comments.hasMore);
       setLocalCommentCount(commentsData.comments.total || commentsData.comments.data.length);
     }
-  }, [commentsData, commentPage, post?.id]);
+  }, [commentsData, post?.id]);
 
   const isCurrentUser = post?.author?.id === currentUser?.id;
   
@@ -384,7 +398,7 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
         ) : 'Loading...'
       }
     >
-      {!post ? (
+      {!post || postLoading ? (
         <div className="p-6 text-center text-zinc-500">Loading...</div>
       ) : (
         <>

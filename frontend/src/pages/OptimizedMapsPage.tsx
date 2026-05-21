@@ -92,6 +92,7 @@ export function OptimizedMapsPage() {
   
   // Post preview modal state
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
+  const closePostTimeoutRef = useRef<number | null>(null);
   
   // Success/Error feedback modal state
   const [feedbackModal, setFeedbackModal] = useState<{ 
@@ -448,6 +449,11 @@ export function OptimizedMapsPage() {
     console.log('[OptimizedMapsPage] Post clicked:', post.id);
     console.log('[OptimizedMapsPage] Setting selectedPost:', post);
     console.log('[OptimizedMapsPage] Setting isPostPreviewOpen to true');
+    // Clear any pending timeout that would clear selectedPost
+    if (closePostTimeoutRef.current) {
+      clearTimeout(closePostTimeoutRef.current);
+      closePostTimeoutRef.current = null;
+    }
     setSelectedPost(post);
     dispatch(openPostPreview(post.id));
   }, [dispatch]);
@@ -456,7 +462,7 @@ export function OptimizedMapsPage() {
   const handleClosePostPreview = useCallback(() => {
     dispatch(closePostPreview());
     // Delay clearing selectedPost to allow close animation to complete
-    setTimeout(() => setSelectedPost(null), 300);
+    closePostTimeoutRef.current = setTimeout(() => setSelectedPost(null), 300);
   }, [dispatch]);
 
   // Handle edit post
