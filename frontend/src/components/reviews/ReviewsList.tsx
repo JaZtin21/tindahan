@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@apollo/client/react';
 import { gql } from '@apollo/client';
 import type { Review, ReviewStats } from '../../types/review';
@@ -8,6 +8,7 @@ import { ReviewCard } from './ReviewCard';
 import { useAuth } from '../../api/graphql/apolloProviderWithAuth';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../../store';
+import { Loader2 } from 'lucide-react';
 
 interface ReviewsListProps {
   storeId: string;
@@ -23,10 +24,11 @@ interface ReviewsListProps {
 }
 
 export function ReviewsList({ storeId, onAddReview, onEditReview, onDeleteReview, onReviewsChange }: ReviewsListProps) {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated } = useAuth();
   const currentUser = useSelector((state: RootState) => state.user);
   const [page, setPage] = useState(1);
   const limit = 5;
+  const observerTarget = useRef<HTMLDivElement>(null);
 
   // Fetch reviews
   const { data: reviewsData, loading: reviewsLoading, refetch: refetchReviews, client } = useQuery(REVIEWS_BY_STORE_QUERY, {
@@ -121,7 +123,6 @@ export function ReviewsList({ storeId, onAddReview, onEditReview, onDeleteReview
   const reviews: Review[] = (reviewsData as { reviewsByStore?: { data?: Review[] } } | undefined)?.reviewsByStore?.data || [];
   const stats: ReviewStats | null = (statsData as { reviewStats?: ReviewStats } | undefined)?.reviewStats || null;
   const hasMore = (reviewsData as { reviewsByStore?: { hasMore?: boolean } } | undefined)?.reviewsByStore?.hasMore || false;
-  const total = (reviewsData as { reviewsByStore?: { total?: number } } | undefined)?.reviewsByStore?.total || 0;
 
   // Check if user has already reviewed
   const myReview = reviews.find(r => r.userId === currentUser?.id);
@@ -130,6 +131,29 @@ export function ReviewsList({ storeId, onAddReview, onEditReview, onDeleteReview
   const handleLoadMore = () => {
     setPage(prev => prev + 1);
   };
+
+  // IntersectionObserver for infinite scroll
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !reviewsLoading) {
+          handleLoadMore();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    const currentTarget = observerTarget.current;
+    if (currentTarget) {
+      observer.observe(currentTarget);
+    }
+
+    return () => {
+      if (currentTarget) {
+        observer.unobserve(currentTarget);
+      }
+    };
+  }, [hasMore, reviewsLoading]);
 
   const renderRatingBar = (count: number, total: number, label: string) => {
     const percentage = total > 0 ? (count / total) * 100 : 0;
@@ -237,14 +261,15 @@ export function ReviewsList({ storeId, onAddReview, onEditReview, onDeleteReview
               />
             ))}
 
-            {/* Load More */}
+            {/* Infinite Scroll Observer Target */}
             {hasMore && (
-              <button
-                onClick={handleLoadMore}
-                className="w-full py-2 text-sm text-emerald-600 dark:text-emerald-400 font-medium hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg transition-colors"
-              >
-                Load more reviews
-              </button>
+              <div ref={observerTarget} className="py-4">
+                {reviewsLoading && page > 1 && (
+                  <div className="flex justify-center">
+                    <Loader2 className="h-6 w-6 animate-spin text-emerald-500" />
+                  </div>
+                )}
+              </div>
             )}
           </>
         )}
