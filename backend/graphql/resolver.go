@@ -2798,6 +2798,44 @@ func (r *queryResolver) Users(ctx context.Context, page *int, limit *int) ([]*Us
 	return users, nil
 }
 
+// UsersByIds is the resolver for the usersByIds field.
+func (r *queryResolver) UsersByIds(ctx context.Context, ids []string) ([]*User, error) {
+	userRepo := repository.NewUserRepository(r.db)
+	objectIDs := make([]primitive.ObjectID, 0, len(ids))
+
+	for _, id := range ids {
+		objID, err := primitive.ObjectIDFromHex(id)
+		if err != nil {
+			continue // Skip invalid IDs
+		}
+		objectIDs = append(objectIDs, objID)
+	}
+
+	if len(objectIDs) == 0 {
+		return []*User{}, nil
+	}
+
+	users, err := userRepo.GetUsersByIds(ctx, objectIDs)
+	if err != nil {
+		return []*User{}, nil
+	}
+
+	userResponses := make([]*User, len(users))
+	for i, user := range users {
+		name := user.FirstName + " " + user.LastName
+		userResponses[i] = &User{
+			ID:           user.ID.Hex(),
+			Name:         name,
+			FirstName:    user.FirstName,
+			LastName:     user.LastName,
+			Email:        user.Email,
+			ProfilePhoto: &user.ProfilePhoto,
+		}
+	}
+
+	return userResponses, nil
+}
+
 // Followers is the resolver for the followers field.
 func (r *queryResolver) Followers(ctx context.Context, userID string) ([]*User, error) {
 	targetUserObjID, err := primitive.ObjectIDFromHex(userID)

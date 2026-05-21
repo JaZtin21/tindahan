@@ -1,4 +1,4 @@
-import { useState, type ChangeEvent } from 'react'
+import { useState, useCallback, type ChangeEvent } from 'react'
 import { useParams } from 'react-router-dom'
 import { useSelector } from 'react-redux'
 import { useApolloClient } from '@apollo/client/react'
@@ -48,8 +48,8 @@ export function ProfilePage() {
   const profileData = isOwnProfile ? meData?.me?.data : userData?.user
   const profileLoading = isOwnProfile ? meLoading : userLoading
 
-  const { data: myPostsData, loading: myPostsLoading} = useMyPosts(1, 10, !isAuthenticated || !isOwnProfile)
-  const { data: userPostsData, loading: userPostsLoading} = useGetUserPosts(targetUserId || null, 1, 10, isOwnProfile || !targetUserId)
+  const { data: myPostsData, loading: myPostsLoading, fetchMore: fetchMoreMyPosts} = useMyPosts(1, 10, !isAuthenticated || !isOwnProfile)
+  const { data: userPostsData, loading: userPostsLoading, fetchMore: fetchMoreUserPosts} = useGetUserPosts(targetUserId || null, 1, 10, isOwnProfile || !targetUserId)
   const { updateProfile, loading: updating } = useUpdateProfile()
   const { uploadProfilePhoto, loading: uploadingProfile } = useUploadProfilePhoto()
   const { uploadCoverPhoto, loading: uploadingCover } = useUploadCoverPhoto()
@@ -66,6 +66,47 @@ export function ProfilePage() {
   })
 
   const [coverImgError, setCoverImgError] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
+
+  const handleLoadMore = useCallback(async () => {
+    if (loadingMore) return
+
+    const currentData = (isOwnProfile ? myPostsData : userPostsData) as any
+    const postsData = currentData?.[isOwnProfile ? 'myPosts' : 'userPosts']
+    const currentPage = postsData?.page || 1
+    const currentLimit = postsData?.limit || 10
+    const totalPosts = postsData?.total || 0
+    const loadedPosts = postsData?.data?.length || 0
+
+    if (loadedPosts >= totalPosts) return
+
+    setLoadingMore(true)
+    const fetchMore = isOwnProfile ? fetchMoreMyPosts : fetchMoreUserPosts
+
+    try {
+      await fetchMore({
+        variables: isOwnProfile
+          ? { page: currentPage + 1, limit: currentLimit }
+          : { userId: targetUserId, page: currentPage + 1, limit: currentLimit },
+        updateQuery: (prev: any, { fetchMoreResult }: any) => {
+          if (!fetchMoreResult) return prev
+          const newData = fetchMoreResult[isOwnProfile ? 'myPosts' : 'userPosts']
+          return {
+            [isOwnProfile ? 'myPosts' : 'userPosts']: {
+              ...prev[isOwnProfile ? 'myPosts' : 'userPosts'],
+              data: [...prev[isOwnProfile ? 'myPosts' : 'userPosts'].data, ...newData.data],
+              page: newData.page,
+              total: newData.total,
+            },
+          }
+        },
+      })
+    } catch (error) {
+      console.error('Error loading more posts:', error)
+    } finally {
+      setLoadingMore(false)
+    }
+  }, [isOwnProfile, myPostsData, userPostsData, loadingMore, fetchMoreMyPosts, fetchMoreUserPosts, targetUserId])
 
   // Edit post modal state
   const [postToEdit, setPostToEdit] = useState<Post | null>(null)
@@ -91,9 +132,15 @@ export function ProfilePage() {
     message: '',
   })
 
-  const posts = isOwnProfile 
-    ? myPostsData?.myPosts?.data || [] 
+  const posts = isOwnProfile
+    ? myPostsData?.myPosts?.data || []
     : userPostsData?.userPosts?.data || []
+
+  const postsTotal = isOwnProfile
+    ? myPostsData?.myPosts?.total || 0
+    : userPostsData?.userPosts?.total || 0
+
+  const hasMorePosts = posts.length < postsTotal
 
   // Handle edit post
   const handleEditPost = (post: Post) => {
@@ -263,7 +310,7 @@ export function ProfilePage() {
       <ProfileInfoSection
         profile={profileData}
         uploadingProfile={uploadingProfile}
-        postsCount={posts.length}
+        postsCount={postsTotal}
         onProfilePhotoChange={handleProfilePhotoChange}
         onEditClick={handleEditClick}
         isViewOnly={!isOwnProfile}
@@ -283,6 +330,9 @@ export function ProfilePage() {
           setPreviewPost(post)
           setIsPreviewOpen(true)
         }}
+        onLoadMore={handleLoadMore}
+        loadingMore={loadingMore}
+        hasMore={hasMorePosts}
       />
 
       {/* Post Preview Modal */}

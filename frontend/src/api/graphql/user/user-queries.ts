@@ -21,6 +21,7 @@ export const GET_USER = gql`
       followersCount
       followingCount
       isFollowing
+      shops
       createdAt
       updatedAt
     }
@@ -92,6 +93,17 @@ export const USERS_QUERY = gql`
       createdAt
       updatedAt
       isActive
+    }
+  }
+`;
+
+export const GET_USERS_BY_IDS = gql`
+  query GetUsersByIds($ids: [ObjectID!]!) {
+    usersByIds(ids: $ids) {
+      id
+      name
+      profilePhoto
+      email
     }
   }
 `;

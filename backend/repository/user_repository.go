@@ -26,6 +26,7 @@ type UserRepository interface {
 	IsFollowing(ctx context.Context, userID, targetUserID primitive.ObjectID) (bool, error)
 	GetFollowers(ctx context.Context, userID primitive.ObjectID) ([]*domain.User, error)
 	GetFollowing(ctx context.Context, userID primitive.ObjectID) ([]*domain.User, error)
+	GetUsersByIds(ctx context.Context, userIDs []primitive.ObjectID) ([]*domain.User, error)
 }
 
 type userRepository struct {
@@ -269,6 +270,28 @@ func (r *userRepository) GetFollowing(ctx context.Context, userID primitive.Obje
 	}
 
 	cursor, err := r.collection.Find(ctx, bson.M{"_id": bson.M{"$in": targetUser.Following}})
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var users []*domain.User
+	for cursor.Next(ctx) {
+		var user domain.User
+		if err := cursor.Decode(&user); err != nil {
+			return nil, err
+		}
+		users = append(users, &user)
+	}
+	return users, nil
+}
+
+func (r *userRepository) GetUsersByIds(ctx context.Context, userIDs []primitive.ObjectID) ([]*domain.User, error) {
+	if len(userIDs) == 0 {
+		return []*domain.User{}, nil
+	}
+
+	cursor, err := r.collection.Find(ctx, bson.M{"_id": bson.M{"$in": userIDs}})
 	if err != nil {
 		return nil, err
 	}

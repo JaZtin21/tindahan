@@ -19,6 +19,7 @@ extend type Query {
   user(id: ObjectID!): User
   followers(userId: ObjectID!): [User!]!
   following(userId: ObjectID!): [User!]!
+  usersByIds(ids: [ObjectID!]!): [User!]!
 }
 
 input CreateUserInput {

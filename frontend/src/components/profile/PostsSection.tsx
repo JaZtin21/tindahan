@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import { Loader2 } from 'lucide-react'
 import type { PostsSectionProps, Post } from '../../types/profile'
 import { PostItem } from './PostItem'
@@ -7,14 +8,41 @@ interface ExtendedPostsSectionProps extends PostsSectionProps {
   onEditPost?: (post: Post) => void;
   onDeletePost?: (post: Post) => void;
   onPostClick?: (post: Post) => void;
+  onLoadMore?: () => void;
+  loadingMore?: boolean;
+  hasMore?: boolean;
 }
 
-export function PostsSection({ posts, postsLoading, profilePhoto, isMyPosts, onEditPost, onDeletePost, onPostClick }: ExtendedPostsSectionProps) {
+export function PostsSection({ posts, postsLoading, profilePhoto, isMyPosts, onEditPost, onDeletePost, onPostClick, onLoadMore, loadingMore, hasMore = true }: ExtendedPostsSectionProps) {
+  const observerTarget = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !loadingMore && !postsLoading) {
+          onLoadMore?.()
+        }
+      },
+      { threshold: 0.1 }
+    )
+
+    const currentTarget = observerTarget.current
+    if (currentTarget) {
+      observer.observe(currentTarget)
+    }
+
+    return () => {
+      if (currentTarget) {
+        observer.unobserve(currentTarget)
+      }
+    }
+  }, [hasMore, loadingMore, postsLoading, onLoadMore])
+
   return (
     <div className="mt-8 px-4 sm:px-6">
       <h2 className="mb-4 text-xl font-bold text-zinc-900 dark:text-white">Posts</h2>
 
-      {postsLoading ? (
+      {postsLoading && posts.length === 0 ? (
         <div className="flex justify-center py-8">
           <Loader2 className="h-6 w-6 animate-spin text-emerald-500" />
         </div>
@@ -26,9 +54,9 @@ export function PostsSection({ posts, postsLoading, profilePhoto, isMyPosts, onE
       ) : (
         <div className="space-y-4">
           {posts.map((post) => (
-            <PostItem 
-              key={post.id} 
-              post={post} 
+            <PostItem
+              key={post.id}
+              post={post}
               profilePhoto={profilePhoto}
               isMyPost={isMyPosts}
               onEdit={() => onEditPost?.(post)}
@@ -36,6 +64,15 @@ export function PostsSection({ posts, postsLoading, profilePhoto, isMyPosts, onE
               onClick={() => onPostClick?.(post)}
             />
           ))}
+          {hasMore && (
+            <div ref={observerTarget} className="py-4">
+              {loadingMore && (
+                <div className="flex justify-center">
+                  <Loader2 className="h-6 w-6 animate-spin text-emerald-500" />
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>
