@@ -470,7 +470,42 @@ func (r *mutationResolver) CreateItem(ctx context.Context, input CreateItemInput
 			Message: "Authentication required",
 		}, nil
 	}
-	result, err := r.ownerResolver.CreateItem(ctx, userID, input.ShopID, input.Name, input.Price, input.Stock, input.Description, input.Category)
+
+	// Upload cover photo to Cloudinary if provided
+	var coverPhotoURL string
+	if input.CoverPhoto != nil {
+		env := bootstrap.LoadEnv()
+		folder := env.CloudinaryFolder + "/" + userID + "/products"
+		uploader, err := imageutil.NewImageUploader(
+			env.CloudinaryCloudName,
+			env.CloudinaryAPIKey,
+			env.CloudinaryAPISecret,
+			folder,
+		)
+		if err != nil {
+			return &ItemPayload{
+				Success: false,
+				Message: "Failed to initialize image uploader: " + err.Error(),
+			}, nil
+		}
+
+		result, err := uploader.UploadImage(ctx, input.CoverPhoto.File, input.CoverPhoto.Filename)
+		if err != nil {
+			return &ItemPayload{
+				Success: false,
+				Message: "Failed to upload cover photo: " + err.Error(),
+			}, nil
+		}
+		coverPhotoURL = result.URL
+	}
+
+	// Use uploaded URL or default placeholder
+	finalCoverPhoto := coverPhotoURL
+	if finalCoverPhoto == "" {
+		finalCoverPhoto = "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=400"
+	}
+
+	result, err := r.ownerResolver.CreateItem(ctx, userID, input.ShopID, input.Name, input.Price, input.Stock, input.Description, input.Category, finalCoverPhoto)
 	if err != nil {
 		return &ItemPayload{
 			Success: false,
@@ -501,6 +536,12 @@ func (r *mutationResolver) CreateItem(ctx context.Context, input CreateItemInput
 		ratingPtr = &r
 	}
 
+	// Handle cover photo
+	var coverPhotoPtr *string
+	if coverPhoto, ok := data["coverPhoto"].(string); ok && coverPhoto != "" {
+		coverPhotoPtr = &coverPhoto
+	}
+
 	return &ItemPayload{
 		Success: result["success"].(bool),
 		Message: result["message"].(string),
@@ -513,6 +554,7 @@ func (r *mutationResolver) CreateItem(ctx context.Context, input CreateItemInput
 			Stock:       stock,
 			IsActive:    data["isActive"].(bool),
 			Rating:      ratingPtr,
+			CoverPhoto:  coverPhotoPtr,
 		},
 	}, nil
 }
@@ -525,6 +567,34 @@ func (r *mutationResolver) UpdateItem(ctx context.Context, id string, input Upda
 			Success: false,
 			Message: "Authentication required",
 		}, nil
+	}
+
+	// Upload new cover photo to Cloudinary if provided
+	var newCoverPhotoURL string
+	if input.NewCoverPhoto != nil {
+		env := bootstrap.LoadEnv()
+		folder := env.CloudinaryFolder + "/" + userID + "/products"
+		uploader, err := imageutil.NewImageUploader(
+			env.CloudinaryCloudName,
+			env.CloudinaryAPIKey,
+			env.CloudinaryAPISecret,
+			folder,
+		)
+		if err != nil {
+			return &ItemPayload{
+				Success: false,
+				Message: "Failed to initialize image uploader: " + err.Error(),
+			}, nil
+		}
+
+		result, err := uploader.UploadImage(ctx, input.NewCoverPhoto.File, input.NewCoverPhoto.Filename)
+		if err != nil {
+			return &ItemPayload{
+				Success: false,
+				Message: "Failed to upload cover photo: " + err.Error(),
+			}, nil
+		}
+		newCoverPhotoURL = result.URL
 	}
 
 	// Build update request with optional fields
@@ -544,6 +614,12 @@ func (r *mutationResolver) UpdateItem(ctx context.Context, id string, input Upda
 	if input.Stock != nil {
 		updates.Stock = input.Stock
 	}
+	if input.CoverPhoto != nil {
+		updates.ImageURL = input.CoverPhoto
+	}
+	if newCoverPhotoURL != "" {
+		updates.ImageURL = &newCoverPhotoURL
+	}
 
 	result, err := r.ownerResolver.UpdateItem(ctx, id, userID, updates)
 	if err != nil {
@@ -555,15 +631,22 @@ func (r *mutationResolver) UpdateItem(ctx context.Context, id string, input Upda
 
 	data := result["data"].(map[string]interface{})
 
+	// Handle cover photo
+	var coverPhotoPtr *string
+	if coverPhoto, ok := data["coverPhoto"].(string); ok && coverPhoto != "" {
+		coverPhotoPtr = &coverPhoto
+	}
+
 	return &ItemPayload{
 		Success: result["success"].(bool),
 		Message: result["message"].(string),
 		Data: &Item{
-			ID:       data["id"].(string),
-			Name:     data["name"].(string),
-			Price:    data["price"].(float64),
-			Stock:    data["stock"].(int),
-			IsActive: data["isActive"].(bool),
+			ID:         data["id"].(string),
+			Name:       data["name"].(string),
+			Price:      data["price"].(float64),
+			Stock:      data["stock"].(int),
+			IsActive:   data["isActive"].(bool),
+			CoverPhoto: coverPhotoPtr,
 		},
 	}, nil
 }
@@ -2205,7 +2288,12 @@ func (r *queryResolver) Items(ctx context.Context, input *ProductSearchInput) (*
 		limitVal = *input.Limit
 	}
 
-	result, _ := r.productResolver.Items(ctx, pageVal, limitVal, input.Query)
+	var shopId *string
+	if input != nil && input.ShopID != nil {
+		shopId = input.ShopID
+	}
+
+	result, _ := r.productResolver.Items(ctx, pageVal, limitVal, input.Query, shopId)
 	data := result["data"].([]map[string]interface{})
 	items := make([]*Item, len(data))
 	for i, itemMap := range data {
@@ -2232,6 +2320,11 @@ func (r *queryResolver) Items(ctx context.Context, input *ProductSearchInput) (*
 			Stock:    stockVal,
 			IsActive: getBoolValue(itemMap, "isActive"),
 		}
+
+		// Add cover photo if present
+		if coverPhoto, ok := itemMap["coverPhoto"].(string); ok && coverPhoto != "" {
+			items[i].CoverPhoto = &coverPhoto
+		}
 	}
 
 	return &ItemsPayload{
@@ -2242,7 +2335,7 @@ func (r *queryResolver) Items(ctx context.Context, input *ProductSearchInput) (*
 }
 
 // MyItems is the resolver for the myItems field.
-func (r *queryResolver) MyItems(ctx context.Context, page *int, limit *int) (*ItemsPayload, error) {
+func (r *queryResolver) MyItems(ctx context.Context, page *int, limit *int, shopId *string) (*ItemsPayload, error) {
 	pageVal := 1
 	limitVal := 10
 	if page != nil {
@@ -2252,7 +2345,7 @@ func (r *queryResolver) MyItems(ctx context.Context, page *int, limit *int) (*It
 		limitVal = *limit
 	}
 
-	result, _ := r.ownerResolver.GetOwnerItems(ctx, middleware.GetUserID(ctx), pageVal, limitVal)
+	result, _ := r.ownerResolver.GetOwnerItems(ctx, middleware.GetUserID(ctx), pageVal, limitVal, shopId)
 	data := result["data"].([]map[string]interface{})
 	items := make([]*Item, len(data))
 	for i, itemMap := range data {
@@ -2275,6 +2368,13 @@ func (r *queryResolver) MyItems(ctx context.Context, page *int, limit *int) (*It
 		if r, ok := itemMap["rating"].(float64); ok && r > 0 {
 			ratingPtr = &r
 		}
+
+		// Handle cover photo
+		var coverPhotoPtr *string
+		if coverPhoto, ok := itemMap["coverPhoto"].(string); ok && coverPhoto != "" {
+			coverPhotoPtr = &coverPhoto
+		}
+
 		items[i] = &Item{
 			ID:          itemMap["id"].(string),
 			Name:        itemMap["name"].(string),
@@ -2284,14 +2384,28 @@ func (r *queryResolver) MyItems(ctx context.Context, page *int, limit *int) (*It
 			Stock:       stock,
 			IsActive:    itemMap["isActive"].(bool),
 			Rating:      ratingPtr,
+			CoverPhoto:  coverPhotoPtr,
 			ShopID:      itemMap["shopId"].(string),
 		}
 	}
 
+	total := 0
+	if totalVal, ok := result["total"].(int64); ok {
+		total = int(totalVal)
+	}
+
+	totalPages := 1
+	if tpVal, ok := result["totalPages"].(int); ok {
+		totalPages = tpVal
+	}
+
 	return &ItemsPayload{
-		Success: result["success"].(bool),
-		Message: result["message"].(string),
-		Data:    items,
+		Success:    result["success"].(bool),
+		Message:    result["message"].(string),
+		Data:       items,
+		Total:      total,
+		Page:       pageVal,
+		TotalPages: totalPages,
 	}, nil
 }
 

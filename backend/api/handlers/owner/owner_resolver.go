@@ -380,7 +380,7 @@ func (r *OwnerResolver) DeleteShop(ctx context.Context, shopId, ownerId string) 
 }
 
 // GetOwnerItems retrieves all items for a specific owner (real DB implementation)
-func (r *OwnerResolver) GetOwnerItems(ctx context.Context, ownerId string, page, limit int) (map[string]interface{}, error) {
+func (r *OwnerResolver) GetOwnerItems(ctx context.Context, ownerId string, page, limit int, shopId *string) (map[string]interface{}, error) {
 	// Convert ownerId to ObjectID
 	ownerObjectID, err := primitive.ObjectIDFromHex(ownerId)
 	if err != nil {
@@ -390,7 +390,77 @@ func (r *OwnerResolver) GetOwnerItems(ctx context.Context, ownerId string, page,
 		}, err
 	}
 
-	// Get all stores owned by the owner
+	// If shopId is provided, fetch items for that specific shop only
+	if shopId != nil {
+		shopObjectID, err := primitive.ObjectIDFromHex(*shopId)
+		if err != nil {
+			return map[string]interface{}{
+				"success": false,
+				"message": "Invalid shop ID format",
+			}, err
+		}
+
+		// Verify the shop belongs to the owner
+		shop, err := r.storeRepo.GetStoreByID(ctx, shopObjectID)
+		if err != nil {
+			return map[string]interface{}{
+				"success": false,
+				"message": "Shop not found",
+			}, err
+		}
+
+		if shop.OwnerID != ownerObjectID {
+			return map[string]interface{}{
+				"success": false,
+				"message": "You do not have permission to view this shop's items",
+			}, nil
+		}
+
+		// Fetch products for this specific shop
+		products, totalCount, err := r.productRepo.GetMyProducts(ctx, shopObjectID, page, limit)
+		if err != nil {
+			return map[string]interface{}{
+				"success": false,
+				"message": "Failed to fetch shop items: " + err.Error(),
+			}, err
+		}
+
+		// Convert to response format
+		data := make([]map[string]interface{}, len(products))
+		for i, product := range products {
+			data[i] = map[string]interface{}{
+				"id":          product.ID.Hex(),
+				"name":        product.Name,
+				"price":       product.Price,
+				"description": product.Description,
+				"category":    product.Category,
+				"stock":       product.Stock,
+				"isActive":    product.IsActive,
+				"rating":      product.Rating,
+				"shopId":      product.StoreID.Hex(),
+				"coverPhoto":  product.CoverPhoto,
+				"createdAt":   product.CreatedAt.Format(time.RFC3339),
+				"updatedAt":   product.UpdatedAt.Format(time.RFC3339),
+			}
+		}
+
+		// Calculate total pages
+		totalPages := int(totalCount) / limit
+		if int(totalCount)%limit > 0 {
+			totalPages++
+		}
+
+		return map[string]interface{}{
+			"success":    true,
+			"message":    "Shop items retrieved successfully",
+			"data":       data,
+			"total":      totalCount,
+			"page":       page,
+			"totalPages": totalPages,
+		}, nil
+	}
+
+	// If no shopId provided, get all stores owned by the owner (original behavior)
 	stores, _, err := r.storeRepo.GetMyStores(ctx, ownerObjectID, 1, 1000)
 	if err != nil {
 		return map[string]interface{}{
@@ -453,16 +523,25 @@ func (r *OwnerResolver) GetOwnerItems(ctx context.Context, ownerId string, page,
 			"isActive":    product.IsActive,
 			"rating":      product.Rating,
 			"shopId":      product.StoreID.Hex(),
+			"coverPhoto":  product.CoverPhoto,
 			"createdAt":   product.CreatedAt.Format(time.RFC3339),
 			"updatedAt":   product.UpdatedAt.Format(time.RFC3339),
 		}
 	}
 
+	// Calculate total pages
+	totalPages := int(totalCount) / limit
+	if int(totalCount)%limit > 0 {
+		totalPages++
+	}
+
 	return map[string]interface{}{
-		"success": true,
-		"message": "Owner items retrieved successfully",
-		"data":    data,
-		"total":   totalCount,
+		"success":    true,
+		"message":    "Owner items retrieved successfully",
+		"data":       data,
+		"total":      totalCount,
+		"page":       page,
+		"totalPages": totalPages,
 	}, nil
 }
 
@@ -472,7 +551,7 @@ func (r *OwnerResolver) GetStoreByID(ctx context.Context, id primitive.ObjectID)
 }
 
 // CreateItem creates a new item for the owner (real DB implementation)
-func (r *OwnerResolver) CreateItem(ctx context.Context, ownerId, shopId string, name string, price float64, stock int, description, category string) (map[string]interface{}, error) {
+func (r *OwnerResolver) CreateItem(ctx context.Context, ownerId, shopId string, name string, price float64, stock int, description, category, coverPhoto string) (map[string]interface{}, error) {
 	// Convert shopId string to ObjectID
 	shopObjectID, err := primitive.ObjectIDFromHex(shopId)
 	if err != nil {
@@ -491,6 +570,7 @@ func (r *OwnerResolver) CreateItem(ctx context.Context, ownerId, shopId string, 
 		Price:       price,
 		Stock:       stock,
 		StoreID:     shopObjectID,
+		CoverPhoto:  coverPhoto,
 		IsActive:    true,
 		CreatedAt:   time.Now(),
 		UpdatedAt:   time.Now(),
@@ -517,6 +597,7 @@ func (r *OwnerResolver) CreateItem(ctx context.Context, ownerId, shopId string, 
 			"isActive":    product.IsActive,
 			"rating":      product.Rating,
 			"shopId":      shopId,
+			"coverPhoto":  product.CoverPhoto,
 			"createdAt":   product.CreatedAt.Format(time.RFC3339),
 			"updatedAt":   product.UpdatedAt.Format(time.RFC3339),
 		},
@@ -635,13 +716,14 @@ func (r *OwnerResolver) UpdateItem(ctx context.Context, itemId, ownerId string, 
 		"success": true,
 		"message": "Item updated successfully",
 		"data": map[string]interface{}{
-			"id":        updatedProduct.ID.Hex(),
-			"name":      updatedProduct.Name,
-			"price":     updatedProduct.Price,
-			"stock":     updatedProduct.Stock,
-			"isActive":  updatedProduct.IsActive,
-			"shopId":    updatedProduct.StoreID.Hex(),
-			"updatedAt": updatedProduct.UpdatedAt.Format(time.RFC3339),
+			"id":         updatedProduct.ID.Hex(),
+			"name":       updatedProduct.Name,
+			"price":      updatedProduct.Price,
+			"stock":      updatedProduct.Stock,
+			"isActive":   updatedProduct.IsActive,
+			"shopId":     updatedProduct.StoreID.Hex(),
+			"coverPhoto": updatedProduct.CoverPhoto,
+			"updatedAt":  updatedProduct.UpdatedAt.Format(time.RFC3339),
 		},
 	}, nil
 }

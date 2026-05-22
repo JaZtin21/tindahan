@@ -53,7 +53,7 @@ func (r *ProductResolver) Item(ctx context.Context, id string) (map[string]inter
 }
 
 // Items resolves the items query (for normal users browsing)
-func (r *ProductResolver) Items(ctx context.Context, page, limit int, query *string) (map[string]interface{}, error) {
+func (r *ProductResolver) Items(ctx context.Context, page, limit int, query *string, shopId *string) (map[string]interface{}, error) {
 	// Build search query
 	searchQuery := ""
 	if query != nil {
@@ -77,12 +77,20 @@ func (r *ProductResolver) Items(ctx context.Context, page, limit int, query *str
 		limit = 10
 	}
 
-	// Search all products (no filter to get public items)
-	products, _, err := r.productRepo.SearchProducts(ctx, &domain.ProductSearchRequest{
+	// Build search request
+	searchReq := &domain.ProductSearchRequest{
 		Query: searchQuery,
 		Page:  page,
 		Limit: limit,
-	})
+	}
+
+	// Add shopId filter if provided
+	if shopId != nil && *shopId != "" {
+		searchReq.StoreID = *shopId
+	}
+
+	// Search products
+	products, _, err := r.productRepo.SearchProducts(ctx, searchReq)
 	if err != nil {
 		return map[string]interface{}{
 			"success": false,

@@ -16,7 +16,6 @@ export const SHOP_QUERY = gql`
           lng
         }
         coverPhoto
-        otherPhotos
         businessHours {
           openTime
           closeTime
@@ -58,7 +57,6 @@ export const SHOP_QUERY = gql`
           subCategory
           stock
           coverPhoto
-          otherPhotos
           sku
           barcode
           weight
@@ -201,7 +199,6 @@ export const CREATE_SHOP_MUTATION = gql`
           lng
         }
         coverPhoto
-        otherPhotos
         businessHours {
           openTime
           closeTime
@@ -257,7 +254,6 @@ export const UPDATE_SHOP_MUTATION = gql`
           lng
         }
         coverPhoto
-        otherPhotos
         businessHours {
           openTime
           closeTime
@@ -357,7 +353,6 @@ export interface Shop {
   location: string;
   coordinates: Coordinates;
   coverPhoto: string;
-  otherPhotos: string[];
   businessHours: BusinessHours;
   businessType: 'SARI_SARI_STORE' | 'GROCERY' | 'CONVENIENCE_STORE' | 'MINI_MART';
   paymentMethods: PaymentMethods;
@@ -381,7 +376,6 @@ export interface Item {
   subCategory?: string;
   stock: number;
   coverPhoto: string;
-  otherPhotos: string[];
   sku?: string;
   barcode?: string;
   weight?: number;
@@ -418,7 +412,6 @@ export interface CreateShopInput {
   location: string;
   coordinates: Coordinates;
   coverPhoto: string;
-  otherPhotos: string[];
   businessHours: BusinessHours;
   businessType: 'SARI_SARI_STORE' | 'GROCERY' | 'CONVENIENCE_STORE' | 'MINI_MART';
   paymentMethods: PaymentMethods;

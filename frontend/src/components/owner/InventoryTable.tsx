@@ -1,6 +1,6 @@
 import type { InventoryTableProps } from '../../types/owner';
 
-export function InventoryTable({ shops, onEditItem, onDeleteItem }: InventoryTableProps) {
+export function InventoryTable({ shops, onEditItem, onDeleteItem, page, setPage, total, totalPages }: InventoryTableProps) {
   const getStockStatus = (stock: number) => {
     if (stock > 50) {
       return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
@@ -15,7 +15,12 @@ export function InventoryTable({ shops, onEditItem, onDeleteItem }: InventoryTab
     <div className="space-y-6">
       {shops.map(shop => (
         <div key={shop.id} className="bg-zinc-50 dark:bg-zinc-800 rounded-lg p-6 shadow-lg">
-          <h3 className="text-xl font-semibold mb-4">{shop.name}</h3>
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-xl font-semibold">{shop.name}</h3>
+            <span className="text-sm text-zinc-500 dark:text-zinc-400">
+              {total} total items
+            </span>
+          </div>
           <div className="overflow-x-auto">
             <table className="w-full whitespace-nowrap">
               <thead>
@@ -77,6 +82,29 @@ export function InventoryTable({ shops, onEditItem, onDeleteItem }: InventoryTab
               </tbody>
             </table>
           </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex justify-center gap-2 mt-6">
+              <button
+                onClick={() => setPage(Math.max(1, page - 1))}
+                disabled={page === 1}
+                className="px-3 py-1 bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-300 dark:hover:bg-zinc-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                Previous
+              </button>
+              <span className="px-3 py-1 text-zinc-600 dark:text-zinc-400">
+                Page {page} of {totalPages}
+              </span>
+              <button
+                onClick={() => setPage(Math.min(totalPages, page + 1))}
+                disabled={page === totalPages}
+                className="px-3 py-1 bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-300 dark:hover:bg-zinc-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                Next
+              </button>
+            </div>
+          )}
         </div>
       ))}
     </div>

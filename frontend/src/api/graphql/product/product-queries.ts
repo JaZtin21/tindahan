@@ -16,7 +16,6 @@ export const ITEM_QUERY = gql`
         subCategory
         stock
         coverPhoto
-        otherPhotos
         sku
         barcode
         weight
@@ -127,7 +126,6 @@ export const CREATE_ITEM_MUTATION = gql`
         subCategory
         stock
         coverPhoto
-        otherPhotos
         sku
         barcode
         weight
@@ -165,7 +163,6 @@ export const UPDATE_ITEM_MUTATION = gql`
         subCategory
         stock
         coverPhoto
-        otherPhotos
         sku
         barcode
         weight
@@ -212,7 +209,6 @@ export interface Item {
   subCategory?: string;
   stock: number;
   coverPhoto: string;
-  otherPhotos: string[];
   sku?: string;
   barcode?: string;
   weight?: number;
@@ -248,8 +244,7 @@ export interface CreateItemInput {
   category: string;
   subCategory?: string;
   stock: number;
-  coverPhoto: string;
-  otherPhotos: string[];
+  coverPhoto?: File;
   sku?: string;
   barcode?: string;
   weight?: number;
@@ -271,7 +266,7 @@ export interface UpdateItemInput {
   subCategory?: string;
   stock?: number;
   coverPhoto?: string;
-  otherPhotos?: string[];
+  newCoverPhoto?: File;
   sku?: string;
   barcode?: string;
   weight?: number;

@@ -3,7 +3,7 @@
 extend type Query {
   item(id: ObjectID!): ItemPayload
   items(input: ProductSearchInput): ItemsPayload
-  myItems(page: Int, limit: Int): ItemsPayload
+  myItems(page: Int, limit: Int, shopId: ObjectID): ItemsPayload
   topRatedItems(shopId: ObjectID!, limit: Int): ItemsPayload
 }
 
@@ -21,8 +21,7 @@ type Item {
   category: String!
   subCategory: String
   stock: Int!
-  coverPhoto: String!
-  otherPhotos: [String!]!
+  coverPhoto: String
   sku: String
   barcode: String
   weight: Float
@@ -55,6 +54,9 @@ type ItemsPayload {
   success: Boolean!
   message: String!
   data: [Item!]!
+  total: Int!
+  page: Int!
+  totalPages: Int!
 }
 
 input CreateItemInput {
@@ -64,8 +66,7 @@ input CreateItemInput {
   category: String!
   subCategory: String
   stock: Int!
-  coverPhoto: String!
-  otherPhotos: [String!]!
+  coverPhoto: Upload
   sku: String
   barcode: String
   weight: Float
@@ -87,7 +88,7 @@ input UpdateItemInput {
   subCategory: String
   stock: Int
   coverPhoto: String
-  otherPhotos: [String!]
+  newCoverPhoto: Upload
   sku: String
   barcode: String
   weight: Float

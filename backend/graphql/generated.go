@@ -167,7 +167,6 @@ type ComplexityRoot struct {
 		IsActive    func(childComplexity int) int
 		Name        func(childComplexity int) int
 		Origin      func(childComplexity int) int
-		OtherPhotos func(childComplexity int) int
 		Price       func(childComplexity int) int
 		Rating      func(childComplexity int) int
 		ShopID      func(childComplexity int) int
@@ -188,9 +187,12 @@ type ComplexityRoot struct {
 	}
 
 	ItemsPayload struct {
-		Data    func(childComplexity int) int
-		Message func(childComplexity int) int
-		Success func(childComplexity int) int
+		Data       func(childComplexity int) int
+		Message    func(childComplexity int) int
+		Page       func(childComplexity int) int
+		Success    func(childComplexity int) int
+		Total      func(childComplexity int) int
+		TotalPages func(childComplexity int) int
 	}
 
 	Location struct {
@@ -283,7 +285,7 @@ type ComplexityRoot struct {
 		Item               func(childComplexity int, id string) int
 		Items              func(childComplexity int, input *ProductSearchInput) int
 		Me                 func(childComplexity int) int
-		MyItems            func(childComplexity int, page *int, limit *int) int
+		MyItems            func(childComplexity int, page *int, limit *int, shopID *string) int
 		MyPosts            func(childComplexity int, page *int, limit *int) int
 		MyReviewForStore   func(childComplexity int, storeID string) int
 		MyShops            func(childComplexity int, page *int, limit *int) int
@@ -472,7 +474,7 @@ type QueryResolver interface {
 	Comments(ctx context.Context, postID string, page *int, limit *int) (*CommentsPayload, error)
 	Item(ctx context.Context, id string) (*ItemPayload, error)
 	Items(ctx context.Context, input *ProductSearchInput) (*ItemsPayload, error)
-	MyItems(ctx context.Context, page *int, limit *int) (*ItemsPayload, error)
+	MyItems(ctx context.Context, page *int, limit *int, shopID *string) (*ItemsPayload, error)
 	TopRatedItems(ctx context.Context, shopID string, limit *int) (*ItemsPayload, error)
 	ReviewsByStore(ctx context.Context, storeID string, page *int, limit *int) (*ReviewsPayload, error)
 	ReviewsByUser(ctx context.Context, userID string, page *int, limit *int) (*ReviewsPayload, error)
@@ -995,12 +997,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Item.Origin(childComplexity), true
-	case "Item.otherPhotos":
-		if e.ComplexityRoot.Item.OtherPhotos == nil {
-			break
-		}
-
-		return e.ComplexityRoot.Item.OtherPhotos(childComplexity), true
 	case "Item.price":
 		if e.ComplexityRoot.Item.Price == nil {
 			break
@@ -1099,12 +1095,30 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.ItemsPayload.Message(childComplexity), true
+	case "ItemsPayload.page":
+		if e.ComplexityRoot.ItemsPayload.Page == nil {
+			break
+		}
+
+		return e.ComplexityRoot.ItemsPayload.Page(childComplexity), true
 	case "ItemsPayload.success":
 		if e.ComplexityRoot.ItemsPayload.Success == nil {
 			break
 		}
 
 		return e.ComplexityRoot.ItemsPayload.Success(childComplexity), true
+	case "ItemsPayload.total":
+		if e.ComplexityRoot.ItemsPayload.Total == nil {
+			break
+		}
+
+		return e.ComplexityRoot.ItemsPayload.Total(childComplexity), true
+	case "ItemsPayload.totalPages":
+		if e.ComplexityRoot.ItemsPayload.TotalPages == nil {
+			break
+		}
+
+		return e.ComplexityRoot.ItemsPayload.TotalPages(childComplexity), true
 
 	case "Location.lat":
 		if e.ComplexityRoot.Location.Lat == nil {
@@ -1744,7 +1758,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.ComplexityRoot.Query.MyItems(childComplexity, args["page"].(*int), args["limit"].(*int)), true
+		return e.ComplexityRoot.Query.MyItems(childComplexity, args["page"].(*int), args["limit"].(*int), args["shopId"].(*string)), true
 	case "Query.myPosts":
 		if e.ComplexityRoot.Query.MyPosts == nil {
 			break
@@ -3139,6 +3153,11 @@ func (ec *executionContext) field_Query_myItems_args(ctx context.Context, rawArg
 		return nil, err
 	}
 	args["limit"] = arg1
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "shopId", ec.unmarshalOObjectID2ᚖstring)
+	if err != nil {
+		return nil, err
+	}
+	args["shopId"] = arg2
 	return args, nil
 }
 
@@ -5958,42 +5977,13 @@ func (ec *executionContext) _Item_coverPhoto(ctx context.Context, field graphql.
 			return obj.CoverPhoto, nil
 		},
 		nil,
-		ec.marshalNString2string,
+		ec.marshalOString2ᚖstring,
 		true,
-		true,
+		false,
 	)
 }
 
 func (ec *executionContext) fieldContext_Item_coverPhoto(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Item",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Item_otherPhotos(ctx context.Context, field graphql.CollectedField, obj *Item) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Item_otherPhotos,
-		func(ctx context.Context) (any, error) {
-			return obj.OtherPhotos, nil
-		},
-		nil,
-		ec.marshalNString2ᚕstringᚄ,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_Item_otherPhotos(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Item",
 		Field:      field,
@@ -6545,8 +6535,6 @@ func (ec *executionContext) fieldContext_ItemPayload_data(_ context.Context, fie
 				return ec.fieldContext_Item_stock(ctx, field)
 			case "coverPhoto":
 				return ec.fieldContext_Item_coverPhoto(ctx, field)
-			case "otherPhotos":
-				return ec.fieldContext_Item_otherPhotos(ctx, field)
 			case "sku":
 				return ec.fieldContext_Item_sku(ctx, field)
 			case "barcode":
@@ -6682,8 +6670,6 @@ func (ec *executionContext) fieldContext_ItemsPayload_data(_ context.Context, fi
 				return ec.fieldContext_Item_stock(ctx, field)
 			case "coverPhoto":
 				return ec.fieldContext_Item_coverPhoto(ctx, field)
-			case "otherPhotos":
-				return ec.fieldContext_Item_otherPhotos(ctx, field)
 			case "sku":
 				return ec.fieldContext_Item_sku(ctx, field)
 			case "barcode":
@@ -6716,6 +6702,93 @@ func (ec *executionContext) fieldContext_ItemsPayload_data(_ context.Context, fi
 				return ec.fieldContext_Item_shopId(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Item", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ItemsPayload_total(ctx context.Context, field graphql.CollectedField, obj *ItemsPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ItemsPayload_total,
+		func(ctx context.Context) (any, error) {
+			return obj.Total, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ItemsPayload_total(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ItemsPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ItemsPayload_page(ctx context.Context, field graphql.CollectedField, obj *ItemsPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ItemsPayload_page,
+		func(ctx context.Context) (any, error) {
+			return obj.Page, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ItemsPayload_page(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ItemsPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ItemsPayload_totalPages(ctx context.Context, field graphql.CollectedField, obj *ItemsPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ItemsPayload_totalPages,
+		func(ctx context.Context) (any, error) {
+			return obj.TotalPages, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ItemsPayload_totalPages(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ItemsPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
 		},
 	}
 	return fc, nil
@@ -9904,6 +9977,12 @@ func (ec *executionContext) fieldContext_Query_items(ctx context.Context, field 
 				return ec.fieldContext_ItemsPayload_message(ctx, field)
 			case "data":
 				return ec.fieldContext_ItemsPayload_data(ctx, field)
+			case "total":
+				return ec.fieldContext_ItemsPayload_total(ctx, field)
+			case "page":
+				return ec.fieldContext_ItemsPayload_page(ctx, field)
+			case "totalPages":
+				return ec.fieldContext_ItemsPayload_totalPages(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type ItemsPayload", field.Name)
 		},
@@ -9930,7 +10009,7 @@ func (ec *executionContext) _Query_myItems(ctx context.Context, field graphql.Co
 		ec.fieldContext_Query_myItems,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.Resolvers.Query().MyItems(ctx, fc.Args["page"].(*int), fc.Args["limit"].(*int))
+			return ec.Resolvers.Query().MyItems(ctx, fc.Args["page"].(*int), fc.Args["limit"].(*int), fc.Args["shopId"].(*string))
 		},
 		nil,
 		ec.marshalOItemsPayload2ᚖtindahanᚑbackendᚋgraphqlᚐItemsPayload,
@@ -9953,6 +10032,12 @@ func (ec *executionContext) fieldContext_Query_myItems(ctx context.Context, fiel
 				return ec.fieldContext_ItemsPayload_message(ctx, field)
 			case "data":
 				return ec.fieldContext_ItemsPayload_data(ctx, field)
+			case "total":
+				return ec.fieldContext_ItemsPayload_total(ctx, field)
+			case "page":
+				return ec.fieldContext_ItemsPayload_page(ctx, field)
+			case "totalPages":
+				return ec.fieldContext_ItemsPayload_totalPages(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type ItemsPayload", field.Name)
 		},
@@ -10002,6 +10087,12 @@ func (ec *executionContext) fieldContext_Query_topRatedItems(ctx context.Context
 				return ec.fieldContext_ItemsPayload_message(ctx, field)
 			case "data":
 				return ec.fieldContext_ItemsPayload_data(ctx, field)
+			case "total":
+				return ec.fieldContext_ItemsPayload_total(ctx, field)
+			case "page":
+				return ec.fieldContext_ItemsPayload_page(ctx, field)
+			case "totalPages":
+				return ec.fieldContext_ItemsPayload_totalPages(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type ItemsPayload", field.Name)
 		},
@@ -12219,8 +12310,6 @@ func (ec *executionContext) fieldContext_Shop_inventory(_ context.Context, field
 				return ec.fieldContext_Item_stock(ctx, field)
 			case "coverPhoto":
 				return ec.fieldContext_Item_coverPhoto(ctx, field)
-			case "otherPhotos":
-				return ec.fieldContext_Item_otherPhotos(ctx, field)
 			case "sku":
 				return ec.fieldContext_Item_sku(ctx, field)
 			case "barcode":
@@ -12760,8 +12849,6 @@ func (ec *executionContext) fieldContext_Subscription_itemStockUpdates(ctx conte
 				return ec.fieldContext_Item_stock(ctx, field)
 			case "coverPhoto":
 				return ec.fieldContext_Item_coverPhoto(ctx, field)
-			case "otherPhotos":
-				return ec.fieldContext_Item_otherPhotos(ctx, field)
 			case "sku":
 				return ec.fieldContext_Item_sku(ctx, field)
 			case "barcode":
@@ -15443,7 +15530,7 @@ func (ec *executionContext) unmarshalInputCreateItemInput(ctx context.Context, o
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"name", "price", "description", "category", "subCategory", "stock", "coverPhoto", "otherPhotos", "sku", "barcode", "weight", "unit", "expiryDate", "supplier", "brand", "origin", "tags", "shopId", "discount"}
+	fieldsInOrder := [...]string{"name", "price", "description", "category", "subCategory", "stock", "coverPhoto", "sku", "barcode", "weight", "unit", "expiryDate", "supplier", "brand", "origin", "tags", "shopId", "discount"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -15494,18 +15581,11 @@ func (ec *executionContext) unmarshalInputCreateItemInput(ctx context.Context, o
 			it.Stock = data
 		case "coverPhoto":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("coverPhoto"))
-			data, err := ec.unmarshalNString2string(ctx, v)
+			data, err := ec.unmarshalOUpload2ᚖgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚐUpload(ctx, v)
 			if err != nil {
 				return it, err
 			}
 			it.CoverPhoto = data
-		case "otherPhotos":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("otherPhotos"))
-			data, err := ec.unmarshalNString2ᚕstringᚄ(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.OtherPhotos = data
 		case "sku":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("sku"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
@@ -16471,7 +16551,7 @@ func (ec *executionContext) unmarshalInputUpdateItemInput(ctx context.Context, o
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"name", "price", "description", "category", "subCategory", "stock", "coverPhoto", "otherPhotos", "sku", "barcode", "weight", "unit", "expiryDate", "supplier", "brand", "origin", "tags", "discount"}
+	fieldsInOrder := [...]string{"name", "price", "description", "category", "subCategory", "stock", "coverPhoto", "newCoverPhoto", "sku", "barcode", "weight", "unit", "expiryDate", "supplier", "brand", "origin", "tags", "discount"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -16527,13 +16607,13 @@ func (ec *executionContext) unmarshalInputUpdateItemInput(ctx context.Context, o
 				return it, err
 			}
 			it.CoverPhoto = data
-		case "otherPhotos":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("otherPhotos"))
-			data, err := ec.unmarshalOString2ᚕstringᚄ(ctx, v)
+		case "newCoverPhoto":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("newCoverPhoto"))
+			data, err := ec.unmarshalOUpload2ᚖgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚐUpload(ctx, v)
 			if err != nil {
 				return it, err
 			}
-			it.OtherPhotos = data
+			it.NewCoverPhoto = data
 		case "sku":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("sku"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
@@ -17821,14 +17901,6 @@ func (ec *executionContext) _Item(ctx context.Context, sel ast.SelectionSet, obj
 			}
 		case "coverPhoto":
 			out.Values[i] = ec._Item_coverPhoto(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "otherPhotos":
-			out.Values[i] = ec._Item_otherPhotos(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
 		case "sku":
 			out.Values[i] = ec._Item_sku(ctx, field, obj)
 		case "barcode":
@@ -17960,6 +18032,21 @@ func (ec *executionContext) _ItemsPayload(ctx context.Context, sel ast.Selection
 			}
 		case "data":
 			out.Values[i] = ec._ItemsPayload_data(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "total":
+			out.Values[i] = ec._ItemsPayload_total(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "page":
+			out.Values[i] = ec._ItemsPayload_page(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "totalPages":
+			out.Values[i] = ec._ItemsPayload_totalPages(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}

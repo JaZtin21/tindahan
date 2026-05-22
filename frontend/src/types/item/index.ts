@@ -11,8 +11,8 @@ export interface Item {
   category: string;
   subCategory?: string;
   stock: number;
-  coverPhoto: string;
-  otherPhotos: string[];
+  coverPhoto?: string;
+  newCoverPhoto?: File;
   sku?: string;
   barcode?: string;
   weight?: number;

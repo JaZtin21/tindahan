@@ -59,7 +59,7 @@ export function OwnerPage() {
     onError: showError,
   });
 
-  const { items, handleAddItem, handleEditItem: handleEditItemBase, handleDeleteItem } = useItemManagement({
+  const { items, handleAddItem, handleEditItem: handleEditItemBase, handleDeleteItem, page, setPage, total, totalPages } = useItemManagement({
     selectedShop,
     isAuthenticated,
     onSuccess: showSuccess,
@@ -268,6 +268,10 @@ export function OwnerPage() {
             shops={[shopWithInventory]}
             onEditItem={handleEditItem}
             onDeleteItem={handleDeleteItem}
+            page={page}
+            setPage={setPage}
+            total={total}
+            totalPages={totalPages}
           />
         )}
 

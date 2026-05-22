@@ -88,25 +88,24 @@ type CreateInquiryInput struct {
 }
 
 type CreateItemInput struct {
-	Name        string         `json:"name"`
-	Price       float64        `json:"price"`
-	Description string         `json:"description"`
-	Category    string         `json:"category"`
-	SubCategory *string        `json:"subCategory,omitempty"`
-	Stock       int            `json:"stock"`
-	CoverPhoto  string         `json:"coverPhoto"`
-	OtherPhotos []string       `json:"otherPhotos"`
-	Sku         *string        `json:"sku,omitempty"`
-	Barcode     *string        `json:"barcode,omitempty"`
-	Weight      *float64       `json:"weight,omitempty"`
-	Unit        *string        `json:"unit,omitempty"`
-	ExpiryDate  *time.Time     `json:"expiryDate,omitempty"`
-	Supplier    *string        `json:"supplier,omitempty"`
-	Brand       *string        `json:"brand,omitempty"`
-	Origin      *string        `json:"origin,omitempty"`
-	Tags        []string       `json:"tags"`
-	ShopID      string         `json:"shopId"`
-	Discount    *DiscountInput `json:"discount,omitempty"`
+	Name        string          `json:"name"`
+	Price       float64         `json:"price"`
+	Description string          `json:"description"`
+	Category    string          `json:"category"`
+	SubCategory *string         `json:"subCategory,omitempty"`
+	Stock       int             `json:"stock"`
+	CoverPhoto  *graphql.Upload `json:"coverPhoto,omitempty"`
+	Sku         *string         `json:"sku,omitempty"`
+	Barcode     *string         `json:"barcode,omitempty"`
+	Weight      *float64        `json:"weight,omitempty"`
+	Unit        *string         `json:"unit,omitempty"`
+	ExpiryDate  *time.Time      `json:"expiryDate,omitempty"`
+	Supplier    *string         `json:"supplier,omitempty"`
+	Brand       *string         `json:"brand,omitempty"`
+	Origin      *string         `json:"origin,omitempty"`
+	Tags        []string        `json:"tags"`
+	ShopID      string          `json:"shopId"`
+	Discount    *DiscountInput  `json:"discount,omitempty"`
 }
 
 type CreatePostInput struct {
@@ -238,8 +237,7 @@ type Item struct {
 	Category    string     `json:"category"`
 	SubCategory *string    `json:"subCategory,omitempty"`
 	Stock       int        `json:"stock"`
-	CoverPhoto  string     `json:"coverPhoto"`
-	OtherPhotos []string   `json:"otherPhotos"`
+	CoverPhoto  *string    `json:"coverPhoto,omitempty"`
 	Sku         *string    `json:"sku,omitempty"`
 	Barcode     *string    `json:"barcode,omitempty"`
 	Weight      *float64   `json:"weight,omitempty"`
@@ -264,9 +262,12 @@ type ItemPayload struct {
 }
 
 type ItemsPayload struct {
-	Success bool    `json:"success"`
-	Message string  `json:"message"`
-	Data    []*Item `json:"data"`
+	Success    bool    `json:"success"`
+	Message    string  `json:"message"`
+	Data       []*Item `json:"data"`
+	Total      int     `json:"total"`
+	Page       int     `json:"page"`
+	TotalPages int     `json:"totalPages"`
 }
 
 type Location struct {
@@ -463,24 +464,24 @@ type UpdateInquiryStatusInput struct {
 }
 
 type UpdateItemInput struct {
-	Name        *string        `json:"name,omitempty"`
-	Price       *float64       `json:"price,omitempty"`
-	Description *string        `json:"description,omitempty"`
-	Category    *string        `json:"category,omitempty"`
-	SubCategory *string        `json:"subCategory,omitempty"`
-	Stock       *int           `json:"stock,omitempty"`
-	CoverPhoto  *string        `json:"coverPhoto,omitempty"`
-	OtherPhotos []string       `json:"otherPhotos,omitempty"`
-	Sku         *string        `json:"sku,omitempty"`
-	Barcode     *string        `json:"barcode,omitempty"`
-	Weight      *float64       `json:"weight,omitempty"`
-	Unit        *string        `json:"unit,omitempty"`
-	ExpiryDate  *time.Time     `json:"expiryDate,omitempty"`
-	Supplier    *string        `json:"supplier,omitempty"`
-	Brand       *string        `json:"brand,omitempty"`
-	Origin      *string        `json:"origin,omitempty"`
-	Tags        []string       `json:"tags,omitempty"`
-	Discount    *DiscountInput `json:"discount,omitempty"`
+	Name          *string         `json:"name,omitempty"`
+	Price         *float64        `json:"price,omitempty"`
+	Description   *string         `json:"description,omitempty"`
+	Category      *string         `json:"category,omitempty"`
+	SubCategory   *string         `json:"subCategory,omitempty"`
+	Stock         *int            `json:"stock,omitempty"`
+	CoverPhoto    *string         `json:"coverPhoto,omitempty"`
+	NewCoverPhoto *graphql.Upload `json:"newCoverPhoto,omitempty"`
+	Sku           *string         `json:"sku,omitempty"`
+	Barcode       *string         `json:"barcode,omitempty"`
+	Weight        *float64        `json:"weight,omitempty"`
+	Unit          *string         `json:"unit,omitempty"`
+	ExpiryDate    *time.Time      `json:"expiryDate,omitempty"`
+	Supplier      *string         `json:"supplier,omitempty"`
+	Brand         *string         `json:"brand,omitempty"`
+	Origin        *string         `json:"origin,omitempty"`
+	Tags          []string        `json:"tags,omitempty"`
+	Discount      *DiscountInput  `json:"discount,omitempty"`
 }
 
 type UpdatePostInput struct {

@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { useMutation, useQuery } from '@apollo/client/react';
 import { CREATE_ITEM_MUTATION, DELETE_ITEM_MUTATION, UPDATE_ITEM_MUTATION } from '../../api/graphql/product/product-queries';
 import { GET_OWNER_ITEMS_QUERY } from '../../api/graphql/owner/owner-queries';
@@ -12,14 +12,18 @@ export function useItemManagement({
   onError,
   onConfirmDelete,
 }: UseItemManagementProps): UseItemManagementReturn {
+  const [page, setPage] = useState(1);
+
   const { data: itemsData, loading: itemsLoading, refetch } = useQuery(GET_OWNER_ITEMS_QUERY, {
-    variables: { page: 1, limit: 100 },
+    variables: { page, limit: 20, shopId: selectedShop?.id },
     fetchPolicy: 'network-only',
     skip: !selectedShop || !isAuthenticated,
   });
 
-  // Derive items array from query data - must be before callbacks that use it
+  // Derive items array and pagination data from query data - must be before callbacks that use it
   const items: ProductItem[] = (itemsData as { myItems?: { data: ProductItem[] } })?.myItems?.data || [];
+  const total = (itemsData as { myItems?: { total?: number } })?.myItems?.total || 0;
+  const totalPages = (itemsData as { myItems?: { totalPages?: number } })?.myItems?.totalPages || 1;
 
   const [createItemMutation] = useMutation(CREATE_ITEM_MUTATION);
   const [updateItemMutation] = useMutation(UPDATE_ITEM_MUTATION);
@@ -38,8 +42,7 @@ export function useItemManagement({
         description: item.description,
         category: item.category,
         stock: item.stock,
-        coverPhoto: item.coverPhoto,
-        otherPhotos: item.otherPhotos,
+        coverPhoto: item.newCoverPhoto || undefined,
         tags: item.tags,
         shopId: selectedShop.id,
       };
@@ -76,7 +79,7 @@ export function useItemManagement({
         category: itemData.category,
         stock: itemData.stock,
         coverPhoto: itemData.coverPhoto,
-        otherPhotos: itemData.otherPhotos,
+        newCoverPhoto: itemData.newCoverPhoto || undefined,
         tags: itemData.tags,
       };
 
@@ -141,5 +144,9 @@ export function useItemManagement({
     handleEditItem,
     handleDeleteItem,
     refreshItems,
+    page,
+    setPage,
+    total,
+    totalPages,
   };
 }

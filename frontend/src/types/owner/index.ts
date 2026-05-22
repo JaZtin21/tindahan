@@ -52,6 +52,10 @@ export interface InventoryTableProps {
   shops: ShopType[];
   onEditItem: (shopId: string, itemId: string) => void;
   onDeleteItem: (shopId: string, itemId: string) => void;
+  page: number;
+  setPage: (page: number) => void;
+  total: number;
+  totalPages: number;
 }
 
 export interface LocationPickerProps {
@@ -95,6 +99,10 @@ export interface UseItemManagementReturn {
   handleEditItem: (shopId: string, itemId: string, itemData: ItemType) => Promise<void>;
   handleDeleteItem: (shopId: string, itemId: string) => void;
   refreshItems: () => Promise<void>;
+  page: number;
+  setPage: (page: number) => void;
+  total: number;
+  totalPages: number;
 }
 
 export interface UseShopManagementProps {

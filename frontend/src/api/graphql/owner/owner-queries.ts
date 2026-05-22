@@ -20,7 +20,6 @@ export const GET_OWNER_SHOPS_QUERY = gql`
           lng
         }
         coverPhoto
-        otherPhotos
         businessHours {
           openTime
           closeTime
@@ -64,8 +63,8 @@ export const GET_OWNER_SHOPS_QUERY = gql`
 
 // Owner Product Queries
 export const GET_OWNER_ITEMS_QUERY = gql`
-  query GetOwnerItems($page: Int, $limit: Int) {
-    myItems(page: $page, limit: $limit) {
+  query GetOwnerItems($page: Int, $limit: Int, $shopId: ObjectID) {
+    myItems(page: $page, limit: $limit, shopId: $shopId) {
       success
       message
       data {
@@ -77,7 +76,6 @@ export const GET_OWNER_ITEMS_QUERY = gql`
         subCategory
         stock
         coverPhoto
-        otherPhotos
         sku
         barcode
         weight
@@ -97,6 +95,9 @@ export const GET_OWNER_ITEMS_QUERY = gql`
         updatedAt
         shopId
       }
+      total
+      page
+      totalPages
     }
   }
 `;
@@ -112,7 +113,6 @@ export interface OwnerShop {
     lng: number;
   };
   coverPhoto: string;
-  otherPhotos: string[];
   businessHours: {
     openTime: string;
     closeTime: string;
@@ -160,7 +160,6 @@ export interface OwnerItem {
   subCategory?: string;
   stock: number;
   coverPhoto: string;
-  otherPhotos: string[];
   sku?: string;
   barcode?: string;
   weight?: number;
