@@ -36,14 +36,14 @@ export function getPhotoGridHtml(photos: string[], size: 'small' | 'medium' | 'l
   
   // 1 photo
   if (displayCount === 1) {
-    return `<div style="width: 100%; height: ${cfg.height}px; border-radius: 8px; overflow: hidden; margin-bottom: 8px;">
+    return `<div class="photoContainer" style="width: 100%; height: ${cfg.height}px; border-radius: 8px; overflow: hidden; margin-bottom: 8px;">
       <img src="${getUrl(displayPhotos[0], cfg.width * 2, cfg.height)}" style="width: 100%; height: 100%; object-fit: cover;" crossorigin="anonymous" referrerpolicy="no-referrer" />
     </div>`;
   }
   
   // 2 photos - side by side 50/50
   if (displayCount === 2) {
-    return `<div style="display: grid; grid-template-columns: 1fr 1fr; gap: ${cfg.gap}px; height: ${cfg.height}px; margin-bottom: 8px; border-radius: 8px; overflow: hidden;">
+    return `<div class="photoContainer" style="display: grid; grid-template-columns: 1fr 1fr; gap: ${cfg.gap}px; height: ${cfg.height}px; margin-bottom: 8px; border-radius: 8px; overflow: hidden;">
       <img src="${getUrl(displayPhotos[0], cfg.width, cfg.height)}" style="width: 100%; height: 100%; object-fit: cover;" crossorigin="anonymous" referrerpolicy="no-referrer" />
       <img src="${getUrl(displayPhotos[1], cfg.width, cfg.height)}" style="width: 100%; height: 100%; object-fit: cover;" crossorigin="anonymous" referrerpolicy="no-referrer" />
     </div>`;
@@ -51,7 +51,7 @@ export function getPhotoGridHtml(photos: string[], size: 'small' | 'medium' | 'l
   
   // 3 photos - large left, 2 stacked right
   if (displayCount === 3) {
-    return `<div style="display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: ${cfg.gap}px; height: ${cfg.height}px; margin-bottom: 8px; border-radius: 8px; overflow: hidden;">
+    return `<div class="photoContainer" style="display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: ${cfg.gap}px; height: ${cfg.height}px; margin-bottom: 8px; border-radius: 8px; overflow: hidden;">
       <img src="${getUrl(displayPhotos[0], cfg.width, cfg.height)}" style="width: 100%; height: 100%; object-fit: cover; grid-row: 1 / 3;" crossorigin="anonymous" referrerpolicy="no-referrer" />
       <img src="${getUrl(displayPhotos[1], cfg.width, cfg.height / 2)}" style="width: 100%; height: 100%; object-fit: cover;" crossorigin="anonymous" referrerpolicy="no-referrer" />
       <img src="${getUrl(displayPhotos[2], cfg.width, cfg.height / 2)}" style="width: 100%; height: 100%; object-fit: cover;" crossorigin="anonymous" referrerpolicy="no-referrer" />
@@ -59,7 +59,7 @@ export function getPhotoGridHtml(photos: string[], size: 'small' | 'medium' | 'l
   }
   
   // 4+ photos - 2x2 grid with overlay
-  return `<div style="display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: ${cfg.gap}px; height: ${cfg.height}px; margin-bottom: 8px; border-radius: 8px; overflow: hidden;">
+  return `<div class="photoContainer" style="display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: ${cfg.gap}px; height: ${cfg.height}px; margin-bottom: 8px; border-radius: 8px; overflow: hidden;">
     <img src="${getUrl(displayPhotos[0], cfg.width, cfg.height / 2)}" style="width: 100%; height: 100%; object-fit: cover;" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <img src="${getUrl(displayPhotos[1], cfg.width, cfg.height / 2)}" style="width: 100%; height: 100%; object-fit: cover;" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <img src="${getUrl(displayPhotos[2], cfg.width, cfg.height / 2)}" style="width: 100%; height: 100%; object-fit: cover;" crossorigin="anonymous" referrerpolicy="no-referrer" />

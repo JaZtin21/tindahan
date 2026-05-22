@@ -125,11 +125,6 @@ export function getMapMarkerStyles(): string {
       transition: opacity 0.2s ease, z-index 0s, transform 0.2s ease;
     }
 
-    
-    .post-bubble-marker:hover .post-bubble-new {
-      box-shadow: 0 8px 24px rgba(0,0,0,0.2);
-    }
-
     .post-bubble-marker:hover .post-bubble-avatar-new {
       opacity: 0.9;
       box-shadow: 0 4px 12px rgba(0,0,0,0.4);
@@ -590,6 +585,30 @@ export function getMapMarkerStyles(): string {
       align-items: center;
       justify-content: center;
     }
+
+    @media screen and (max-width: 767px) {
+  .post-bubble-new {
+    background: white;
+    border-radius: 16px;
+    padding: 9px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    border: 1px solid #e0e0e0;
+    width: 131px;
+    position: relative;
+    margin-bottom: 0;
+}
+    .post-bubble-avatar-new {
+    width: 35px;
+    height: 35px;
+}
+    .photoContainer{
+       height:60px!important;
+    }
+    .post-bubble-container{
+        bottom: 38px;
+        left:-4px;
+    }
+}
   `;
 }
 
