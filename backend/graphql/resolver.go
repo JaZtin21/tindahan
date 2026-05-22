@@ -3035,7 +3035,7 @@ func (r *subscriptionResolver) LivePosts(ctx context.Context) (<-chan []*Post, e
 	go func() {
 		defer close(postChan)
 
-		twentyFourHoursAgo := time.Now().Add(-48 * time.Hour)
+		twentyFourHoursAgo := time.Now().Add(-948 * time.Hour)
 		// Track sent post IDs to only send new ones on change
 		sentPostIDs := make(map[string]bool)
 

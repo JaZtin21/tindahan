@@ -16,61 +16,102 @@ export function getDistanceInMeters(lat1: number, lng1: number, lat2: number, ln
   return R * c;
 }
 
-// Group posts that are within threshold distance of each other
-export function clusterPosts(posts: any[], thresholdMeters: number): PostOrGroup[] {
 
-  
-  if (posts.length === 0) return [];
+export function clusterPosts(posts: any[], thresholdMeters: number): PostOrGroup[] {
+  const validPosts = posts.filter(
+    p => p.id && p.location && p.location.lat != null && p.location.lng != null
+  );
+
+  if (validPosts.length === 0) return [];
 
   const used = new Set<string>();
-  const result: PostOrGroup[] = [];
+  const centers: { lat: number; lng: number }[] = [];
 
-  for (const post of posts) {
+  // STAGE 1: Establish all cluster center points
+  for (const post of validPosts) {
     if (used.has(post.id)) continue;
-    if (!post.location || post.location.lat == null || post.location.lng == null) continue;
 
-    const group: any[] = [post];
+    const currentCluster: any[] = [post];
     used.add(post.id);
 
-    for (const other of posts) {
-      if (used.has(other.id)) continue;
-      if (!other.location || other.location.lat == null || other.location.lng == null) continue;
-      if (post.id === other.id) continue;
+    let centerLat = post.location.lat;
+    let centerLng = post.location.lng;
 
-      const distance = getDistanceInMeters(
-        post.location.lat, post.location.lng,
-        other.location.lat, other.location.lng
+    let expanded: boolean;
+    do {
+      expanded = false;
+      for (const other of validPosts) {
+        if (used.has(other.id)) continue;
+
+        const distance = getDistanceInMeters(
+          centerLat, centerLng,
+          other.location.lat, other.location.lng
+        );
+
+        if (distance <= thresholdMeters) {
+          currentCluster.push(other);
+          used.add(other.id);
+          expanded = true;
+
+          // In-place center updates
+          let sumLat = 0, sumLng = 0;
+          for (const p of currentCluster) {
+            sumLat += p.location.lat;
+            sumLng += p.location.lng;
+          }
+          centerLat = sumLat / currentCluster.length;
+          centerLng = sumLng / currentCluster.length;
+        }
+      }
+    } while (expanded);
+
+    // Save this finalized center position
+    centers.push({ lat: centerLat, lng: centerLng });
+  }
+
+  // STAGE 2: Assign EVERY post to its absolute closest center
+  // This guarantees no post is dropped or left out
+  const groupsArray: any[][] = centers.map(() => []);
+
+  for (const post of validPosts) {
+    let closestCenterIdx = 0;
+    let minDistance = Infinity;
+
+    for (let i = 0; i < centers.length; i++) {
+      const dist = getDistanceInMeters(
+        centers[i].lat, centers[i].lng,
+        post.location.lat, post.location.lng
       );
 
-      if (distance <= thresholdMeters) {
-       group.push(other);
-        used.add(other.id);
+      if (dist < minDistance) {
+        minDistance = dist;
+        closestCenterIdx = i;
       }
     }
 
-    if (group.length === 1) {
-      result.push({ type: 'single', post });
+    // Force assign the post to the best center found
+    groupsArray[closestCenterIdx].push(post);
+  }
+
+  // STAGE 3: Format the final output structure
+  const result: PostOrGroup[] = [];
+  for (const groupPosts of groupsArray) {
+    if (groupPosts.length === 0) continue;
+
+    if (groupPosts.length === 1) {
+      // If your original types expect a single object, pass the first item
+      result.push({ type: 'single', post: groupPosts[0] });
     } else {
-      // Group posts without center calculation - individual posts will use their own positions
-      result.push({ type: 'group', group: { posts: group } });
+      result.push({ type: 'group', group: { posts: groupPosts } });
     }
   }
 
-   return result;
+  return result;
 }
 
-// Calculate offset position for grouped markers to prevent overlap
-export function getOffsetPosition(index: number, total: number, baseLat: number, baseLng: number): [number, number] {
-  if (total <= 1) return [baseLat, baseLng];
-  
-  // Arrange in a small circle around the base position
-  // 10 meters offset at equator ~ 0.00009 degrees
-  const offsetMeters = 15;
-  const angle = (2 * Math.PI * index) / total;
-  const latOffset = (offsetMeters * Math.cos(angle)) / 111320;
-  const lngOffset = (offsetMeters * Math.sin(angle)) / (111320 * Math.cos(baseLat * Math.PI / 180));
-  
-  return [baseLat + latOffset, baseLng + lngOffset];
-}
+
+
+
+
 
 export const MIN_MARKER_ZOOM = 16; // Minimum zoom level to show post markers (city level zoom)

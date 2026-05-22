@@ -10,4 +10,4 @@ export type { Post as GroupPost, PostCluster } from './groupNearbyPosts';
 export { createStoreHandlers, createLocationHandlers, createProductHandlers, createPostHandlers } from './handlers';
 
 // Map utilities from OptimizedMapsPage
-export { getDistanceInMeters, clusterPosts, getOffsetPosition, MIN_MARKER_ZOOM } from './mapUtils';
+export { getDistanceInMeters, clusterPosts,  MIN_MARKER_ZOOM } from './mapUtils';

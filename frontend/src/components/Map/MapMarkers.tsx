@@ -62,7 +62,7 @@ export function MapMarkers({
 
   // Cluster posts
   const clusteredPosts = useMemo(() => {
-    return clusterPosts(visiblePosts, 15);
+    return clusterPosts(visiblePosts, 25);
   }, [visiblePosts]);
 
   return (
