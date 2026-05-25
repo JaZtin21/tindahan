@@ -14,10 +14,14 @@ import {
   POST_QUERY,
 } from '../../api/graphql/post/post-queries';
 import { Modal, DropdownMenu, DropdownItem } from '../common/Modal';
+import { useKeyboard } from '../../hooks/useKeyboard';
 
 function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: PostPreviewModalProps & { onEdit?: (post: Post) => void; onDelete?: (post: Post) => void }) {
   const navigate = useNavigate();
   const currentUser = useSelector((state: RootState) => state.user);
+  
+  // Keyboard handling for mobile
+  const { isOpen: isKeyboardOpen, height: keyboardHeight } = useKeyboard();
 
   // Track the current post ID to prevent race conditions
   const currentPostIdRef = useRef<string | null>(post?.id || null);
@@ -46,6 +50,16 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
   // Dropdown menu state
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  
+  // Comment input ref for keyboard handling
+  const commentInputRef = useRef<HTMLInputElement>(null);
+
+  // Scroll to input when keyboard opens
+  useEffect(() => {
+    if (isKeyboardOpen && commentInputRef.current) {
+      commentInputRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }
+  }, [isKeyboardOpen]);
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -447,9 +461,20 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
         </div>
 
       {/* Comments Section - Fixed height with sticky input */}
-      <div className="border-t border-zinc-100 dark:border-zinc-800 flex flex-col" style={{ maxHeight: '400px' }}>
+      <div 
+        className="border-t border-zinc-100 dark:border-zinc-800 flex flex-col transition-all duration-300"
+        style={{ 
+          maxHeight: isKeyboardOpen ? 'calc(100vh - 200px)' : '400px',
+          marginBottom: isKeyboardOpen ? `${keyboardHeight}px` : '0'
+        }}
+      >
           {/* Scrollable Comments List */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-3" style={{ maxHeight: '320px' }}>
+          <div 
+            className="flex-1 overflow-y-auto p-4 space-y-3 transition-all duration-300"
+            style={{ 
+              maxHeight: isKeyboardOpen ? 'calc(100vh - 280px)' : '320px'
+            }}
+          >
             {comments.length === 0 ? (
               <p className="text-sm text-zinc-500 text-center py-4">No comments yet. Be the first to comment!</p>
             ) : (
@@ -542,6 +567,7 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
           <div className="p-4 border-t border-zinc-100 dark:border-zinc-800 bg-white dark:bg-zinc-900 sticky bottom-0">
             <form onSubmit={handleAddComment} className="flex gap-2">
               <input
+                ref={commentInputRef}
                 type="text"
                 value={commentText}
                 onChange={(e) => setCommentText(e.target.value)}
