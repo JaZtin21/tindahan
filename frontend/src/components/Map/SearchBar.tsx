@@ -1,12 +1,13 @@
 import { useState, useRef } from 'react';
 import { useLazyQuery } from '@apollo/client/react';
-import { FiSearch } from 'react-icons/fi';
+import { FiSearch, FiX } from 'react-icons/fi';
 import { SEARCH_SHOPS_QUERY } from '../../api/graphql/shop/shop-queries';
 import { ITEMS_QUERY } from '../../api/graphql/product/product-queries';
+import { SEARCH_POSTS_BY_TITLE_QUERY } from '../../api/graphql/post/post-queries';
 import { searchLocation } from '../../utils/maps';
 import type { SearchBarProps } from '../../types/map';
 
-export function SearchBar({ onSearch, onStoreSelect, onProductSelect, onClearProductStores, placeholder = "Search for stores, products, or locations..." }: SearchBarProps) {
+export function SearchBar({ onSearch, onStoreSelect, onProductSelect, onPostSelect, onClearProductStores, onClearAllMarkers, showClearMarkersButton, placeholder = "Search for stores, products, or locations..." }: SearchBarProps) {
   const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -16,6 +17,7 @@ export function SearchBar({ onSearch, onStoreSelect, onProductSelect, onClearPro
   // GraphQL lazy queries - returns a function we can call to fetch data
   const [searchShops] = useLazyQuery(SEARCH_SHOPS_QUERY);
   const [searchProducts] = useLazyQuery(ITEMS_QUERY);
+  const [searchPosts] = useLazyQuery(SEARCH_POSTS_BY_TITLE_QUERY);
 
   const handleInputChange = (value: string) => {
     setQuery(value);
@@ -32,14 +34,16 @@ export function SearchBar({ onSearch, onStoreSelect, onProductSelect, onClearPro
       const timeout = setTimeout(async () => {
         console.log('Debounce triggered for:', value);
         
-        // Trigger both searches and AWAIT the results (fixes race condition)
-        const [shopsResult, productsResult] = await Promise.all([
+        // Trigger all searches and AWAIT the results (fixes race condition)
+        const [shopsResult, productsResult, postsResult] = await Promise.all([
           searchShops({ variables: { query: value, page: 1, limit: 10 } }),
-          searchProducts({ variables: { input: { query: value, page: 1, limit: 10 } } })
+          searchProducts({ variables: { input: { query: value, page: 1, limit: 10 } } }),
+          searchPosts({ variables: { query: value, page: 1, limit: 10 } })
         ]);
         
         const shops = shopsResult.data?.searchShops?.data || [];
         const products = productsResult.data?.items?.data || [];
+        const posts = postsResult.data?.searchPostsByTitle?.data || [];
         
         // Search for locations
         const locationResults = await searchLocation(value);
@@ -74,10 +78,28 @@ export function SearchBar({ onSearch, onStoreSelect, onProductSelect, onClearPro
         });
         const formattedProducts = Array.from(uniqueProducts.values());
         
+        // Format posts - only show unique post titles
+        const uniquePosts = new Map();
+        posts.forEach((post: any) => {
+          if (!uniquePosts.has(post.title)) {
+            uniquePosts.set(post.title, {
+              type: 'post',
+              name: post.title,
+              id: post.id,
+              authorName: post.authorName,
+              authorProfilePhoto: post.authorProfilePhoto,
+              location: post.location,
+              source: 'api'
+            });
+          }
+        });
+        const formattedPosts = Array.from(uniquePosts.values());
+        
         // Combine results
         const allResults = [
           ...formattedShops,
           ...formattedProducts,
+          ...formattedPosts,
           ...locationResults.map((item: any) => ({ ...item, source: 'geocoding' }))
         ];
         
@@ -148,12 +170,18 @@ export function SearchBar({ onSearch, onStoreSelect, onProductSelect, onClearPro
       onProductSelect(suggestion.name, []);
     }
     
+    // If it's a post, call the post select callback to show post markers
+    else if (suggestion.type === 'post' && onPostSelect) {
+      console.log('[SearchBar] Post clicked:', suggestion.name);
+      onPostSelect(suggestion.name);
+    }
+    
     handleSearch(suggestion.name);
   };
 
   return (
-    <div className="relative w-full max-w-2xl mx-auto ">
-      <div className="relative">
+    <div className="relative w-full max-w-2xl mx-auto flex gap-2">
+      <div className="relative flex-1">
         <input
           type="text"
           value={query}
@@ -170,6 +198,18 @@ export function SearchBar({ onSearch, onStoreSelect, onProductSelect, onClearPro
           )}
         </div>
       </div>
+
+      {/* Clear markers button */}
+      {showClearMarkersButton && onClearAllMarkers && (
+        <button
+          onClick={onClearAllMarkers}
+          className="px-4 py-3 bg-red-500 hover:bg-red-600 text-white rounded-xl shadow-lg transition-colors flex items-center gap-2"
+          title="Clear all markers"
+        >
+          <FiX size={20} />
+          <span className="hidden sm:inline">Clear</span>
+        </button>
+      )}
 
       {/* Suggestions dropdown */}
       {showSuggestions && suggestions.length > 0 && (
@@ -190,6 +230,8 @@ export function SearchBar({ onSearch, onStoreSelect, onProductSelect, onClearPro
                       ? `🏪 ${suggestion.location || 'Store'} (Click to view)`
                       : suggestion.type === 'product'
                       ? `📦 Click to see stores with this product`
+                      : suggestion.type === 'post'
+                      ? `📝 Click to see posts that match this product`
                       : `🌍 ${suggestion.details} (Click to fly here)`
                     }
                   </div>

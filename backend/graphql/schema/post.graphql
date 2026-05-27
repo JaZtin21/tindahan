@@ -7,6 +7,7 @@ extend type Query {
   userPosts(userId: ObjectID!, page: Int, limit: Int): PostsPayload
   postsNearLocation(lat: Float!, lng: Float!, radius: Float, page: Int, limit: Int): PostsPayload
   comments(postId: ObjectID!, page: Int, limit: Int): CommentsPayload
+  searchPostsByTitle(query: String!, page: Int, limit: Int): PostsSearchPayload
 }
 
 extend type Mutation {
@@ -109,4 +110,19 @@ type CommentPayload {
   success: Boolean!
   message: String!
   data: Comment
+}
+
+type PostSearchResult {
+  id: ObjectID!
+  title: String!
+  authorName: String!
+  authorProfilePhoto: String
+  location: Location
+}
+
+type PostsSearchPayload {
+  success: Boolean!
+  message: String!
+  data: [PostSearchResult!]!
+  total: Int!
 }

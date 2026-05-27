@@ -9,6 +9,7 @@ import { StoreMarker } from './StoreMarker';
 import { LocationPinMarker } from './LocationPinMarker';
 import { ProductStoreMarkers } from './ProductStoreMarkers';
 import { UserLocationMarker } from './UserLocationMarker';
+import { PostSearchMarker } from './PostSearchMarker';
 
 export function MapMarkers({
   livePosts,
@@ -22,6 +23,8 @@ export function MapMarkers({
   locationPinData,
   showProductStoreMarkers,
   productSearchStores,
+  showPostMarkers,
+  postSearchResults,
   userLocation,
   showUserLocationMarker
 }: MapMarkersProps) {
@@ -79,6 +82,22 @@ export function MapMarkers({
       {/* Product Store Markers */}
       {showProductStoreMarkers && productSearchStores.length > 0 && (
         <ProductStoreMarkers stores={productSearchStores} onStoreClick={onStoreMarkerClick} />
+      )}
+      
+      {/* Post Search Markers - show markers with user profile pictures */}
+      {showPostMarkers && postSearchResults.length > 0 && (
+        <>
+          {postSearchResults.map((post) => (
+            <PostSearchMarker
+              key={post.id}
+              post={post}
+              onClick={() => {
+                // Handle post search marker click - could open post preview
+                console.log('Post search marker clicked:', post);
+              }}
+            />
+          ))}
+        </>
       )}
       
       {/* Live Post Markers - only visible when zoomed in */}

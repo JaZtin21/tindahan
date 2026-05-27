@@ -20,7 +20,7 @@ func Setup(router *gin.Engine, app *bootstrap.Application) {
 
 	// CORS middleware
 	router.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:5173", "http://localhost:3000", "http://127.0.0.1:5173", "http://127.0.0.1:3000"},
+		AllowOrigins:     []string{"http://localhost:5173", "http://localhost:3000", "http://127.0.0.1:5173", "http://127.0.0.1:3000", "https://0f74-143-44-240-127.ngrok-free.app"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "Apollo-Require-Preflight", "X-Apollo-Operation-Name", "X-Apollo-Operation-Id"},
 		ExposeHeaders:    []string{"Content-Length"},

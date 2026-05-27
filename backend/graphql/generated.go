@@ -265,11 +265,26 @@ type ComplexityRoot struct {
 		Success func(childComplexity int) int
 	}
 
+	PostSearchResult struct {
+		AuthorName         func(childComplexity int) int
+		AuthorProfilePhoto func(childComplexity int) int
+		ID                 func(childComplexity int) int
+		Location           func(childComplexity int) int
+		Title              func(childComplexity int) int
+	}
+
 	PostsPayload struct {
 		Data    func(childComplexity int) int
 		Limit   func(childComplexity int) int
 		Message func(childComplexity int) int
 		Page    func(childComplexity int) int
+		Success func(childComplexity int) int
+		Total   func(childComplexity int) int
+	}
+
+	PostsSearchPayload struct {
+		Data    func(childComplexity int) int
+		Message func(childComplexity int) int
 		Success func(childComplexity int) int
 		Total   func(childComplexity int) int
 	}
@@ -295,6 +310,7 @@ type ComplexityRoot struct {
 		ReviewStats        func(childComplexity int, storeID string) int
 		ReviewsByStore     func(childComplexity int, storeID string, page *int, limit *int) int
 		ReviewsByUser      func(childComplexity int, userID string, page *int, limit *int) int
+		SearchPostsByTitle func(childComplexity int, query string, page *int, limit *int) int
 		SearchShops        func(childComplexity int, query string, page *int, limit *int) int
 		Shop               func(childComplexity int, id string) int
 		ShopsByProduct     func(childComplexity int, productName string) int
@@ -472,6 +488,7 @@ type QueryResolver interface {
 	UserPosts(ctx context.Context, userID string, page *int, limit *int) (*PostsPayload, error)
 	PostsNearLocation(ctx context.Context, lat float64, lng float64, radius *float64, page *int, limit *int) (*PostsPayload, error)
 	Comments(ctx context.Context, postID string, page *int, limit *int) (*CommentsPayload, error)
+	SearchPostsByTitle(ctx context.Context, query string, page *int, limit *int) (*PostsSearchPayload, error)
 	Item(ctx context.Context, id string) (*ItemPayload, error)
 	Items(ctx context.Context, input *ProductSearchInput) (*ItemsPayload, error)
 	MyItems(ctx context.Context, page *int, limit *int, shopID *string) (*ItemsPayload, error)
@@ -1610,6 +1627,37 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.ComplexityRoot.PostPayload.Success(childComplexity), true
 
+	case "PostSearchResult.authorName":
+		if e.ComplexityRoot.PostSearchResult.AuthorName == nil {
+			break
+		}
+
+		return e.ComplexityRoot.PostSearchResult.AuthorName(childComplexity), true
+	case "PostSearchResult.authorProfilePhoto":
+		if e.ComplexityRoot.PostSearchResult.AuthorProfilePhoto == nil {
+			break
+		}
+
+		return e.ComplexityRoot.PostSearchResult.AuthorProfilePhoto(childComplexity), true
+	case "PostSearchResult.id":
+		if e.ComplexityRoot.PostSearchResult.ID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.PostSearchResult.ID(childComplexity), true
+	case "PostSearchResult.location":
+		if e.ComplexityRoot.PostSearchResult.Location == nil {
+			break
+		}
+
+		return e.ComplexityRoot.PostSearchResult.Location(childComplexity), true
+	case "PostSearchResult.title":
+		if e.ComplexityRoot.PostSearchResult.Title == nil {
+			break
+		}
+
+		return e.ComplexityRoot.PostSearchResult.Title(childComplexity), true
+
 	case "PostsPayload.data":
 		if e.ComplexityRoot.PostsPayload.Data == nil {
 			break
@@ -1646,6 +1694,31 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.PostsPayload.Total(childComplexity), true
+
+	case "PostsSearchPayload.data":
+		if e.ComplexityRoot.PostsSearchPayload.Data == nil {
+			break
+		}
+
+		return e.ComplexityRoot.PostsSearchPayload.Data(childComplexity), true
+	case "PostsSearchPayload.message":
+		if e.ComplexityRoot.PostsSearchPayload.Message == nil {
+			break
+		}
+
+		return e.ComplexityRoot.PostsSearchPayload.Message(childComplexity), true
+	case "PostsSearchPayload.success":
+		if e.ComplexityRoot.PostsSearchPayload.Success == nil {
+			break
+		}
+
+		return e.ComplexityRoot.PostsSearchPayload.Success(childComplexity), true
+	case "PostsSearchPayload.total":
+		if e.ComplexityRoot.PostsSearchPayload.Total == nil {
+			break
+		}
+
+		return e.ComplexityRoot.PostsSearchPayload.Total(childComplexity), true
 
 	case "Query.comments":
 		if e.ComplexityRoot.Query.Comments == nil {
@@ -1858,6 +1931,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Query.ReviewsByUser(childComplexity, args["userId"].(string), args["page"].(*int), args["limit"].(*int)), true
+	case "Query.searchPostsByTitle":
+		if e.ComplexityRoot.Query.SearchPostsByTitle == nil {
+			break
+		}
+
+		args, err := ec.field_Query_searchPostsByTitle_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Query.SearchPostsByTitle(childComplexity, args["query"].(string), args["page"].(*int), args["limit"].(*int)), true
 	case "Query.searchShops":
 		if e.ComplexityRoot.Query.SearchShops == nil {
 			break
@@ -3302,6 +3386,27 @@ func (ec *executionContext) field_Query_reviewsByUser_args(ctx context.Context, 
 		return nil, err
 	}
 	args["userId"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "page", ec.unmarshalOInt2ᚖint)
+	if err != nil {
+		return nil, err
+	}
+	args["page"] = arg1
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "limit", ec.unmarshalOInt2ᚖint)
+	if err != nil {
+		return nil, err
+	}
+	args["limit"] = arg2
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_searchPostsByTitle_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "query", ec.unmarshalNString2string)
+	if err != nil {
+		return nil, err
+	}
+	args["query"] = arg0
 	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "page", ec.unmarshalOInt2ᚖint)
 	if err != nil {
 		return nil, err
@@ -9095,6 +9200,159 @@ func (ec *executionContext) fieldContext_PostPayload_data(_ context.Context, fie
 	return fc, nil
 }
 
+func (ec *executionContext) _PostSearchResult_id(ctx context.Context, field graphql.CollectedField, obj *PostSearchResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PostSearchResult_id,
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		ec.marshalNObjectID2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PostSearchResult_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PostSearchResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ObjectID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PostSearchResult_title(ctx context.Context, field graphql.CollectedField, obj *PostSearchResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PostSearchResult_title,
+		func(ctx context.Context) (any, error) {
+			return obj.Title, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PostSearchResult_title(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PostSearchResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PostSearchResult_authorName(ctx context.Context, field graphql.CollectedField, obj *PostSearchResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PostSearchResult_authorName,
+		func(ctx context.Context) (any, error) {
+			return obj.AuthorName, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PostSearchResult_authorName(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PostSearchResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PostSearchResult_authorProfilePhoto(ctx context.Context, field graphql.CollectedField, obj *PostSearchResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PostSearchResult_authorProfilePhoto,
+		func(ctx context.Context) (any, error) {
+			return obj.AuthorProfilePhoto, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_PostSearchResult_authorProfilePhoto(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PostSearchResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PostSearchResult_location(ctx context.Context, field graphql.CollectedField, obj *PostSearchResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PostSearchResult_location,
+		func(ctx context.Context) (any, error) {
+			return obj.Location, nil
+		},
+		nil,
+		ec.marshalOLocation2ᚖtindahanᚑbackendᚋgraphqlᚐLocation,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_PostSearchResult_location(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PostSearchResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "lat":
+				return ec.fieldContext_Location_lat(ctx, field)
+			case "lng":
+				return ec.fieldContext_Location_lng(ctx, field)
+			case "name":
+				return ec.fieldContext_Location_name(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Location", field.Name)
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _PostsPayload_success(ctx context.Context, field graphql.CollectedField, obj *PostsPayload) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -9287,6 +9545,134 @@ func (ec *executionContext) _PostsPayload_limit(ctx context.Context, field graph
 func (ec *executionContext) fieldContext_PostsPayload_limit(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "PostsPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PostsSearchPayload_success(ctx context.Context, field graphql.CollectedField, obj *PostsSearchPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PostsSearchPayload_success,
+		func(ctx context.Context) (any, error) {
+			return obj.Success, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PostsSearchPayload_success(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PostsSearchPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PostsSearchPayload_message(ctx context.Context, field graphql.CollectedField, obj *PostsSearchPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PostsSearchPayload_message,
+		func(ctx context.Context) (any, error) {
+			return obj.Message, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PostsSearchPayload_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PostsSearchPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PostsSearchPayload_data(ctx context.Context, field graphql.CollectedField, obj *PostsSearchPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PostsSearchPayload_data,
+		func(ctx context.Context) (any, error) {
+			return obj.Data, nil
+		},
+		nil,
+		ec.marshalNPostSearchResult2ᚕᚖtindahanᚑbackendᚋgraphqlᚐPostSearchResultᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PostsSearchPayload_data(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PostsSearchPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_PostSearchResult_id(ctx, field)
+			case "title":
+				return ec.fieldContext_PostSearchResult_title(ctx, field)
+			case "authorName":
+				return ec.fieldContext_PostSearchResult_authorName(ctx, field)
+			case "authorProfilePhoto":
+				return ec.fieldContext_PostSearchResult_authorProfilePhoto(ctx, field)
+			case "location":
+				return ec.fieldContext_PostSearchResult_location(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type PostSearchResult", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PostsSearchPayload_total(ctx context.Context, field graphql.CollectedField, obj *PostsSearchPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PostsSearchPayload_total,
+		func(ctx context.Context) (any, error) {
+			return obj.Total, nil
+		},
+		nil,
+		ec.marshalNInt2int,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PostsSearchPayload_total(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PostsSearchPayload",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -9891,6 +10277,57 @@ func (ec *executionContext) fieldContext_Query_comments(ctx context.Context, fie
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Query_comments_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_searchPostsByTitle(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_searchPostsByTitle,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Query().SearchPostsByTitle(ctx, fc.Args["query"].(string), fc.Args["page"].(*int), fc.Args["limit"].(*int))
+		},
+		nil,
+		ec.marshalOPostsSearchPayload2ᚖtindahanᚑbackendᚋgraphqlᚐPostsSearchPayload,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_searchPostsByTitle(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "success":
+				return ec.fieldContext_PostsSearchPayload_success(ctx, field)
+			case "message":
+				return ec.fieldContext_PostsSearchPayload_message(ctx, field)
+			case "data":
+				return ec.fieldContext_PostsSearchPayload_data(ctx, field)
+			case "total":
+				return ec.fieldContext_PostsSearchPayload_total(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type PostsSearchPayload", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_searchPostsByTitle_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -18578,6 +19015,59 @@ func (ec *executionContext) _PostPayload(ctx context.Context, sel ast.SelectionS
 	return out
 }
 
+var postSearchResultImplementors = []string{"PostSearchResult"}
+
+func (ec *executionContext) _PostSearchResult(ctx context.Context, sel ast.SelectionSet, obj *PostSearchResult) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, postSearchResultImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("PostSearchResult")
+		case "id":
+			out.Values[i] = ec._PostSearchResult_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "title":
+			out.Values[i] = ec._PostSearchResult_title(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "authorName":
+			out.Values[i] = ec._PostSearchResult_authorName(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "authorProfilePhoto":
+			out.Values[i] = ec._PostSearchResult_authorProfilePhoto(ctx, field, obj)
+		case "location":
+			out.Values[i] = ec._PostSearchResult_location(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.ProcessDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var postsPayloadImplementors = []string{"PostsPayload"}
 
 func (ec *executionContext) _PostsPayload(ctx context.Context, sel ast.SelectionSet, obj *PostsPayload) graphql.Marshaler {
@@ -18616,6 +19106,60 @@ func (ec *executionContext) _PostsPayload(ctx context.Context, sel ast.Selection
 			}
 		case "limit":
 			out.Values[i] = ec._PostsPayload_limit(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.ProcessDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var postsSearchPayloadImplementors = []string{"PostsSearchPayload"}
+
+func (ec *executionContext) _PostsSearchPayload(ctx context.Context, sel ast.SelectionSet, obj *PostsSearchPayload) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, postsSearchPayloadImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("PostsSearchPayload")
+		case "success":
+			out.Values[i] = ec._PostsSearchPayload_success(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "message":
+			out.Values[i] = ec._PostsSearchPayload_message(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "data":
+			out.Values[i] = ec._PostsSearchPayload_data(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "total":
+			out.Values[i] = ec._PostsSearchPayload_total(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -18883,6 +19427,25 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_comments(ctx, field)
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "searchPostsByTitle":
+			field := field
+
+			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_searchPostsByTitle(ctx, field)
 				return res
 			}
 
@@ -20820,6 +21383,32 @@ func (ec *executionContext) marshalNPostPayload2ᚖtindahanᚑbackendᚋgraphql�
 	return ec._PostPayload(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalNPostSearchResult2ᚕᚖtindahanᚑbackendᚋgraphqlᚐPostSearchResultᚄ(ctx context.Context, sel ast.SelectionSet, v []*PostSearchResult) graphql.Marshaler {
+	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
+		fc := graphql.GetFieldContext(ctx)
+		fc.Result = &v[i]
+		return ec.marshalNPostSearchResult2ᚖtindahanᚑbackendᚋgraphqlᚐPostSearchResult(ctx, sel, v[i])
+	})
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNPostSearchResult2ᚖtindahanᚑbackendᚋgraphqlᚐPostSearchResult(ctx context.Context, sel ast.SelectionSet, v *PostSearchResult) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._PostSearchResult(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalNReplyToInquiryInput2tindahanᚑbackendᚋgraphqlᚐReplyToInquiryInput(ctx context.Context, v any) (ReplyToInquiryInput, error) {
 	res, err := ec.unmarshalInputReplyToInquiryInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -21593,6 +22182,13 @@ func (ec *executionContext) marshalOPostsPayload2ᚖtindahanᚑbackendᚋgraphql
 		return graphql.Null
 	}
 	return ec._PostsPayload(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOPostsSearchPayload2ᚖtindahanᚑbackendᚋgraphqlᚐPostsSearchPayload(ctx context.Context, sel ast.SelectionSet, v *PostsSearchPayload) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._PostsSearchPayload(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOProductSearchInput2ᚖtindahanᚑbackendᚋgraphqlᚐProductSearchInput(ctx context.Context, v any) (*ProductSearchInput, error) {

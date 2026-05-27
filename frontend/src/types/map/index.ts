@@ -123,7 +123,10 @@ export interface SearchBarProps {
   onSearch: (query: string) => void;
   onStoreSelect?: (store: { lat: number; lng: number; name: string; id?: string; description?: string; location?: string; coverPhoto?: string; businessType?: string; phone?: string; hours?: string }) => void;
   onProductSelect?: (productName: string, stores: any[]) => void;
+  onPostSelect?: (postTitle: string) => void;
   onClearProductStores?: () => void;
+  onClearAllMarkers?: () => void;
+  showClearMarkersButton?: boolean;
   placeholder?: string;
 }
 
@@ -175,6 +178,8 @@ export interface MapMarkersProps {
   locationPinData: LocationPinData | null;
   showProductStoreMarkers: boolean;
   productSearchStores: ProductStore[];
+  showPostMarkers: boolean;
+  postSearchResults: any[];
   userLocation: { lat: number; lng: number } | null;
   showUserLocationMarker: boolean;
 }

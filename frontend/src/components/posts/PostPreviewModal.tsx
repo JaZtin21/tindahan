@@ -468,6 +468,7 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
           marginBottom: isKeyboardOpen ? `${keyboardHeight}px` : '0'
         }}
       >
+        
           {/* Scrollable Comments List */}
           <div 
             className="flex-1 overflow-y-auto p-4 space-y-3 transition-all duration-300"
@@ -563,8 +564,7 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
             )}
           </div>
 
-          {/* Sticky Comment Input at Bottom */}
-          <div className="p-4 border-t border-zinc-100 dark:border-zinc-800 bg-white dark:bg-zinc-900 sticky bottom-0">
+          <div className="p-4 border-t border-zinc-100 dark:border-zinc-800 bg-white dark:bg-zinc-900 sticky -bottom-10">
             <form onSubmit={handleAddComment} className="flex gap-2">
               <input
                 ref={commentInputRef}

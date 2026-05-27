@@ -15,7 +15,7 @@ import { ME_QUERY } from './user/user-queries';
 import { setUser } from '../../store';
 
 // GraphQL endpoint
-const GRAPHQL_ENDPOINT = import.meta.env.VITE_GRAPHQL_URL || 'http://localhost:8080/query';
+const GRAPHQL_ENDPOINT = import.meta.env.VITE_GRAPHQL_ENDPOINT || 'http://localhost:8080/query';
 
 // Create a basic Apollo client for auth operations (without auth link)
 const authClient = new ApolloClient({

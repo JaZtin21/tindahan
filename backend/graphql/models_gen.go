@@ -326,6 +326,14 @@ type PostPayload struct {
 	Data    *Post  `json:"data,omitempty"`
 }
 
+type PostSearchResult struct {
+	ID                 string    `json:"id"`
+	Title              string    `json:"title"`
+	AuthorName         string    `json:"authorName"`
+	AuthorProfilePhoto *string   `json:"authorProfilePhoto,omitempty"`
+	Location           *Location `json:"location,omitempty"`
+}
+
 type PostsPayload struct {
 	Success bool    `json:"success"`
 	Message string  `json:"message"`
@@ -333,6 +341,13 @@ type PostsPayload struct {
 	Total   int     `json:"total"`
 	Page    int     `json:"page"`
 	Limit   int     `json:"limit"`
+}
+
+type PostsSearchPayload struct {
+	Success bool                `json:"success"`
+	Message string              `json:"message"`
+	Data    []*PostSearchResult `json:"data"`
+	Total   int                 `json:"total"`
 }
 
 type ProductSearchInput struct {

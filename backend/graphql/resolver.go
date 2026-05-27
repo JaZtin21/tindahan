@@ -2199,6 +2199,65 @@ func (r *queryResolver) PostsNearLocation(ctx context.Context, lat float64, lng 
 	}, nil
 }
 
+// SearchPostsByTitle is the resolver for the searchPostsByTitle field (public API)
+func (r *queryResolver) SearchPostsByTitle(ctx context.Context, query string, page *int, limit *int) (*PostsSearchPayload, error) {
+	pageVal := 1
+	limitVal := 10
+	if page != nil {
+		pageVal = *page
+	}
+	if limit != nil {
+		limitVal = *limit
+	}
+
+	result, err := r.postResolver.SearchPostsByTitle(ctx, query, pageVal, limitVal)
+	if err != nil {
+		return &PostsSearchPayload{
+			Success: false,
+			Message: result["message"].(string),
+			Data:    []*PostSearchResult{},
+			Total:   0,
+		}, nil
+	}
+
+	postData := result["data"].([]map[string]interface{})
+	posts := make([]*PostSearchResult, len(postData))
+	for i, postMap := range postData {
+		var location *Location
+		if postMap["location"] != nil {
+			locMap := postMap["location"].(map[string]interface{})
+			location = &Location{
+				Lat:  locMap["lat"].(float64),
+				Lng:  locMap["lng"].(float64),
+				Name: locMap["name"].(string),
+			}
+		}
+
+		var authorProfilePhoto *string
+		if postMap["authorProfilePhoto"] != nil && postMap["authorProfilePhoto"].(string) != "" {
+			photo := postMap["authorProfilePhoto"].(string)
+			authorProfilePhoto = &photo
+		}
+
+		posts[i] = &PostSearchResult{
+			ID:                 postMap["id"].(string),
+			Title:              postMap["title"].(string),
+			AuthorName:         postMap["authorName"].(string),
+			AuthorProfilePhoto: authorProfilePhoto,
+			Location:           location,
+		}
+	}
+
+	total := int(result["total"].(int64))
+
+	return &PostsSearchPayload{
+		Success: result["success"].(bool),
+		Message: result["message"].(string),
+		Data:    posts,
+		Total:   total,
+	}, nil
+}
+
 // Comments is the resolver for the comments field.
 func (r *queryResolver) Comments(ctx context.Context, postID string, page *int, limit *int) (*CommentsPayload, error) {
 	pageVal := 1

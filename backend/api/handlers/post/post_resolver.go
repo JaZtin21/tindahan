@@ -614,6 +614,56 @@ func (r *PostResolver) DeleteComment(ctx context.Context, commentID, postID, use
 	}, nil
 }
 
+// SearchPostsByTitle searches for posts by title (public API)
+func (r *PostResolver) SearchPostsByTitle(ctx context.Context, query string, page, limit int) (map[string]interface{}, error) {
+	// Search posts by title
+	posts, total, err := r.postRepo.SearchPostsByTitle(ctx, query, page, limit)
+	if err != nil {
+		return map[string]interface{}{
+			"success": false,
+			"message": "Failed to search posts: " + err.Error(),
+		}, err
+	}
+
+	// Format results with normalized author data
+	data := make([]map[string]interface{}, len(posts))
+	for i, post := range posts {
+		// Get author info
+		author, _ := r.userRepo.GetUserByID(ctx, post.AuthorID)
+		authorName := "Unknown"
+		authorProfilePhoto := ""
+		if author != nil {
+			authorName = author.FirstName + " " + author.LastName
+			authorProfilePhoto = author.ProfilePhoto
+		}
+
+		// Build location data
+		var locationData map[string]interface{}
+		if post.Location != nil {
+			locationData = map[string]interface{}{
+				"lat":  post.Location.Lat,
+				"lng":  post.Location.Lng,
+				"name": post.Location.Name,
+			}
+		}
+
+		data[i] = map[string]interface{}{
+			"id":                 post.ID.Hex(),
+			"title":              post.Title,
+			"authorName":         authorName,
+			"authorProfilePhoto": authorProfilePhoto,
+			"location":           locationData,
+		}
+	}
+
+	return map[string]interface{}{
+		"success": true,
+		"message": "Posts searched successfully",
+		"data":    data,
+		"total":   total,
+	}, nil
+}
+
 // Helper methods
 
 func (r *PostResolver) formatPostResponse(ctx context.Context, post *domain.Post, currentUserID string) map[string]interface{} {

@@ -5,7 +5,7 @@ import 'leaflet/dist/leaflet.css';
 import { useSubscription, useMutation, useQuery } from '@apollo/client/react';
 import { CachedTileLayer, MapMarkers as MapMarkersComponent, getMapMarkerStyles } from '../components/Map';
 import { LIVE_POSTS_SUBSCRIPTION } from '../api/graphql/subscriptions/live-posts';
-import { DELETE_POST_MUTATION } from '../api/graphql/post/post-queries';
+import { DELETE_POST_MUTATION, SEARCH_POSTS_BY_TITLE_QUERY } from '../api/graphql/post/post-queries';
 import { SHOPS_BY_PRODUCT_QUERY } from '../api/graphql/shop/shop-queries';
 import { useCreatePost } from '../api/graphql/post/usePost';
 import { useAuth } from '../api/graphql/apolloProviderWithAuth';
@@ -119,6 +119,10 @@ export function OptimizedMapsPage() {
   const [productNameForSearch, setProductNameForSearch] = useState<string | null>(null);
   const [selectedStore, setSelectedStore] = useState<any | null>(null);
   
+  // Post search states
+  const [postSearchResults, setPostSearchResults] = useState<any[]>([]);
+  const [showPostMarkers, setShowPostMarkers] = useState(false);
+  
   // Search marker visibility states
   const [showStoreMarker, setShowStoreMarker] = useState(false);
   const [showLocationPinMarker, setShowLocationPinMarker] = useState(false);
@@ -212,12 +216,20 @@ export function OptimizedMapsPage() {
     skip: !productNameForSearch
   });
   
+  // Query to search posts by title
+  const { refetch: refetchPostsByTitle } = useQuery(SEARCH_POSTS_BY_TITLE_QUERY, {
+    variables: { query: '', page: 1, limit: 50 },
+    skip: true
+  });
+  
   // Create post handler using factory function
   const { handleCreatePost } = createPostHandlers({ createPost, showSuccess, showError });
   
   // Handle store selection from search (from API - shop marker)
   const handleStoreSelect = (store: { lat: number; lng: number; name: string; id?: string; description?: string; location?: string; coverPhoto?: string; businessType?: string; phone?: string; hours?: string }) => {
     console.log('[Search] Selected store:', store);
+    // Clear post markers when selecting a store
+    clearPostMarkers();
     // Only hide product store markers, keep location pin
     setShowProductStoreMarkers(false);
     setProductSearchStores([]);
@@ -267,6 +279,8 @@ export function OptimizedMapsPage() {
   // Handle location selection from search (from geocoding - pin marker)
   const handleLocationSelect = (location: { lat: number; lng: number; name: string; details?: string }) => {
     console.log('[Search] Selected location:', location);
+    // Clear post markers when selecting a location
+    clearPostMarkers();
     // Location pin is independent - don't hide shop or product markers
     // Just add the location pin marker
     
@@ -284,6 +298,9 @@ export function OptimizedMapsPage() {
   const handleProductSelect = async (productName: string) => {
     console.log('[Search] Selected product:', productName);
     setProductNameForSearch(productName);
+    
+    // Clear post markers when selecting a product
+    clearPostMarkers();
     
     // Fetch stores that have this product
     const result = await refetchShopsByProduct({ productName }) as { data?: { shopsByProduct?: { data: any[] } } };
@@ -329,15 +346,60 @@ export function OptimizedMapsPage() {
     setShowProductStoreMarkers(false);
   };
   
+  // Handle post selection from search
+  const handlePostSelect = async (postTitle: string) => {
+    console.log('[Search] Selected post title:', postTitle);
+    
+    // Fetch posts by title
+    const result = await refetchPostsByTitle({ query: postTitle, page: 1, limit: 50 }) as { data?: { searchPostsByTitle?: { data: any[] } } };
+    const posts = result.data?.searchPostsByTitle?.data || [];
+    
+    // Convert posts to marker format
+    const postMarkers = posts.map((post: any) => ({
+      id: post.id,
+      title: post.title,
+      authorName: post.authorName,
+      authorProfilePhoto: post.authorProfilePhoto,
+      lat: post.location?.lat || 0,
+      lng: post.location?.lng || 0,
+    })).filter((p: any) => p.lat && p.lng);
+    
+    setPostSearchResults(postMarkers);
+    setShowPostMarkers(true);
+    
+    // Clear other markers
+    setShowStoreMarker(false);
+    setStoreMarkerData(null);
+    setShowProductStoreMarkers(false);
+    setProductSearchStores([]);
+    
+    // Zoom out to fit all posts using fitBounds
+    if (mapRef.current && postMarkers.length > 0) {
+      const bounds = postMarkers.map(p => [p.lat, p.lng]);
+      mapRef.current.fitBounds(bounds, { padding: [50, 50], maxZoom: 15, duration: 1.5 });
+    }
+    
+    // Show success message with post count
+    showSuccess('Post Search', `Found ${postMarkers.length} posts matching "${postTitle}"`);
+  };
+  
+  // Clear post search markers
+  const clearPostMarkers = () => {
+    setPostSearchResults([]);
+    setShowPostMarkers(false);
+  };
+  
   // Clear all search markers
   const clearAllSearchMarkers = () => {
     setShowStoreMarker(false);
     setShowLocationPinMarker(false);
     setShowProductStoreMarkers(false);
+    setShowPostMarkers(false);
     setStoreMarkerData(null);
     setLocationPinData(null);
     setProductSearchStores([]);
     setFilteredStores([]);
+    setPostSearchResults([]);
   };
   
   // Handle actual delete post execution
@@ -502,7 +564,10 @@ export function OptimizedMapsPage() {
             }
           }}
           onProductSelect={handleProductSelect}
+          onPostSelect={handlePostSelect}
           onClearProductStores={clearProductStores}
+          onClearAllMarkers={clearAllSearchMarkers}
+          showClearMarkersButton={showStoreMarker || showLocationPinMarker || showProductStoreMarkers || showPostMarkers}
           placeholder="Search for stores or products near you..."
         />
       </div>
@@ -535,6 +600,8 @@ export function OptimizedMapsPage() {
           locationPinData={locationPinData}
           showProductStoreMarkers={showProductStoreMarkers}
           productSearchStores={productSearchStores}
+          showPostMarkers={showPostMarkers}
+          postSearchResults={postSearchResults}
           userLocation={userLocation}
           showUserLocationMarker={showLocationMarker}
         />

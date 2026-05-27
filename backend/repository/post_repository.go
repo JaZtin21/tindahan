@@ -21,6 +21,7 @@ type PostRepository interface {
 	GetPosts(ctx context.Context, page, limit int) ([]*domain.Post, int64, error)
 	GetMyPosts(ctx context.Context, authorID primitive.ObjectID, page, limit int) ([]*domain.Post, int64, error)
 	GetPostsNearLocation(ctx context.Context, lat, lng, radius float64, page, limit int) ([]*domain.Post, int64, error)
+	SearchPostsByTitle(ctx context.Context, query string, page, limit int) ([]*domain.Post, int64, error)
 	LikePost(ctx context.Context, postID, userID primitive.ObjectID) error
 	UnlikePost(ctx context.Context, postID, userID primitive.ObjectID) error
 	IsPostLikedByUser(ctx context.Context, postID, userID primitive.ObjectID) (bool, error)
@@ -154,6 +155,38 @@ func (r *postRepository) GetPostsNearLocation(ctx context.Context, lat, lng, rad
 	if err != nil {
 		// If geospatial query fails (e.g., no index), fall back to coordinate-based filter
 		return r.getPostsByCoordinateRange(ctx, lat, lng, radiusInDegrees, page, limit)
+	}
+	defer cursor.Close(ctx)
+
+	var posts []*domain.Post
+	if err = cursor.All(ctx, &posts); err != nil {
+		return nil, 0, err
+	}
+
+	total, err := r.collection.CountDocuments(ctx, filter)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return posts, total, nil
+}
+
+func (r *postRepository) SearchPostsByTitle(ctx context.Context, query string, page, limit int) ([]*domain.Post, int64, error) {
+	skip := (page - 1) * limit
+
+	// Case-insensitive search for posts with title matching the query
+	filter := bson.M{
+		"title": bson.M{"$regex": query, "$options": "i"},
+	}
+
+	findOptions := options.Find().
+		SetSkip(int64(skip)).
+		SetLimit(int64(limit)).
+		SetSort(bson.M{"created_at": -1})
+
+	cursor, err := r.collection.Find(ctx, filter, findOptions)
+	if err != nil {
+		return nil, 0, err
 	}
 	defer cursor.Close(ctx)
 

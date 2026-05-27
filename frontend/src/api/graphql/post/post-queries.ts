@@ -346,3 +346,24 @@ export const DELETE_COMMENT_MUTATION = gql`
     }
   }
 `;
+
+export const SEARCH_POSTS_BY_TITLE_QUERY = gql`
+  query SearchPostsByTitle($query: String!, $page: Int, $limit: Int) {
+    searchPostsByTitle(query: $query, page: $page, limit: $limit) {
+      success
+      message
+      data {
+        id
+        title
+        authorName
+        authorProfilePhoto
+        location {
+          lat
+          lng
+          name
+        }
+      }
+      total
+    }
+  }
+`;
