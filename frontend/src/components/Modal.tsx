@@ -134,7 +134,7 @@ export function Modal({ isOpen, onClose, title, message, type, onConfirm, showCa
                     ? 'bg-emerald-500 hover:bg-emerald-600 text-white'
                     : type === 'error'
                     ? 'bg-red-500 hover:bg-red-600 text-white'
-                    : 'bg-blue-500 hover:bg-blue-600 text-white'
+                    : 'bg-blue-500 hover:bg-primary text-white'
                 }`}
               >
                 {onConfirm ? 'Delete' : 'OK'}

@@ -391,6 +391,7 @@ export function OptimizedMapsPage() {
   
   // Clear all search markers
   const clearAllSearchMarkers = () => {
+
     setShowStoreMarker(false);
     setShowLocationPinMarker(false);
     setShowProductStoreMarkers(false);
@@ -615,7 +616,7 @@ export function OptimizedMapsPage() {
           disabled={isGettingLocation}
           className={`w-12 h-12 rounded-full shadow-xl transition-all flex items-center justify-center ${
             isGettingLocation 
-              ? 'bg-blue-600 text-white animate-pulse' 
+              ? 'bg-primary text-white animate-pulse' 
               : 'bg-white hover:bg-gray-100 text-gray-700'
           }`}
           title={isGettingLocation ? 'Getting location...' : 'Get my current location'}
@@ -631,7 +632,7 @@ export function OptimizedMapsPage() {
         {isAuthenticated && (
           <button
             onClick={() => setIsCreatePostModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-xl transition-colors"
+            className="flex items-center gap-2 px-4 py-3 bg-primary hover:bg-blue-700 text-white rounded-full shadow-xl transition-colors"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />

@@ -111,7 +111,7 @@ export function InquiryConversationModal({ isOpen, onClose, inquiry, currentUser
     }
     
     return (
-      <div className={`${size} rounded-full bg-blue-600 text-white flex items-center justify-center text-sm font-medium`}>
+      <div className={`${size} rounded-full bg-primary text-white flex items-center justify-center text-sm font-medium`}>
         {getUserInitials(user?.name)}
       </div>
     );
@@ -171,7 +171,7 @@ export function InquiryConversationModal({ isOpen, onClose, inquiry, currentUser
               <div
                 className={`rounded-lg p-3 max-w-[80%] ${
                   reply.author?.id === currentUserId
-                    ? 'bg-blue-600 text-white'
+                    ? 'bg-primary text-white'
                     : 'bg-zinc-100 dark:bg-zinc-800'
                 }`}
               >
@@ -196,7 +196,7 @@ export function InquiryConversationModal({ isOpen, onClose, inquiry, currentUser
             <button
               onClick={handleSubmitReply}
               disabled={!replyMessage.trim() || isSubmitting}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-zinc-400 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
+              className="px-4 py-2 bg-primary hover:bg-blue-700 disabled:bg-zinc-400 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
             >
               {isSubmitting ? 'Sending...' : 'Send'}
             </button>

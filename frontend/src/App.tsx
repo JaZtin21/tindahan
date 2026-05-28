@@ -3,6 +3,7 @@ import { Outlet, useLocation } from 'react-router-dom'
 import { useSelector, useDispatch } from 'react-redux'
 import { TopNav, SideNav } from './components/navigation'
 import { closeSideNav } from './store'
+import './style.css'
 import type { RootState } from './store'
 
 export function App() {

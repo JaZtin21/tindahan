@@ -179,6 +179,12 @@ export function SearchBar({ onSearch, onStoreSelect, onProductSelect, onPostSele
     handleSearch(suggestion.name);
   };
 
+  const cleanMarkers =()=>{
+    if(showClearMarkersButton && onClearAllMarkers)
+    onClearAllMarkers() 
+    setQuery('')
+  }
+
   return (
     <div className="relative w-full max-w-2xl mx-auto flex gap-2">
       <div className="relative flex-1">
@@ -188,7 +194,7 @@ export function SearchBar({ onSearch, onStoreSelect, onProductSelect, onPostSele
           onChange={(e) => handleInputChange(e.target.value)}
           onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
           placeholder={placeholder}
-          className="w-full px-4 py-3 pl-12 text-lg border border-zinc-300 dark:border-zinc-600 rounded-xl bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent shadow-lg"
+          className="w-full px-4 py-3 pl-12 text-lg border border-zinc-300 dark:border-zinc-600 rounded-xl bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent shadow-lg"
         />
         <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-zinc-400">
           {isLoading ? (
@@ -202,8 +208,8 @@ export function SearchBar({ onSearch, onStoreSelect, onProductSelect, onPostSele
       {/* Clear markers button */}
       {showClearMarkersButton && onClearAllMarkers && (
         <button
-          onClick={onClearAllMarkers}
-          className="px-4 py-3 bg-red-500 hover:bg-red-600 text-white rounded-xl shadow-lg transition-colors flex items-center gap-2"
+          onClick={cleanMarkers}
+          className="px-4 py-3 bg-primary hover:bg-red-600 text-white rounded-xl shadow-lg transition-colors flex items-center gap-2"
           title="Clear all markers"
         >
           <FiX size={20} />

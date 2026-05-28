@@ -58,7 +58,7 @@ export function InventoryTable({ shops, onEditItem, onDeleteItem, page, setPage,
                         <div className="flex gap-2">
                           <button
                             onClick={() => onEditItem(shop.id, item.id)}
-                            className="px-3 py-1 bg-blue-500 text-white rounded text-xs hover:bg-blue-600 transition-colors whitespace-nowrap"
+                            className="px-3 py-1 bg-blue-500 text-white rounded text-xs hover:bg-primary transition-colors whitespace-nowrap"
                           >
                             Edit
                           </button>
