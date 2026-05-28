@@ -41,7 +41,7 @@ export function ProfilePage() {
   const { isLoading: authLoading, isAuthenticated } = useAuth()
   
   // Fetch profile data
-  const { data: meData, loading: meLoading, refetch: refetchMe } = useGetMe(!isAuthenticated || !isOwnProfile)
+  const { data: meData, loading: meLoading } = useGetMe(!isAuthenticated || !isOwnProfile)
   const { data: userData, loading: userLoading } = useGetUser(targetUserId || null, isOwnProfile)
 
   // Use appropriate data based on whether viewing own or other profile
@@ -173,7 +173,24 @@ export function ProfilePage() {
     })
     if (result?.success) {
       setIsEditing(false)
-      refetchMe()
+      // Update cache directly instead of refetching
+      client.cache.modify({
+        id: client.cache.identify({ __typename: 'User', id: currentUserId }),
+        fields: {
+          name() {
+            return `${editForm.firstName} ${editForm.lastName}`.trim()
+          },
+          firstName() {
+            return editForm.firstName
+          },
+          lastName() {
+            return editForm.lastName
+          },
+          birthday() {
+            return editForm.birthday
+          }
+        }
+      })
       setModal({
         isOpen: true,
         type: 'success',
@@ -194,8 +211,16 @@ export function ProfilePage() {
     const file = e.target.files?.[0]
     if (file) {
       const result = await uploadProfilePhoto(file)
-      if (result?.success) {
-        refetchMe()
+      if (result?.success && result.url) {
+        // Update cache directly instead of refetching
+        client.cache.modify({
+          id: client.cache.identify({ __typename: 'User', id: currentUserId }),
+          fields: {
+            profilePhoto() {
+              return result.url
+            }
+          }
+        })
       }
     }
   }
@@ -204,8 +229,16 @@ export function ProfilePage() {
     const file = e.target.files?.[0]
     if (file) {
       const result = await uploadCoverPhoto(file)
-      if (result?.success) {
-        refetchMe()
+      if (result?.success && result.url) {
+        // Update cache directly instead of refetching
+        client.cache.modify({
+          id: client.cache.identify({ __typename: 'User', id: currentUserId }),
+          fields: {
+            coverPhoto() {
+              return result.url
+            }
+          }
+        })
       }
     }
   }
