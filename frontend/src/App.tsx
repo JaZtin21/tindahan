@@ -24,11 +24,14 @@ export function App() {
     }
   }, [location.pathname, isOpen, handleCloseSideNav])
 
+  // Hide topnav on home page for onboarding carousel
+  const isHomePage = location.pathname === '/'
+
   return (
     <div className="min-h-dvh bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-900">
       {/* Main content with top padding for fixed nav */}
       <main className="relative">
-        <TopNav />
+        {!isHomePage && <TopNav />}
         <SideNav 
           isOpen={isOpen} 
           onClose={handleCloseSideNav}
