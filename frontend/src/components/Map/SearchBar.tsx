@@ -209,7 +209,7 @@ export function SearchBar({ onSearch, onStoreSelect, onProductSelect, onPostSele
       {showClearMarkersButton && onClearAllMarkers && (
         <button
           onClick={cleanMarkers}
-          className="px-4 py-3 bg-primary hover:bg-red-600 text-white rounded-xl shadow-lg transition-colors flex items-center gap-2"
+          className="px-4 py-3 bg-primary hover:bg-primary-700 text-white rounded-xl shadow-lg transition-colors flex items-center gap-2"
           title="Clear all markers"
         >
           <FiX size={20} />

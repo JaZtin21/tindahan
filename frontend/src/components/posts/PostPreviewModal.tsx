@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, memo } from 'react';
+import { useEffect, useState, useRef, memo, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { useMutation, useQuery, useLazyQuery } from '@apollo/client/react';
@@ -138,7 +138,7 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
     }
   }, [commentsData, post?.id]);
 
-  const isCurrentUser = post?.author?.id === currentUser?.id;
+  const isCurrentUser = useMemo(() => post?.author?.id === currentUser?.id, [post?.author?.id, currentUser?.id]);
   
   const handleProfileClick = () => {
     if (post?.author?.id && !isCurrentUser) {
@@ -350,7 +350,7 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
                 className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${
                   isFollowing
                     ? 'bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-600'
-                    : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                    : 'bg-primary hover:bg-primary-700 text-white'
                 }`}
                 onClick={(e) => {
                   e.stopPropagation();
