@@ -196,7 +196,7 @@ export function InquiryConversationModal({ isOpen, onClose, inquiry, currentUser
             <button
               onClick={handleSubmitReply}
               disabled={!replyMessage.trim() || isSubmitting}
-              className="px-4 py-2 bg-primary hover:bg-blue-700 disabled:bg-zinc-400 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
+              className="px-4 py-2 bg-primary hover:bg-primary-700 disabled:bg-zinc-400 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
             >
               {isSubmitting ? 'Sending...' : 'Send'}
             </button>

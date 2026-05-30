@@ -239,7 +239,7 @@ function CreatePostModalInner({ isOpen, onClose, onSubmit, isSubmitting: externa
             <button
               onClick={handleSubmit}
               disabled={!title.trim() || photos.length === 0 || !selectedLocation || isLoading}
-              className="px-4 py-2 text-sm font-medium text-white bg-primary hover:bg-blue-700 disabled:bg-zinc-300 dark:disabled:bg-zinc-600 disabled:cursor-not-allowed rounded-lg transition-colors"
+              className="px-4 py-2 text-sm font-medium text-white bg-primary hover:bg-primary-700 disabled:bg-zinc-300 dark:disabled:bg-zinc-600 disabled:cursor-not-allowed rounded-lg transition-colors"
             >
               {isLoading ? 'Posting...' : 'Post'}
             </button>

@@ -477,7 +477,7 @@ function SideNavContent({
                       {existingInquiry ? (
                         <button
                           onClick={() => setIsConversationModalOpen(true)}
-                          className="w-full py-2 px-4 bg-primary hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+                          className="w-full py-2 px-4 bg-primary hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors"
                         >
                           See Messages
                         </button>
@@ -506,7 +506,7 @@ function SideNavContent({
                           <button
                             onClick={handleSubmitInquiry}
                             disabled={!inquiryItem.trim() || !inquiryMessage.trim() || isSubmittingInquiry}
-                            className="w-full py-2 px-4 bg-primary hover:bg-blue-700 disabled:bg-zinc-400 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
+                            className="w-full py-2 px-4 bg-primary hover:bg-primary-700 disabled:bg-zinc-400 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
                           >
                             {isSubmittingInquiry ? 'Sending...' : 'Send Inquiry'}
                           </button>

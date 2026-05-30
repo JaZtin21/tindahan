@@ -632,7 +632,7 @@ export function OptimizedMapsPage() {
         {isAuthenticated && (
           <button
             onClick={() => setIsCreatePostModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-3 bg-primary hover:bg-blue-700 text-white rounded-full shadow-xl transition-colors"
+            className="flex items-center gap-2 px-4 py-3 bg-primary hover:bg-primary-700 text-white rounded-full shadow-xl transition-colors"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
