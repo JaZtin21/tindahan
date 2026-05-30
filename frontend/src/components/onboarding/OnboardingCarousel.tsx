@@ -9,19 +9,19 @@ interface Slide {
 
 const slides: Slide[] = [
   {
+    image: '/slide3.png',
+    title: 'Satisfy your Cravings',
+    description: "Craving for a snack or meal right now but don't know where to find it?"
+  },
+  {
     image: '/slide1.png',
-    title: 'Discover Local Stores',
-    description: 'Find sari-sari stores near you with the items you need. Search, browse, and connect with local businesses in your area.'
+    title: 'Discover Foods',
+    description: 'Save your time and transport money by discovering hidden food gems available just a few steps away from your home.'
   },
   {
     image: '/slide2.png',
-    title: 'Request Products',
-    description: 'Can\'t find what you\'re looking for? Send a request to store owners and get notified when items become available.'
-  },
-  {
-    image: '/slide3.png',
-    title: 'Start Exploring',
-    description: 'Ready to discover your neighborhood? Click the button below to start exploring the map and find stores near you.'
+    title: 'Share your Moments',
+    description: 'Take a photo and share your happy eating moments directly with a community of local foodies.'
   }
 ]
 
@@ -55,9 +55,9 @@ export function OnboardingCarousel() {
      {currentSlide === 0 && (
           <div key={`slide1-${currentSlide}`} className="absolute inset-0 animate-fade-in">
             <img
-              src="/slide1.png"
-              alt="Discover Local Stores"
-              className="w-full h-full object-cover"
+              src="/slide3.png"
+              alt=""
+              className="w-full h-full md:object-cover fill scale-x-[2.54] scale-y-100 md:scale-100 origin-[179px] md:origin-center"
             />
             <div className="absolute inset-0 bg-black/40" />
           </div>
@@ -67,9 +67,9 @@ export function OnboardingCarousel() {
      {currentSlide === 1 && (
           <div key={`slide2-${currentSlide}`} className="absolute inset-0 animate-fade-in">
             <img
-              src="/slide2.png"
+              src="/slide1.png"
               alt="Request Products"
-              className="w-full h-full object-cover"
+              className="w-full h-full md:object-cover fill scale-x-[2.54] scale-y-100 md:scale-100 origin-[260px] md:origin-center"
             />
             <div className="absolute inset-0 bg-black/40" />
           </div>
@@ -79,9 +79,9 @@ export function OnboardingCarousel() {
            {currentSlide === 2 && (
           <div key={`slide3-${currentSlide}`} className="absolute inset-0 animate-fade-in">
             <img
-              src="/slide3.png"
+              src="/slide2.png"
               alt="Start Exploring"
-              className="w-full h-full object-cover"
+              className="w-full h-full md:object-cover fill scale-x-[2.54] scale-y-100 md:scale-100"
             />
             <div className="absolute inset-0 bg-black/40" />
           </div>
@@ -92,7 +92,7 @@ export function OnboardingCarousel() {
           <h1 className="text-4xl md:text-6xl font-bold mb-4 drop-shadow-lg">
             {slides[currentSlide].title}
           </h1>
-          <p className="text-lg md:text-xl max-w-2xl drop-shadow-md mb-8">
+          <p className="text-xl md:text-2xl max-w-2xl drop-shadow-md mb-8">
             {slides[currentSlide].description}
           </p>
 
@@ -100,7 +100,7 @@ export function OnboardingCarousel() {
           {!isLastSlide && (
             <button
               onClick={goToNextSlide}
-              className="px-8 py-4 bg-emerald-500 hover:bg-emerald-600 text-white text-lg font-semibold rounded-full shadow-xl transition-all transform hover:scale-105"
+              className="px-6 py-2 bg-primary hover:bg-primary text-white text-md font-semibold rounded-full shadow-xl transition-all transform hover:scale-105"
             >
               Next
             </button>
@@ -110,7 +110,7 @@ export function OnboardingCarousel() {
           {isLastSlide && (
             <button
               onClick={handleShowMap}
-              className="px-8 py-4 bg-emerald-500 hover:bg-emerald-600 text-white text-lg font-semibold rounded-full shadow-xl transition-all transform hover:scale-105"
+              className="px-6 py-2 bg-primary hover:bg-primary text-white text-lg font-semibold rounded-full shadow-xl transition-all transform hover:scale-105"
             >
               Show Map
             </button>
