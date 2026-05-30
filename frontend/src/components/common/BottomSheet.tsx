@@ -48,16 +48,17 @@ export function BottomSheet({
   }, [onClose]);
 
   // Handle open/close animation
-  useEffect(() => {
-    if (isOpen) {
-      setIsAnimating(true);
-      // Start from bottom, then animate up
-      setTranslateY(100);
-      const timer = setTimeout(() => setTranslateY(5), 10); // 5% = 95% open
-      setTimeout(() => setIsAnimating(false), 310);
-      return () => clearTimeout(timer);
-    }
-  }, [isOpen]);
+useEffect(() => {
+  if (isOpen) {
+    setIsAnimating(true);
+    setTranslateY(100); // Starts offscreen at the bottom
+    
+    // Fix: Animate to 0 instead of 5
+    const timer = setTimeout(() => setTranslateY(0), 10); 
+    setTimeout(() => setIsAnimating(false), 310);
+    return () => clearTimeout(timer);
+  }
+}, [isOpen]);
 
   // Handle body scroll lock
   useEffect(() => {

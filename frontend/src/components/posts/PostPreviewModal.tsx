@@ -418,7 +418,7 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
         <>
 
         {/* Post Content */}
-        <div className="p-6">
+        <div className="p-2">
           {/* Title */}
           {post.title && (
             <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-100 mb-3">
@@ -441,7 +441,7 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
           )}
 
           {/* Stats */}
-          <div className="flex items-center gap-6 pt-4 border-t border-zinc-100 dark:border-zinc-800">
+          <div className="flex items-center gap-6 pt-4 pb-2 border-t border-zinc-100 dark:border-zinc-800">
             <button
               onClick={handleLikeToggle}
               className={`flex items-center gap-2 transition-colors ${isLiked ? 'text-pink-600 dark:text-pink-400' : 'text-zinc-600 dark:text-zinc-400 hover:text-pink-500'}`}
@@ -462,19 +462,12 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
 
       {/* Comments Section - Fixed height with sticky input */}
       <div 
-        className="border-t border-zinc-100 dark:border-zinc-800 flex flex-col transition-all duration-300"
-        style={{ 
-          maxHeight: isKeyboardOpen ? 'calc(100vh - 200px)' : '400px',
-          marginBottom: isKeyboardOpen ? `${keyboardHeight}px` : '0'
-        }}
+        className="border-t mx-2 py-2 border-zinc-100 dark:border-zinc-800 flex flex-col transition-all duration-300 relative"
       >
         
           {/* Scrollable Comments List */}
           <div 
-            className="flex-1 overflow-y-auto p-4 space-y-3 transition-all duration-300"
-            style={{ 
-              maxHeight: isKeyboardOpen ? 'calc(100vh - 280px)' : '320px'
-            }}
+            className="flex-1 overflow-y-auto p-0 py-2 space-y-3 transition-all duration-300"
           >
             {comments.length === 0 ? (
               <p className="text-sm text-zinc-500 text-center py-4">No comments yet. Be the first to comment!</p>
@@ -564,7 +557,7 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
             )}
           </div>
 
-          <div className="p-4 border-t border-zinc-100 dark:border-zinc-800 bg-white dark:bg-zinc-900 sticky -bottom-10">
+          <div className="p-4 border-t border-zinc-100 dark:border-zinc-800 bg-white dark:bg-zinc-900 fixed md:sticky bottom-0 md:-bottom-6 left-0 right-0 ">
             <form onSubmit={handleAddComment} className="flex gap-2">
               <input
                 ref={commentInputRef}
@@ -572,13 +565,13 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
                 value={commentText}
                 onChange={(e) => setCommentText(e.target.value)}
                 placeholder="Write a comment..."
-                className="flex-1 px-4 py-2 bg-zinc-100 dark:bg-zinc-800 border-0 rounded-lg text-zinc-900 dark:text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                className="flex-1 px-4 py-2 bg-zinc-100 dark:bg-zinc-800 border-0 rounded-lg text-zinc-900 dark:text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-primary"
                 disabled={isSubmittingComment}
               />
               <button
                 type="submit"
                 disabled={!commentText.trim() || isSubmittingComment}
-                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-zinc-400 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors"
+                className="px-4 py-2 bg-primary hover:bg-primary-700 disabled:bg-zinc-400 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors"
               >
                 {isSubmittingComment ? '...' : 'Post'}
               </button>
