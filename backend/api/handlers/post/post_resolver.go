@@ -69,12 +69,19 @@ func (r *PostResolver) CreatePost(ctx context.Context, authorID string, title st
 	author, _ := r.userRepo.GetUserByID(ctx, authorObjectID)
 	authorData := map[string]interface{}{}
 	if author != nil {
+		// Convert followers ObjectIDs to string arrays
+		followers := make([]string, len(author.Followers))
+		for i, id := range author.Followers {
+			followers[i] = id.Hex()
+		}
+
 		authorData = map[string]interface{}{
 			"id":        author.ID.Hex(),
 			"name":      author.FirstName + " " + author.LastName,
 			"email":     author.Email,
 			"role":      author.Role,
 			"isActive":  author.IsActive,
+			"followers": followers,
 			"createdAt": author.CreatedAt.Format(time.RFC3339),
 		}
 	}
@@ -685,12 +692,19 @@ func (r *PostResolver) formatPostData(ctx context.Context, post *domain.Post, cu
 		"isActive": false,
 	}
 	if author != nil {
+		// Convert followers ObjectIDs to string arrays
+		followers := make([]string, len(author.Followers))
+		for i, id := range author.Followers {
+			followers[i] = id.Hex()
+		}
+
 		authorData = map[string]interface{}{
 			"id":        author.ID.Hex(),
 			"name":      author.FirstName + " " + author.LastName,
 			"email":     author.Email,
 			"role":      author.Role,
 			"isActive":  author.IsActive,
+			"followers": followers,
 			"createdAt": author.CreatedAt.Format(time.RFC3339),
 			"updatedAt": author.UpdatedAt.Format(time.RFC3339),
 		}

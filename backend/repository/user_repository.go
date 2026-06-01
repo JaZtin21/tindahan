@@ -62,6 +62,13 @@ func (r *userRepository) GetUserByID(ctx context.Context, userID primitive.Objec
 	if err != nil {
 		return nil, err
 	}
+	// Ensure followers and following are initialized to empty arrays if nil
+	if user.Followers == nil {
+		user.Followers = []primitive.ObjectID{}
+	}
+	if user.Following == nil {
+		user.Following = []primitive.ObjectID{}
+	}
 	return &user, nil
 }
 

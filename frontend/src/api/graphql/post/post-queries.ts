@@ -55,6 +55,8 @@ export const POST_QUERY = gql`
           email
           role
           isActive
+          profilePhoto
+          followers
         }
         location {
           lat

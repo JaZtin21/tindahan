@@ -15,6 +15,7 @@ import {
 } from '../../api/graphql/post/post-queries';
 import { Modal, DropdownMenu, DropdownItem } from '../common/Modal';
 import { useKeyboard } from '../../hooks/useKeyboard';
+import { useFollowUser, useUnfollowUser } from '../../hooks';
 
 function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: PostPreviewModalProps & { onEdit?: (post: Post) => void; onDelete?: (post: Post) => void }) {
   const navigate = useNavigate();
@@ -29,6 +30,9 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
   // Like state
   const [isLiked, setIsLiked] = useState(post?.isLiked || false);
   const [likesCount, setLikesCount] = useState(post?.likes || 0);
+
+  // Follow state
+  const [isFollowing, setIsFollowing] = useState(post?.author?.followers?.includes(currentUser?.id || '') || false);
 
   // Comments state
   const [comments, setComments] = useState<Comment[]>([]);
@@ -46,6 +50,10 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
   const [unlikePost] = useMutation(UNLIKE_POST_MUTATION);
   const [addComment] = useMutation(ADD_COMMENT_MUTATION);
   const [deleteComment] = useMutation(DELETE_COMMENT_MUTATION);
+
+  // Follow/unfollow hooks
+  const { follow, loading: followLoading } = useFollowUser();
+  const { unfollow, loading: unfollowLoading } = useUnfollowUser();
 
   // Dropdown menu state
   const [showMenu, setShowMenu] = useState(false);
@@ -114,8 +122,10 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
       const freshPost = postData.post.data;
       setIsLiked(freshPost.isLiked || false);
       setLikesCount(freshPost.likes || 0);
+      // Update follow status from fresh post data
+      setIsFollowing(freshPost.author?.followers?.includes(currentUser?.id || '') || false);
     }
-  }, [postData, post?.id]);
+  }, [postData, post?.id, currentUser?.id]);
 
   // Fetch comments - use lazy query with proper dependencies
   const [fetchComments, { data: commentsData, loading: commentsLoading }] = useLazyQuery(COMMENTS_QUERY, {
@@ -139,6 +149,24 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
   }, [commentsData, post?.id]);
 
   const isCurrentUser = useMemo(() => post?.author?.id === currentUser?.id, [post?.author?.id, currentUser?.id]);
+
+  // Handle follow/unfollow
+  const handleFollowToggle = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!post?.author?.id || !currentUser?.id) return;
+
+    try {
+      if (isFollowing) {
+        await unfollow(post.author.id);
+        setIsFollowing(false);
+      } else {
+        await follow(post.author.id);
+        setIsFollowing(true);
+      }
+    } catch (error) {
+      console.error('Error toggling follow:', error);
+    }
+  };
   
   const handleProfileClick = () => {
     if (post?.author?.id && !isCurrentUser) {
@@ -294,7 +322,6 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
     : '';
   const hasProfilePhoto = !!post?.author?.profilePhoto;
   const profilePhotoUrl = post?.author?.profilePhoto;
-  const isFollowing = post?.author?.followers?.includes(currentUser?.id || '') || false;
 
   return (
     <Modal
@@ -352,11 +379,8 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
                     ? 'bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-600'
                     : 'bg-primary hover:bg-primary-700 text-white'
                 }`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  navigate(`/profile/${post.author!.id}`);
-                  onClose();
-                }}
+                onClick={handleFollowToggle}
+                disabled={followLoading || unfollowLoading}
               >
                 {isFollowing ? 'Following' : 'Follow'}
               </button>

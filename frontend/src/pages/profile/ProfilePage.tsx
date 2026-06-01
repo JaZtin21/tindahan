@@ -42,7 +42,7 @@ export function ProfilePage() {
   
   // Fetch profile data
   const { data: meData, loading: meLoading } = useGetMe(!isAuthenticated || !isOwnProfile)
-  const { data: userData, loading: userLoading } = useGetUser(targetUserId || null, isOwnProfile)
+  const { data: userData, loading: userLoading } = useGetUser(targetUserId || null, isOwnProfile || !targetUserId)
 
   // Use appropriate data based on whether viewing own or other profile
   const profileData = isOwnProfile ? meData?.me?.data : userData?.user

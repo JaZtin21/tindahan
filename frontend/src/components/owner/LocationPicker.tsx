@@ -5,6 +5,9 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
   const [selectedLocation, setSelectedLocation] = useState(initialLocation);
   const [showModal, setShowModal] = useState(false);
   const [address, setAddress] = useState(initialAddress);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const L = (window as any).L;
@@ -108,6 +111,44 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
     console.log('Confirming location:', selectedLocation, address);
     onLocationSelect(selectedLocation, address);
     setShowModal(false);
+  };
+
+  const handleSearch = async (query: string) => {
+    setSearchQuery(query);
+    if (query.length < 3) {
+      setSearchResults([]);
+      return;
+    }
+
+    setIsSearching(true);
+    try {
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5`
+      );
+      const data = await response.json();
+      setSearchResults(data);
+    } catch (error) {
+      console.error('Search error:', error);
+      setSearchResults([]);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleSearchResultClick = (result: any) => {
+    const lat = parseFloat(result.lat);
+    const lng = parseFloat(result.lon);
+    const newLocation = { lat, lng };
+    setSelectedLocation(newLocation);
+    setAddress(result.display_name);
+    setSearchResults([]);
+    setSearchQuery('');
+
+    // Center map on selected location
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.setView([lat, lng], 16);
+      handleMapClick(lat, lng);
+    }
   };
 
 
@@ -289,6 +330,40 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
           {/* Sidebar */}
           <div className="w-full md:w-80 p-6 md:border-l border-zinc-200 dark:border-zinc-700 pointer-events-auto" onClick={(e) => e.stopPropagation()}>
             <div className="space-y-4">
+              {/* Search Input */}
+              <div>
+                <h4 className="font-semibold mb-2 text-zinc-900 dark:text-zinc-100">Search Location</h4>
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => handleSearch(e.target.value)}
+                  placeholder="Search for a location..."
+                  className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+                {isSearching && (
+                  <div className="flex items-center gap-2 mt-2 text-sm text-zinc-500">
+                    <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Searching...
+                  </div>
+                )}
+                {searchResults.length > 0 && (
+                  <div className="mt-2 max-h-48 overflow-y-auto border border-zinc-200 dark:border-zinc-700 rounded-lg">
+                    {searchResults.map((result, index) => (
+                      <button
+                        key={index}
+                        onClick={() => handleSearchResultClick(result)}
+                        className="w-full px-3 py-2 text-left text-sm text-zinc-900 dark:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 border-b border-zinc-200 dark:border-zinc-700 last:border-b-0"
+                      >
+                        {result.display_name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               <div>
                 <h4 className="font-semibold mb-2 text-zinc-900 dark:text-zinc-100">Selected Location</h4>
                 <div className="text-sm text-zinc-600 dark:text-zinc-400 space-y-1">

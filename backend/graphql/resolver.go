@@ -3655,11 +3655,13 @@ func (r *Resolver) formatPostFromMap(postMap map[string]interface{}) *Post {
 	updatedAt, _ := time.Parse(time.RFC3339, postMap["updatedAt"].(string))
 
 	author := &User{
-		ID:       authorData["id"].(string),
-		Name:     authorData["name"].(string),
-		Email:    authorData["email"].(string),
-		Role:     UserRole(authorData["role"].(string)),
-		IsActive: authorData["isActive"].(bool),
+		ID:           authorData["id"].(string),
+		Name:         authorData["name"].(string),
+		Email:        authorData["email"].(string),
+		Role:         UserRole(authorData["role"].(string)),
+		IsActive:     authorData["isActive"].(bool),
+		ProfilePhoto: getStringPointerValue(authorData, "profilePhoto"),
+		Followers:    toStringSlice(authorData["followers"]),
 	}
 
 	var location *Location
@@ -3739,6 +3741,7 @@ func (r *Resolver) formatUserData(data map[string]interface{}) *User {
 		Role:         UserRole(getStringValue(data, "role")),
 		IsActive:     getBoolValue(data, "isActive"),
 		ProfilePhoto: getStringPointerValue(data, "profilePhoto"),
+		Followers:    toStringSlice(data["followers"]),
 	}
 
 	if createdAtStr, ok := data["createdAt"].(string); ok {

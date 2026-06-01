@@ -5,5 +5,6 @@ export function useGetUser(userId: string | null, skip: boolean = false) {
   return useQuery(GET_USER, {
     variables: { id: userId },
     skip: !userId || skip,
+    fetchPolicy: 'cache-and-network',
   });
 }
