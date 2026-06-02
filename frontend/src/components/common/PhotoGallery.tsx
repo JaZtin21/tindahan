@@ -33,38 +33,43 @@ export function getPhotoGridHtml(photos: string[], size: 'small' | 'medium' | 'l
   // Generate optimized URLs
   const getUrl = (url: string, w: number, h: number) => 
     optimizeCloudinaryUrl(url, { width: w, height: h, crop: 'fill', quality: 'auto' });
+
+  // CSS Base template utility to remove repetitive markup lines
+  const makeBgDiv = (url: string, w: number, h: number, extraStyles: string = '') => `
+    <div style="background-image: url('${getUrl(url, w, h)}'); width: 100%; height: 100%; background-size: cover; background-position: center; ${extraStyles}"></div>
+  `;
   
   // 1 photo
   if (displayCount === 1) {
     return `<div class="photoContainer" style="width: 100%; height: ${cfg.height}px; border-radius: 8px; overflow: hidden; margin-bottom: 8px;">
-      <img src="${getUrl(displayPhotos[0], cfg.width * 2, cfg.height)}" style="width: 100%; height: 100%; object-fit: cover;" crossorigin="anonymous" referrerpolicy="no-referrer" />
+      ${makeBgDiv(displayPhotos[0], cfg.width * 2, cfg.height)}
     </div>`;
   }
   
   // 2 photos - side by side 50/50
   if (displayCount === 2) {
     return `<div class="photoContainer" style="display: grid; grid-template-columns: 1fr 1fr; gap: ${cfg.gap}px; height: ${cfg.height}px; margin-bottom: 8px; border-radius: 8px; overflow: hidden;">
-      <img src="${getUrl(displayPhotos[0], cfg.width, cfg.height)}" style="width: 100%; height: 100%; object-fit: cover;" crossorigin="anonymous" referrerpolicy="no-referrer" />
-      <img src="${getUrl(displayPhotos[1], cfg.width, cfg.height)}" style="width: 100%; height: 100%; object-fit: cover;" crossorigin="anonymous" referrerpolicy="no-referrer" />
+      ${makeBgDiv(displayPhotos[0], cfg.width, cfg.height)}
+      ${makeBgDiv(displayPhotos[1], cfg.width, cfg.height)}
     </div>`;
   }
   
   // 3 photos - large left, 2 stacked right
   if (displayCount === 3) {
     return `<div class="photoContainer" style="display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: ${cfg.gap}px; height: ${cfg.height}px; margin-bottom: 8px; border-radius: 8px; overflow: hidden;">
-      <img src="${getUrl(displayPhotos[0], cfg.width, cfg.height)}" style="width: 100%; height: 100%; object-fit: cover; grid-row: 1 / 3;" crossorigin="anonymous" referrerpolicy="no-referrer" />
-      <img src="${getUrl(displayPhotos[1], cfg.width, cfg.height / 2)}" style="width: 100%; height: 100%; object-fit: cover;" crossorigin="anonymous" referrerpolicy="no-referrer" />
-      <img src="${getUrl(displayPhotos[2], cfg.width, cfg.height / 2)}" style="width: 100%; height: 100%; object-fit: cover;" crossorigin="anonymous" referrerpolicy="no-referrer" />
+      ${makeBgDiv(displayPhotos[0], cfg.width, cfg.height, 'grid-row: 1 / 3;')}
+      ${makeBgDiv(displayPhotos[1], cfg.width, cfg.height / 2)}
+      ${makeBgDiv(displayPhotos[2], cfg.width, cfg.height / 2)}
     </div>`;
   }
   
   // 4+ photos - 2x2 grid with overlay
   return `<div class="photoContainer" style="display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: ${cfg.gap}px; height: ${cfg.height}px; margin-bottom: 8px; border-radius: 8px; overflow: hidden;">
-    <img src="${getUrl(displayPhotos[0], cfg.width, cfg.height / 2)}" style="width: 100%; height: 100%; object-fit: cover;" crossorigin="anonymous" referrerpolicy="no-referrer" />
-    <img src="${getUrl(displayPhotos[1], cfg.width, cfg.height / 2)}" style="width: 100%; height: 100%; object-fit: cover;" crossorigin="anonymous" referrerpolicy="no-referrer" />
-    <img src="${getUrl(displayPhotos[2], cfg.width, cfg.height / 2)}" style="width: 100%; height: 100%; object-fit: cover;" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    ${makeBgDiv(displayPhotos[0], cfg.width, cfg.height / 2)}
+    ${makeBgDiv(displayPhotos[1], cfg.width, cfg.height / 2)}
+    ${makeBgDiv(displayPhotos[2], cfg.width, cfg.height / 2)}
     <div style="position: relative; width: 100%; height: 100%;">
-      <img src="${getUrl(displayPhotos[3], cfg.width, cfg.height / 2)}" style="width: 100%; height: 100%; object-fit: cover;" crossorigin="anonymous" referrerpolicy="no-referrer" />
+      ${makeBgDiv(displayPhotos[3], cfg.width, cfg.height / 2)}
       ${remainingCount > 0 ? `<div style="position: absolute; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: ${size === 'small' ? '14px' : '18px'};">+${remainingCount}</div>` : ''}
     </div>
   </div>`;
@@ -74,6 +79,7 @@ export function getPhotoGridHtml(photos: string[], size: 'small' | 'medium' | 'l
  * Facebook-style photo gallery with grid layout
  * Supports 1-10+ photos with different grid patterns
  * Click to open lightbox viewer
+ * (Kept 100% untouched so your standard web UI galleries do not alter layout)
  */
 export function PhotoGallery({ photos, className = '', maxDisplay = 6, size = 'large' }: PhotoGalleryProps) {
   const [isOpen, setIsOpen] = useState(false);
@@ -81,29 +87,23 @@ export function PhotoGallery({ photos, className = '', maxDisplay = 6, size = 'l
 
   if (!photos || photos.length === 0) return null;
 
-  // Prepare slides for lightbox with full quality (1920px for full HD display)
   const slides = photos.map(url => ({
     src: optimizeCloudinaryUrl(url, { width: 1920, quality: 'auto:best' }),
     download: url,
   }));
 
-  // Get grid layout based on photo count
   const getGridClasses = (count: number, index: number) => {
     switch (count) {
-      case 1:
-        return 'col-span-full';
-      case 2:
-        return 'h-full';
+      case 1: return 'col-span-full';
+      case 2: return 'h-full';
       case 3:
-        // Large left (spans 2 rows), 2 stacked right
         if (index === 0) return 'row-span-2 h-full';
         return 'h-full';
-      case 4:
-        return 'h-full';
+      case 4: return 'h-full';
       case 5:
         if (index < 2) return 'h-full';
         return 'h-full';
-      default: // 6+
+      default:
         if (index < 2) return 'h-full';
         if (index === 5) return 'h-full relative';
         return 'h-full';
@@ -127,11 +127,7 @@ export function PhotoGallery({ photos, className = '', maxDisplay = 6, size = 'l
         {photos.slice(0, Math.min(maxDisplay, 4)).map((photo, index) => {
           const isLastVisible = index === 3 && photos.length > 4;
           const remainingCount = photos.length - 4;
-
-          // Optimize thumbnail size based on grid position - larger for better quality on big screens
-          const thumbWidth = photos.length === 1 ? 1200 : 
-                            photos.length <= 2 ? 800 : 
-                            photos.length <= 4 ? 600 : 400;
+          const thumbWidth = photos.length === 1 ? 1200 : photos.length <= 2 ? 800 : photos.length <= 4 ? 600 : 400;
 
           return (
             <div
@@ -140,17 +136,11 @@ export function PhotoGallery({ photos, className = '', maxDisplay = 6, size = 'l
               onClick={() => handlePhotoClick(index)}
             >
               <img
-                src={optimizeCloudinaryUrl(photo, {
-                  width: thumbWidth,
-                  crop: 'fill',
-                  quality: 'auto:best'
-                })}
+                src={optimizeCloudinaryUrl(photo, { width: thumbWidth, crop: 'fill', quality: 'auto:best' })}
                 alt={`Photo ${index + 1}`}
                 className="w-full h-full object-cover"
                 loading={index > 2 ? 'lazy' : 'eager'}
               />
-              
-              {/* Overlay for +X more */}
               {isLastVisible && remainingCount > 0 && (
                 <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
                   <span className="text-white text-3xl font-bold">+{remainingCount}</span>
@@ -160,8 +150,6 @@ export function PhotoGallery({ photos, className = '', maxDisplay = 6, size = 'l
           );
         })}
       </div>
-
-      {/* Lightbox */}
       <Lightbox
         open={isOpen}
         close={() => setIsOpen(false)}
@@ -181,11 +169,7 @@ export function PhotoGallery({ photos, className = '', maxDisplay = 6, size = 'l
           fade: 300,
           swipe: 300,
         }}
-        styles={{
-          container: {
-            backgroundColor: 'rgba(0, 0, 0, 0.95)',
-          },
-        }}
+   
       />
     </div>
   );

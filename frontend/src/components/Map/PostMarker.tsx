@@ -35,9 +35,16 @@ export function getPostBubbleHtml(post: Post): string {
   const profilePhoto = post.author?.profilePhoto;
   const hasProfilePhoto = !!profilePhoto;
   
-  // Create avatar HTML
+  // FIXED DIRECT ASSIGNMENT: Instead of a generic CSS var(), we inject the absolute optimized URL string 
+  // directly into the background-image rule. This ensures it displays out of memory instantly on cycles/zooms.
+  const optimizedProfileUrl = hasProfilePhoto
+    ? optimizeCloudinaryUrl(profilePhoto, { width: 50, height: 50, crop: 'thumb', quality: 90 })
+    : '';
+
   const avatarHtml = hasProfilePhoto 
-    ? `<img src="${optimizeCloudinaryUrl(profilePhoto, { width: 50, height: 50, crop: 'thumb', quality: 90 })}" alt="${post.author?.name || 'User'}" class="post-bubble-avatar-img" crossorigin="anonymous" referrerpolicy="no-referrer" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"><div class="post-bubble-avatar-fallback" style="display:none;">${authorInitial}</div>`
+    ? `<div class="post-bubble-avatar-img" style="background-image: url('${optimizedProfileUrl}'); background-size: cover; background-position: center; width: 100%; height: 100%; border-radius: 50%;">
+         <div class="post-bubble-avatar-fallback" style="display:none;">${authorInitial}</div>
+       </div>`
     : `<div class="post-bubble-avatar-fallback">${authorInitial}</div>`;
 
   // Use PhotoGallery's HTML generator for consistent grid layout
@@ -49,7 +56,6 @@ export function getPostBubbleHtml(post: Post): string {
   const foodTypesHtml = post.types && post.types.length > 0
     ? `<div class="food-type-icons">
         ${post.types.slice(0, 2).map((type: string) => `<span class="food-type-icon">${getFoodTypeIcon(type)}</span>`).join('')}
-      
       </div>`
     : '';
 
@@ -69,6 +75,8 @@ export function getPostBubbleHtml(post: Post): string {
     </div>
   `;
 }
+
+
 
 /**
  * Generate HTML for post popup (shown when clicking the marker)
@@ -138,8 +146,12 @@ export function getPostIcon(L: any, post: Post, animate: boolean = false) {
  */
 export function getPostGroupBubbleHtml(post: Post, count: number): string {
   const baseHtml = getPostBubbleHtml(post);
-  // Add data-count attribute to the avatar div for CSS badge
-  return baseHtml.replace('class="post-bubble-avatar-new"', `class="post-bubble-avatar-new" data-count="${count}"`);
+  const profilePhoto = post.author?.profilePhoto || '';
+  
+  // Inject the custom badge count and map the dynamic image URL into the style tag
+  return baseHtml
+    .replace('class="post-bubble-avatar-new"', `class="post-bubble-avatar-new" data-count="${count}"`)
+    .replace('class="post-marker-wrapper"', `class="post-marker-wrapper" style="--bg-avatar: url('${profilePhoto}');"`);
 }
 
 /**

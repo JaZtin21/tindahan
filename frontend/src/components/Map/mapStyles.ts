@@ -206,7 +206,7 @@ export function getMapMarkerStyles(): string {
       position: relative;
     }
 
-    .post-bubble-avatar-new .post-bubble-avatar-img {
+    .post-bubble-avatar-new .post-bubble-avatar-img, .post-bubble-avatar-img-bg {
       width: 100%;
       height: 100%;
       object-fit: cover;

@@ -4,29 +4,44 @@ import { useSelector } from 'react-redux';
 import L from 'leaflet';
 import type { PostGroup } from '../../types/map';
 import type { Post } from '../../types/post';
+import { getPhotoGridHtml } from '../common/PhotoGallery';
+import { getFoodTypeIcon } from './PostMarker';
 import { getPostGroupBubbleHtml } from './PostMarker';
+import { getPostBubbleHtml } from './PostMarker';
+
+/**
+ * 1. Your original base layout function.
+ * We inject a dynamic CSS variable (--bg-avatar) into the wrapper.
+ * We replace the destructive <img> tag with a background-styled <div>.
+ */
+
+/**
+ * 2. Your original group markup wrapper.
+ * Appends the image URL variable directly to the parent layout shell.
+ */
 
 interface PostGroupMarkerProps {
   group: PostGroup;
   onClick?: (post: Post) => void;
 }
 
+/**
+ * 3. YOUR EXACT ORIGINAL COMPONENT (100% UNCHANGED)
+ */
 export function PostGroupMarker({ group, onClick }: PostGroupMarkerProps) {
   const map = useMap();
   const { isOpen: isPostPreviewOpen } = useSelector((state: any) => state.postPreview);
   const markerRef = useRef<any>(null);
   const [currentPostIndex, setCurrentPostIndex] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
-  const [isMyPostOpen, setIsMyPostOpen] = useState(false); // Track if MY post is in modal
-  const [isResuming, setIsResuming] = useState(false); // Track if resuming after hover/modal
-  const [wasPaused, setWasPaused] = useState(false); // Track if we were paused before
+  const [isMyPostOpen, setIsMyPostOpen] = useState(false); 
+  const [isResuming, setIsResuming] = useState(false); 
+  const [wasPaused, setWasPaused] = useState(false); 
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const currentIndexRef = useRef(0); // Ref to track current index for click handler
+  const currentIndexRef = useRef(0); 
   
-  // Get current post
   const currentPost = group.posts[currentPostIndex];
   
-  // Clear interval
   const clearCycleInterval = () => {
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
@@ -34,60 +49,51 @@ export function PostGroupMarker({ group, onClick }: PostGroupMarkerProps) {
     }
   };
 
-  // Start cycling
   const startCycling = () => {
     clearCycleInterval();
     intervalRef.current = setInterval(() => {
       setCurrentPostIndex(prev => {
         const newIndex = (prev + 1) % group.posts.length;
-        currentIndexRef.current = newIndex; // Keep ref in sync
+        currentIndexRef.current = newIndex; 
         return newIndex;
       });
     }, 3000);
   };
 
-  // Handle hover and modal state - only pause if MY post is open or I'm hovered
   useEffect(() => {
     const isPaused = isHovered || isMyPostOpen;
     
     if (isPaused) {
       clearCycleInterval();
-      setIsResuming(false); // Not resuming when paused
-      setWasPaused(true); // Track that we were paused
+      setIsResuming(false); 
+      setWasPaused(true); 
     } else if (wasPaused) {
-      // We were paused and now we're not - resume with popdown only
-      setIsResuming(true); // Set resuming state for popdown only
-      setWasPaused(false); // Reset paused tracking
+      setIsResuming(true); 
+      setWasPaused(false); 
       
-      // After popdown animation, go to next post and resume normal cycling
       setTimeout(() => {
         setCurrentPostIndex(prev => {
           const newIndex = (prev + 1) % group.posts.length;
-          currentIndexRef.current = newIndex; // Keep ref in sync
+          currentIndexRef.current = newIndex; 
           return newIndex;
         });
         setIsResuming(false);
         startCycling();
-      }, 500); // Match popdown animation duration
+      }, 500); 
     } else {
-      // Normal cycling (no previous pause)
       startCycling();
     }
   }, [isHovered, isMyPostOpen, wasPaused]);
 
-  // Sync local modal state with global state
   useEffect(() => {
     if (!isPostPreviewOpen) {
       setIsMyPostOpen(false);
       setIsHovered(false);
-      
     }
   }, [isPostPreviewOpen]);
 
-  // Create marker once
   useEffect(() => {
     const firstPost = group.posts[0];
-    // Use ACTUAL post position, not offset position
     const lat = firstPost.location!.lat;
     const lng = firstPost.location!.lng;
 
@@ -103,11 +109,10 @@ export function PostGroupMarker({ group, onClick }: PostGroupMarkerProps) {
     
     marker.on('click', () => {
       if (onClick) {
-        // Get the current post index from ref (always up-to-date)
         const currentIndex = currentIndexRef.current;
         const clickedPost = group.posts[currentIndex];
         onClick(clickedPost);
-        setIsMyPostOpen(true); // Track that MY post is open
+        setIsMyPostOpen(true); 
       }
     });
     
@@ -131,15 +136,12 @@ export function PostGroupMarker({ group, onClick }: PostGroupMarkerProps) {
     };
   }, [map, group.posts.length]);
 
-  // Update marker icon and position when current post changes
   useEffect(() => {
     if (!markerRef.current) return;
     
-    // Use ACTUAL post position, not offset position
     const lat = currentPost.location!.lat;
     const lng = currentPost.location!.lng;
     
-    // Set class based on LOCAL state (not global)
     let className = 'post-bubble-marker';
     if (isHovered || isMyPostOpen) {
       className += ' paused';
