@@ -10,7 +10,7 @@ import { useGoogleLogin } from '@react-oauth/google';
 import { useEffect, useMemo, useState, createContext, useContext, useRef, useCallback } from 'react';
 import { useDispatch } from 'react-redux';
 import { Observable } from '@apollo/client/utilities';
-import { REFRESH_TOKEN_MUTATION, GOOGLE_LOGIN_MUTATION } from './auth/auth-queries';
+import { REFRESH_TOKEN_MUTATION, GOOGLE_LOGIN_MUTATION, LOGOUT_MUTATION } from './auth/auth-queries';
 import { ME_QUERY } from './user/user-queries';
 import { setUser } from '../../store';
 
@@ -146,11 +146,21 @@ const ApolloProviderWithAuth = ({ children }: any) => {
     const logoutAndClear = useCallback(async () => {
         console.log('[ApolloProvider] Logging out and clearing all tokens...');
         if (window.location.pathname !== '/login') {
+            try {
+                // Call backend logout mutation to clear refresh token cookie
+                await authClient.mutate({
+                    mutation: LOGOUT_MUTATION,
+                });
+                console.log('[ApolloProvider] Backend logout successful');
+            } catch (error) {
+                console.error('[ApolloProvider] Backend logout failed:', error);
+                // Continue with local logout even if backend fails
+            }
+            
             setIsAuthenticated(false);
             setJwt('');
             jwtRef.current = '';
             setUserInfo(null);
-            // Refresh token cookie will be cleared by backend on logout
             console.log('[ApolloProvider] Tokens cleared, redirecting to login');
             window.location.href = '/login';
         }

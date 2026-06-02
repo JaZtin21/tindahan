@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import type { LocationPickerProps } from '../../types/owner';
 
 export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5995, lng: 120.9842 }, initialAddress = '' }: LocationPickerProps) {
@@ -10,6 +10,7 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
   const [isSearching, setIsSearching] = useState(false);
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const L = (window as any).L;
 
   const handleMapClick = (lat: number, lng: number) => {
@@ -113,27 +114,46 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
     setShowModal(false);
   };
 
-  const handleSearch = async (query: string) => {
+  const handleSearch = useCallback(async (query: string) => {
     setSearchQuery(query);
+    
+    // Clear previous debounce timer
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+    
     if (query.length < 3) {
       setSearchResults([]);
       return;
     }
 
     setIsSearching(true);
-    try {
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5`
-      );
-      const data = await response.json();
-      setSearchResults(data);
-    } catch (error) {
-      console.error('Search error:', error);
-      setSearchResults([]);
-    } finally {
-      setIsSearching(false);
-    }
-  };
+    
+    // Debounce the API call
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5`
+        );
+        const data = await response.json();
+        setSearchResults(data);
+      } catch (error) {
+        console.error('Search error:', error);
+        setSearchResults([]);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 500);
+  }, []);
+
+  // Cleanup debounce timer on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+    };
+  }, []);
 
   const handleSearchResultClick = (result: any) => {
     const lat = parseFloat(result.lat);
@@ -331,7 +351,7 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
           <div className="w-full md:w-80 p-6 md:border-l border-zinc-200 dark:border-zinc-700 pointer-events-auto" onClick={(e) => e.stopPropagation()}>
             <div className="space-y-4">
               {/* Search Input */}
-              <div>
+              <div className="relative">
                 <h4 className="font-semibold mb-2 text-zinc-900 dark:text-zinc-100">Search Location</h4>
                 <input
                   type="text"
@@ -350,7 +370,7 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
                   </div>
                 )}
                 {searchResults.length > 0 && (
-                  <div className="mt-2 max-h-48 overflow-y-auto border border-zinc-200 dark:border-zinc-700 rounded-lg">
+                  <div className="absolute top-full left-0 right-0 mt-1 max-h-48 overflow-y-auto border border-zinc-200 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 shadow-lg z-10">
                     {searchResults.map((result, index) => (
                       <button
                         key={index}
@@ -362,14 +382,6 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
                     ))}
                   </div>
                 )}
-              </div>
-
-              <div>
-                <h4 className="font-semibold mb-2 text-zinc-900 dark:text-zinc-100">Selected Location</h4>
-                <div className="text-sm text-zinc-600 dark:text-zinc-400 space-y-1">
-                  <div>Latitude: {selectedLocation.lat.toFixed(6)}</div>
-                  <div>Longitude: {selectedLocation.lng.toFixed(6)}</div>
-                </div>
               </div>
 
               <div>

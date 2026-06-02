@@ -14,6 +14,15 @@ export const REFRESH_TOKEN_MUTATION = gql`
   }
 `;
 
+export const LOGOUT_MUTATION = gql`
+  mutation Logout {
+    logout {
+      success
+      message
+    }
+  }
+`;
+
 export const GOOGLE_LOGIN_MUTATION = gql`
   mutation GoogleLogin($input: GoogleLoginInput!) {
     googleLogin(input: $input) {

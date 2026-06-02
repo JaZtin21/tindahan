@@ -495,3 +495,47 @@ func getRefreshTokenFromCookie(ctx context.Context) (string, error) {
 
 	return cookie.Value, nil
 }
+
+// Logout resolves the logout mutation by clearing the refresh token cookie
+func (r *AuthResolver) Logout(ctx context.Context) (map[string]interface{}, error) {
+	log.Printf("🔍 LOGOUT: Starting logout")
+
+	// Clear the refresh token cookie by setting it to empty with expired MaxAge
+	clearRefreshTokenCookie(ctx)
+
+	log.Printf("✅ LOGOUT: Refresh token cookie cleared")
+
+	return map[string]interface{}{
+		"success": true,
+		"message": "Logout successful",
+		"data":    nil,
+	}, nil
+}
+
+// clearRefreshTokenCookie clears the refresh token cookie
+func clearRefreshTokenCookie(ctx context.Context) {
+	// Get the Gin context from the GraphQL context
+	ginCtx, ok := ctx.Value("ginContext").(*gin.Context)
+	if !ok {
+		log.Printf("❌ Failed to get Gin context for clearing cookie")
+		return
+	}
+
+	// Determine if we're in development (localhost) or production
+	isDevelopment := ginCtx.Request.Host == "localhost:8080" ||
+		ginCtx.Request.Host == "127.0.0.1:8080" ||
+		ginCtx.Request.Host == "localhost:3000" ||
+		ginCtx.Request.Host == "127.0.0.1:3000"
+
+	// Clear the refresh token cookie by setting it to empty with expired MaxAge
+	http.SetCookie(ginCtx.Writer, &http.Cookie{
+		Name:     "refresh_token",
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,                   // Expire immediately
+		Secure:   !isDevelopment,       // HTTPS only (false for localhost)
+		HttpOnly: true,                 // Not accessible via JavaScript
+		SameSite: http.SameSiteLaxMode, // Lax mode for better compatibility
+	})
+	log.Printf("✅ Refresh token cookie cleared (development=%v)", isDevelopment)
+}

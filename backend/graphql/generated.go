@@ -219,6 +219,7 @@ type ComplexityRoot struct {
 		GoogleLogin         func(childComplexity int, input GoogleLoginInput) int
 		LikePost            func(childComplexity int, id string) int
 		Login               func(childComplexity int, input LoginInput) int
+		Logout              func(childComplexity int) int
 		RefreshToken        func(childComplexity int) int
 		ReplyToInquiry      func(childComplexity int, input ReplyToInquiryInput) int
 		Signup              func(childComplexity int, input SignupInput) int
@@ -446,6 +447,7 @@ type MutationResolver interface {
 	Signup(ctx context.Context, input SignupInput) (*AuthPayload, error)
 	RefreshToken(ctx context.Context) (*AuthPayload, error)
 	GoogleLogin(ctx context.Context, input GoogleLoginInput) (*AuthPayload, error)
+	Logout(ctx context.Context) (*AuthPayload, error)
 	CreateInquiry(ctx context.Context, input CreateInquiryInput) (*InquiryPayload, error)
 	ReplyToInquiry(ctx context.Context, input ReplyToInquiryInput) (*InquiryReplyPayload, error)
 	UpdateInquiryStatus(ctx context.Context, input UpdateInquiryStatusInput) (*InquiryPayload, error)
@@ -1343,6 +1345,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Mutation.Login(childComplexity, args["input"].(LoginInput)), true
+	case "Mutation.logout":
+		if e.ComplexityRoot.Mutation.Logout == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Mutation.Logout(childComplexity), true
 	case "Mutation.refreshToken":
 		if e.ComplexityRoot.Mutation.RefreshToken == nil {
 			break
@@ -7166,6 +7174,43 @@ func (ec *executionContext) fieldContext_Mutation_googleLogin(ctx context.Contex
 	if fc.Args, err = ec.field_Mutation_googleLogin_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_logout(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_logout,
+		func(ctx context.Context) (any, error) {
+			return ec.Resolvers.Mutation().Logout(ctx)
+		},
+		nil,
+		ec.marshalNAuthPayload2ᚖtindahanᚑbackendᚋgraphqlᚐAuthPayload,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_logout(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "success":
+				return ec.fieldContext_AuthPayload_success(ctx, field)
+			case "message":
+				return ec.fieldContext_AuthPayload_message(ctx, field)
+			case "data":
+				return ec.fieldContext_AuthPayload_data(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type AuthPayload", field.Name)
+		},
 	}
 	return fc, nil
 }
@@ -18602,6 +18647,13 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "googleLogin":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_googleLogin(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "logout":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_logout(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++

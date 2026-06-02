@@ -10,6 +10,7 @@ extend type Mutation {
   signup(input: SignupInput!): AuthPayload!
   refreshToken: AuthPayload!
   googleLogin(input: GoogleLoginInput!): AuthPayload!
+  logout: AuthPayload!
 }
 
 type User {

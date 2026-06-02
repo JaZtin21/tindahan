@@ -273,6 +273,23 @@ func (r *mutationResolver) GoogleLogin(ctx context.Context, input GoogleLoginInp
 	}, nil
 }
 
+// Logout is the resolver for the logout field.
+func (r *mutationResolver) Logout(ctx context.Context) (*AuthPayload, error) {
+	result, _ := r.authResolver.Logout(ctx)
+	if !result["success"].(bool) {
+		return &AuthPayload{
+			Success: false,
+			Message: result["message"].(string),
+		}, nil
+	}
+
+	return &AuthPayload{
+		Success: result["success"].(bool),
+		Message: result["message"].(string),
+		Data:    nil,
+	}, nil
+}
+
 // CreatePost is the resolver for the createPost field.
 func (r *mutationResolver) CreatePost(ctx context.Context, input CreatePostInput) (*PostPayload, error) {
 	userID := middleware.GetUserID(ctx)
