@@ -19,6 +19,7 @@ export const POSTS_QUERY = gql`
           email
           role
           isActive
+          profilePhoto
         }
         location {
           lat
@@ -100,6 +101,7 @@ export const MY_POSTS_QUERY = gql`
           email
           role
           isActive
+          profilePhoto
         }
         location {
           lat
@@ -136,6 +138,7 @@ export const USER_POSTS_QUERY = gql`
           email
           role
           isActive
+          profilePhoto
         }
         location {
           lat
@@ -172,6 +175,7 @@ export const POSTS_NEAR_LOCATION_QUERY = gql`
           email
           role
           isActive
+          profilePhoto
         }
         location {
           lat

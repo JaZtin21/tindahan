@@ -76,13 +76,14 @@ func (r *PostResolver) CreatePost(ctx context.Context, authorID string, title st
 		}
 
 		authorData = map[string]interface{}{
-			"id":        author.ID.Hex(),
-			"name":      author.FirstName + " " + author.LastName,
-			"email":     author.Email,
-			"role":      author.Role,
-			"isActive":  author.IsActive,
-			"followers": followers,
-			"createdAt": author.CreatedAt.Format(time.RFC3339),
+			"id":           author.ID.Hex(),
+			"name":         author.FirstName + " " + author.LastName,
+			"email":        author.Email,
+			"role":         author.Role,
+			"isActive":     author.IsActive,
+			"profilePhoto": author.ProfilePhoto,
+			"followers":    followers,
+			"createdAt":    author.CreatedAt.Format(time.RFC3339),
 		}
 	}
 
@@ -699,14 +700,15 @@ func (r *PostResolver) formatPostData(ctx context.Context, post *domain.Post, cu
 		}
 
 		authorData = map[string]interface{}{
-			"id":        author.ID.Hex(),
-			"name":      author.FirstName + " " + author.LastName,
-			"email":     author.Email,
-			"role":      author.Role,
-			"isActive":  author.IsActive,
-			"followers": followers,
-			"createdAt": author.CreatedAt.Format(time.RFC3339),
-			"updatedAt": author.UpdatedAt.Format(time.RFC3339),
+			"id":           author.ID.Hex(),
+			"name":         author.FirstName + " " + author.LastName,
+			"email":        author.Email,
+			"role":         author.Role,
+			"isActive":     author.IsActive,
+			"profilePhoto": author.ProfilePhoto,
+			"followers":    followers,
+			"createdAt":    author.CreatedAt.Format(time.RFC3339),
+			"updatedAt":    author.UpdatedAt.Format(time.RFC3339),
 		}
 	}
 

@@ -21,6 +21,8 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
   const navigate = useNavigate();
   const currentUser = useSelector((state: RootState) => state.user);
   
+  console.log('[PostPreviewModal] Render - isOpen:', isOpen, 'post:', post, 'post.author.profilePhoto:', post?.author?.profilePhoto)
+  
   // Keyboard handling for mobile
   const { isOpen: isKeyboardOpen, height: keyboardHeight } = useKeyboard();
 
@@ -113,13 +115,14 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
   const { data: postData, loading: postLoading } = useQuery(POST_QUERY, {
     variables: { id: post?.id },
     skip: !isOpen || !post?.id,
-    fetchPolicy: 'network-only',
+    fetchPolicy: 'no-cache',
   });
 
   // Update likes from fresh post data (but not if mutation is pending)
   useEffect(() => {
     if (postData?.post?.data && !likePendingRef.current && currentPostIdRef.current === post?.id) {
       const freshPost = postData.post.data;
+      console.log('[PostPreviewModal] Fresh post data received - freshPost.author.profilePhoto:', freshPost.author?.profilePhoto)
       setIsLiked(freshPost.isLiked || false);
       setLikesCount(freshPost.likes || 0);
       // Update follow status from fresh post data
@@ -129,7 +132,7 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
 
   // Fetch comments - use lazy query with proper dependencies
   const [fetchComments, { data: commentsData, loading: commentsLoading }] = useLazyQuery(COMMENTS_QUERY, {
-    fetchPolicy: 'network-only',
+    fetchPolicy: 'no-cache',
   });
 
   // Load comments when modal opens with a post
@@ -142,6 +145,7 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
   // Update comments when data changes - ONLY for current post
   useEffect(() => {
     if (commentsData?.comments?.data && currentPostIdRef.current === post?.id) {
+      console.log('[PostPreviewModal] Comments data received - comments:', commentsData.comments.data)
       setComments(commentsData.comments.data);
       setHasMoreComments(commentsData.comments.hasMore);
       setLocalCommentCount(commentsData.comments.total || commentsData.comments.data.length);
@@ -320,6 +324,8 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
         year: 'numeric' 
       })
     : '';
+  
+  // Use profilePhoto from post if available, otherwise use userInfo's profilePhoto if author is current user
   const hasProfilePhoto = !!post?.author?.profilePhoto;
   const profilePhotoUrl = post?.author?.profilePhoto;
 
