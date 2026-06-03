@@ -96,7 +96,7 @@ export function TopNav() {
           {isMobile && isMapPage && (
             <button
               onClick={handleSearchToggle}
-              className={`p-2 hover:text-zinc-900 dark:hover:text-zinc-50 transition-colors ${isMobileSearchVisible ? 'text-primary' : ''}`}
+              className={`p-1 hover:text-zinc-900 dark:hover:text-zinc-50 transition-colors ${isMobileSearchVisible ? 'text-primary' : ''}`}
               title="Search"
             >
               <FiSearch size={20} />
@@ -167,7 +167,7 @@ export function TopNav() {
                         onClick={() => {
                           if (location.pathname !== '/map') {
                             setIsDropdownOpen(false)
-                            navigate('/')
+                            navigate('/map')
                           }
                         }}
                         className="w-full text-left px-4 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
