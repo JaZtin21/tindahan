@@ -4,15 +4,15 @@ import { OnboardingCarousel } from '../components/onboarding/OnboardingCarousel'
 
 export function HomePage() {
   const navigate = useNavigate()
+  const onboardingCompleted = localStorage.getItem('onboardingCompleted') 
 
-  useEffect(() => {
-    // Check if user has completed onboarding
-    const onboardingCompleted = localStorage.getItem('onboardingCompleted')
-    if (onboardingCompleted === 'true') {
-      navigate('/map', { replace: true })
-    }
-  }, [navigate])
 
-  return <OnboardingCarousel />
+  if(onboardingCompleted){
+    window.location.href = "/map";
+  }else{
+     return <OnboardingCarousel />
+  }
+
+ 
 }
 
