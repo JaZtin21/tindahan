@@ -128,6 +128,7 @@ export interface SearchBarProps {
   onClearAllMarkers?: () => void;
   showClearMarkersButton?: boolean;
   placeholder?: string;
+  onClear?: () => void;
 }
 
 // Additional types from OptimizedMapsPage

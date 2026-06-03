@@ -7,7 +7,7 @@ import { SEARCH_POSTS_BY_TITLE_QUERY } from '../../api/graphql/post/post-queries
 import { searchLocation } from '../../utils/maps';
 import type { SearchBarProps } from '../../types/map';
 
-export function SearchBar({ onSearch, onStoreSelect, onProductSelect, onPostSelect, onClearProductStores, onClearAllMarkers, showClearMarkersButton, placeholder = "Search for stores, products, or locations..." }: SearchBarProps) {
+export function SearchBar({ onSearch, onStoreSelect, onProductSelect, onPostSelect, onClearProductStores, onClearAllMarkers, showClearMarkersButton, placeholder = "Search for stores, products, or locations...", onClear }: SearchBarProps) {
   const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -183,6 +183,7 @@ export function SearchBar({ onSearch, onStoreSelect, onProductSelect, onPostSele
     if(showClearMarkersButton && onClearAllMarkers)
     onClearAllMarkers() 
     setQuery('')
+    if (onClear) onClear()
   }
 
   return (

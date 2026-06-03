@@ -1,14 +1,35 @@
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useState, useRef, useEffect } from 'react'
 import { ThemeToggle } from '../../theme'
 import { useAuth } from '../../api/graphql/apolloProviderWithAuth'
+import { FiSearch } from 'react-icons/fi'
+import { useDispatch, useSelector } from 'react-redux'
+import { toggleMobileSearch } from '../../store/slices/mobileSearchSlice'
+import { toggleTheme } from '../../store'
+import type { RootState } from '../../store'
 
 
 export function TopNav() {
   const { isAuthenticated, userInfo, logoutAndClear } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
+  const dispatch = useDispatch()
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
   const dropdownRef = useRef<HTMLDivElement>(null)
+  const isMobileSearchVisible = useSelector((state: RootState) => (state.mobileSearch as any).isSearchVisible)
+  const isDarkMode = useSelector((state: RootState) => state.theme === 'dark')
+  const isMapPage = location.pathname === '/map'
+
+  // Detect mobile screen size
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768)
+    }
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -26,14 +47,8 @@ export function TopNav() {
     await logoutAndClear()
   }
 
-  const handleViewProfile = () => {
-    setIsDropdownOpen(false)
-    navigate('/profile')
-  }
-
-  const handleMyStore = () => {
-    setIsDropdownOpen(false)
-    navigate('/owner')
+  const handleSearchToggle = () => {
+    dispatch(toggleMobileSearch())
   }
 
   // Get user initials for avatar fallback
@@ -77,13 +92,27 @@ export function TopNav() {
           Tindahan
         </Link>
         <nav className="flex items-center gap-4 text-sm text-zinc-600 dark:text-zinc-300">
-          <ThemeToggle />
-          <Link to="/map" className="hover:text-zinc-900 dark:hover:text-zinc-50">
-            Map
-          </Link>
-          {isAuthenticated && (
+          {/* Search button - only on mobile and only on maps page */}
+          {isMobile && isMapPage && (
+            <button
+              onClick={handleSearchToggle}
+              className={`p-2 hover:text-zinc-900 dark:hover:text-zinc-50 transition-colors ${isMobileSearchVisible ? 'text-primary' : ''}`}
+              title="Search"
+            >
+              <FiSearch size={20} />
+            </button>
+          )}
+          
+          {/* ThemeToggle, Map, Owner - hide on mobile */}
+          {!isMobile && <ThemeToggle />}
+          {!isMobile && (
+            <Link to="/map" className="hover:text-zinc-900 dark:hover:text-zinc-50">
+              Home
+            </Link>
+          )}
+          {!isMobile && isAuthenticated && (
             <Link to="/owner" className="hover:text-zinc-900 dark:hover:text-zinc-50">
-              Owner
+              Shops
             </Link>
           )}
           
@@ -119,26 +148,97 @@ export function TopNav() {
                       {userInfo.email}
                     </p>
                   </div>
-                  <button
-                    onClick={handleViewProfile}
-                    className="w-full text-left px-4 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
-                  >
-                    View Profile
-                  </button>
-                  {userInfo.role === 'OWNER' && (
-                    <button
-                      onClick={handleMyStore}
-                      className="w-full text-left px-4 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
-                    >
-                      My Store
-                    </button>
+                  
+                  {/* Mobile-only: Reordered dropdown items */}
+                  {isMobile && (
+                    <>
+                      <button
+                        onClick={() => {
+                          if (location.pathname !== '/profile') {
+                            setIsDropdownOpen(false)
+                            navigate('/profile')
+                          }
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
+                      >
+                        Profile
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (location.pathname !== '/map') {
+                            setIsDropdownOpen(false)
+                            navigate('/')
+                          }
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
+                      >
+                        Home
+                      </button>
+                      {isAuthenticated && (
+                        <button
+                          onClick={() => {
+                            if (location.pathname !== '/owner') {
+                              setIsDropdownOpen(false)
+                              navigate('/owner')
+                            }
+                          }}
+                          className="w-full text-left px-4 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
+                        >
+                          Shops
+                        </button>
+                      )}
+                      <button
+                        onClick={() => {
+                          dispatch(toggleTheme())
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
+                      >
+                        {isDarkMode ? 'Light Mode' : 'Dark Mode'}
+                      </button>
+                      <button
+                        onClick={handleLogout}
+                        className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
+                      >
+                        Logout
+                      </button>
+                    </>
                   )}
-                  <button
-                    onClick={handleLogout}
-                    className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
-                  >
-                    Logout
-                  </button>
+                  
+                  {/* Desktop-only dropdown items */}
+                  {!isMobile && (
+                    <>
+                      <button
+                        onClick={() => {
+                          if (location.pathname !== '/profile') {
+                            setIsDropdownOpen(false)
+                            navigate('/profile')
+                          }
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
+                      >
+                        View Profile
+                      </button>
+                      {userInfo.role === 'OWNER' && (
+                        <button
+                          onClick={() => {
+                            if (location.pathname !== '/owner') {
+                              setIsDropdownOpen(false)
+                              navigate('/owner')
+                            }
+                          }}
+                          className="w-full text-left px-4 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
+                        >
+                          My Store
+                        </button>
+                      )}
+                      <button
+                        onClick={handleLogout}
+                        className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
+                      >
+                        Logout
+                      </button>
+                    </>
+                  )}
                 </div>
               )}
             </div>

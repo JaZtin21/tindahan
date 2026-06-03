@@ -18,6 +18,8 @@ import { createPostHandlers } from '../utils/maps/handlers';
 import { openSideNav, openPostPreview, closePostPreview } from '../store';
 import { MdMyLocation } from 'react-icons/md';
 import { SearchBar } from '../components/Map/SearchBar';
+import { hideMobileSearch } from '../store/slices/mobileSearchSlice';
+import type { RootState } from '../store';
 
 export function OptimizedMapsPage() {
   const dispatch = useDispatch();
@@ -25,6 +27,27 @@ export function OptimizedMapsPage() {
   // ... rest of the code remains the same ...
   const { isAuthenticated } = useAuth();
   const { isOpen: isPostPreviewOpen } = useSelector((state: any) => state.postPreview);
+  const isMobileSearchVisible = useSelector((state: RootState) => (state.mobileSearch as any).isSearchVisible);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Detect mobile screen size
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768)
+    }
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
+
+  // Close mobile search bar when navigating away from maps page
+  useEffect(() => {
+    return () => {
+      if (isMobile && isMobileSearchVisible) {
+        dispatch(hideMobileSearch())
+      }
+    }
+  }, [isMobile, isMobileSearchVisible, dispatch])
   
   // Handle getting current location
   const handleGetCurrentLocation = () => {
@@ -545,33 +568,36 @@ export function OptimizedMapsPage() {
       {/* Map info */}
 
 
-      {/* Search Bar - Fixed at top */}
-      <div className="absolute top-22 left-0 right-0 z-49 px-4">
-        <SearchBar
-          onSearch={(query) => console.log('[Search] Query:', query)}
-          onStoreSelect={(item: any) => {
-            // Check if it's from geocoding (location) or API (store)
-            if (item.source === 'geocoding' || (!item.id && !item.businessType)) {
-              // It's a location from geocoding
-              handleLocationSelect({
-                lat: item.lat,
-                lng: item.lng,
-                name: item.name,
-                details: item.location || item.description
-              });
-            } else {
-              // It's a store from API
-              handleStoreSelect(item);
-            }
-          }}
-          onProductSelect={handleProductSelect}
-          onPostSelect={handlePostSelect}
-          onClearProductStores={clearProductStores}
-          onClearAllMarkers={clearAllSearchMarkers}
-          showClearMarkersButton={showStoreMarker || showLocationPinMarker || showProductStoreMarkers || showPostMarkers}
-          placeholder="Search for stores or products near you..."
-        />
-      </div>
+      {/* Search Bar - Fixed at top, hidden on mobile by default */}
+      {(!isMobile || isMobileSearchVisible) && (
+        <div className="absolute top-22 left-0 right-0 z-49 px-4">
+          <SearchBar
+            onSearch={(query) => console.log('[Search] Query:', query)}
+            onStoreSelect={(item: any) => {
+              // Check if it's from geocoding (location) or API (store)
+              if (item.source === 'geocoding' || (!item.id && !item.businessType)) {
+                // It's a location from geocoding
+                handleLocationSelect({
+                  lat: item.lat,
+                  lng: item.lng,
+                  name: item.name,
+                  details: item.location || item.description
+                });
+              } else {
+                // It's a store from API
+                handleStoreSelect(item);
+              }
+            }}
+            onProductSelect={handleProductSelect}
+            onPostSelect={handlePostSelect}
+            onClearProductStores={clearProductStores}
+            onClearAllMarkers={clearAllSearchMarkers}
+            showClearMarkersButton={showStoreMarker || showLocationPinMarker || showProductStoreMarkers || showPostMarkers}
+            placeholder="Search for stores or products near you..."
+            onClear={isMobile ? () => dispatch(hideMobileSearch()) : undefined}
+          />
+        </div>
+      )}
 
       {/* Map container - use ref to get map instance, avoid controlled props */}
       <MapContainer

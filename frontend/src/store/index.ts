@@ -2,6 +2,7 @@ import { configureStore } from '@reduxjs/toolkit'
 import { userSlice, themeSlice, locationSlice } from './slices'
 import sideNavSlice, { openSideNav, closeSideNav, clearSideNavContent } from './sideNavSlice'
 import postPreviewSlice from './postPreviewSlice'
+import mobileSearchSlice from './slices/mobileSearchSlice'
 
 export const store = configureStore({
   reducer: {
@@ -10,6 +11,7 @@ export const store = configureStore({
     location: locationSlice.reducer,
     sideNav: sideNavSlice,
     postPreview: postPreviewSlice,
+    mobileSearch: mobileSearchSlice,
   },
 });
 
