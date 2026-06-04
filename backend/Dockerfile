@@ -2,7 +2,7 @@
 FROM golang:1.25-alpine AS builder
 WORKDIR /app
 
-# 1. Pull down your backend workspace files
+# 1. Pull down your core backend files
 COPY . .
 
 # 2. Verify and establish the module system structures dynamically
@@ -16,8 +16,8 @@ RUN if [ ! -f "go.mod" ]; then \
         echo "=== [AUTOFIX] Pure standard library project. Skipping download step..."; \
     fi
 
-# 3. FIXED: Changed './cmd/main.go' to './main.go' to match your real file position
-RUN CGO_ENABLED=0 GOOS=linux go build -o /backend-bin ./main.go
+# 3. FIXED PATH: Compiles your exact folder path structure directly
+RUN CGO_ENABLED=0 GOOS=linux go build -o /backend-bin ./cmd/main.go
 
 # ====================================================================
 # Stage 2: Minimal Production Runner (Bakes only the absolute essentials)
