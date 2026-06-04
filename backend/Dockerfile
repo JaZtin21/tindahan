@@ -3,7 +3,7 @@ FROM golang:1.25-alpine AS builder
 WORKDIR /app
 
 # FIXED: Wrapping the 's' in brackets makes go.sum optional if it doesn't exist yet!
-COPY go.mod go.su[m] ./
+COPY go.mo[d] go.su[m] ./
 
 RUN go mod download
 COPY . .
