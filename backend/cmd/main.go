@@ -26,6 +26,6 @@ func main() {
 	// Start server
 	log.Println("Server starting on port :8080")
 	if err := router.Run(":8080"); err != nil {
-		log.Fatal("Failed to start server:", err)
+		log.Println("Warning: No .env file found, falling back to system environment variables")
 	}
 }
