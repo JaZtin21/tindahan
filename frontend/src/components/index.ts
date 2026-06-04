@@ -1,4 +1,4 @@
 export * from './navigation';
-export * from './Map';
+export * from './map';
 export { Modal } from './Modal';
 export * from './profile';

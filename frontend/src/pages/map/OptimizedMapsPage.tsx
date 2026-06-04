@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { MapContainer } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useSubscription, useMutation, useQuery } from '@apollo/client/react';
-import { CachedTileLayer, MapMarkers as MapMarkersComponent, getMapMarkerStyles } from '../../components/Map';
+import { CachedTileLayer, MapMarkers as MapMarkersComponent, getMapMarkerStyles } from '../../components/map';
 import { LIVE_POSTS_SUBSCRIPTION } from '../../api/graphql/subscriptions/live-posts';
 import { DELETE_POST_MUTATION, SEARCH_POSTS_BY_TITLE_QUERY } from '../../api/graphql/post/post-queries';
 import { SHOPS_BY_PRODUCT_QUERY } from '../../api/graphql/shop/shop-queries';
@@ -17,7 +17,7 @@ import { Modal } from '../../components/Modal';
 import { createPostHandlers } from '../../utils/maps/handlers';
 import { openSideNav, openPostPreview, closePostPreview } from '../../store';
 import { MdMyLocation } from 'react-icons/md';
-import { SearchBar } from '../../components/Map/SearchBar';
+import { SearchBar } from '../../components/map/SearchBar';
 import { hideMobileSearch } from '../../store/slices/mobileSearchSlice';
 import type { RootState } from '../../store';
 

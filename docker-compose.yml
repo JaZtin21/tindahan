@@ -1,24 +1,69 @@
 services:
+  # --- MongoDB (Fully Automated Replica Set) ---
   mongodb:
     image: mongo:7
     container_name: tindahan-mongo
     restart: unless-stopped
     ports:
       - "27017:27017"
+    env_file:
+      - ./backend/.env
     environment:
-      MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: password
-      MONGO_INITDB_DATABASE: tindahan_db
-      MONGO_REPLICA_SET_NAME: rs0
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USER:-admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:-password}
+      MONGO_INITDB_DATABASE: ${MONGO_DB_NAME:-tindahan_db}
+      MONGO_REPLICA_SET_NAME: ${MONGO_REPLICA_SET:-rs0}
     volumes:
       - mongo-data:/data/db
-      - ./scripts/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
-      - ./scripts/mongo-keyfile:/data/mongo-keyfile:ro
-    command: >
+      - ./backend/scripts/mongo-keyfile:/data/mongo-keyfile
+    # THE STANDARDIZED AUTO-SCRIPT: Fixes permissions, starts mongo, waits for health, and triggers rs.initiate() in the background
+    entrypoint: >
       bash -c '
-        cp /data/mongo-keyfile /tmp/mongo-keyfile &&
-        chmod 400 /tmp/mongo-keyfile &&
-        mongod --replSet rs0 --bind_ip_all --keyFile /tmp/mongo-keyfile --auth
+        chown 999:999 /data/mongo-keyfile
+        chmod 400 /data/mongo-keyfile
+        
+        # Start MongoDB in the background
+        docker-entrypoint.sh mongod --replSet ${MONGO_REPLICA_SET:-rs0} --bind_ip_all --keyFile /data/mongo-keyfile --auth &
+        
+        # Automated background loop to initiate the replica set as soon as the server is ready
+        (
+          echo "Automator: Waiting for MongoDB to accept credentials..."
+          until mongosh --username ${MONGO_ROOT_USER:-admin} --password ${MONGO_ROOT_PASSWORD:-password} --authenticationDatabase admin --eval "db.adminCommand(\"ping\")" &>/dev/null; do
+            sleep 2
+          done
+          
+          # Check if already initiated; if not, initiate targeting the correct docker network hostname
+          if ! mongosh --username ${MONGO_ROOT_USER:-admin} --password ${MONGO_ROOT_PASSWORD:-password} --authenticationDatabase admin --eval "rs.status()" &>/dev/null; then
+            echo "Automator: Initializing replica set cluster..."
+            mongosh --username ${MONGO_ROOT_USER:-admin} --password ${MONGO_ROOT_PASSWORD:-password} --authenticationDatabase admin --eval "rs.initiate({_id: \"${MONGO_REPLICA_SET:-rs0}\", members: [{_id: 0, host: \"mongodb:27017\"}]})"
+          fi
+          echo "Automator: Replica set configuration verified active!"
+        ) &
+        
+        # Keep the container alive by waiting on the background mongod process
+        wait
       '
+    healthcheck:
+      test: mongosh --username ${MONGO_ROOT_USER:-admin} --password ${MONGO_ROOT_PASSWORD:-password} --authenticationDatabase admin --eval "db.adminCommand('ping')" || exit 1
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  # --- Backend Service (Waits on the automated health check) ---
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: tindahan-backend
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    depends_on:
+      mongodb:
+        condition: service_healthy # Will not boot up Go until the database is fully authenticated and replica-set ready
+    env_file:
+      - ./backend/.env
+
 volumes:
   mongo-data:

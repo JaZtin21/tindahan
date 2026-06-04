@@ -87,7 +87,7 @@ export function TopNav() {
   return (
     <header className="border-b border-zinc-200 dark:border-zinc-800 fixed top-0 left-0 right-0 z-50 bg-white dark:bg-zinc-900">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
-        <Link to="/" className="font-semibold tracking-tight flex flex-row gap-2 items-center text-zinc-600 dark:text-zinc-300">
+        <Link to="/map" className="font-semibold tracking-tight flex flex-row gap-2 items-center text-zinc-600 dark:text-zinc-300">
         <img src='/icon-180.svg' className='h-8 w-8 '  />
           Tindahan
         </Link>
