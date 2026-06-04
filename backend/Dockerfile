@@ -2,12 +2,10 @@
 FROM golang:1.25-alpine AS builder
 WORKDIR /app
 
-# 1. Safely pull down whatever go files exist without hardcoded layout demands
+# 1. Pull down your backend workspace files
 COPY . .
 
-# 2. FIXED IN ADVANCE: Dynamically verify the module ecosystem layout
-# If go.mod does not exist, initialize a clean project namespace.
-# If go.mod exists, safely run download only if there are actual keys inside it.
+# 2. Verify and establish the module system structures dynamically
 RUN if [ ! -f "go.mod" ]; then \
         echo "=== [AUTOFIX] No go.mod found. Initializing module layout..."; \
         go mod init tindahan-backend && go mod tidy; \
@@ -18,8 +16,8 @@ RUN if [ ! -f "go.mod" ]; then \
         echo "=== [AUTOFIX] Pure standard library project. Skipping download step..."; \
     fi
 
-# 3. Compile the Go executable binary safely
-RUN CGO_ENABLED=0 GOOS=linux go build -o /backend-bin ./cmd/main.go
+# 3. FIXED: Changed './cmd/main.go' to './main.go' to match your real file position
+RUN CGO_ENABLED=0 GOOS=linux go build -o /backend-bin ./main.go
 
 # ====================================================================
 # Stage 2: Minimal Production Runner (Bakes only the absolute essentials)
@@ -29,7 +27,7 @@ WORKDIR /root/
 # 4. Copy the compiled binary from the isolated builder stage
 COPY --from=builder /backend-bin .
 
-# 5. FIXED IN ADVANCE: Dynamic Environment Asset Injection
+# 5. Dynamic Environment Asset Injection
 ARG APP_ENV=""
 RUN if [ "$APP_ENV" = "dev" ]; then \
         echo "=== [AUTOFIX] Development Mode: Preparing configuration hooks..."; \
@@ -42,5 +40,5 @@ COPY .en[v] .
 
 EXPOSE 8080
 
-# 7. FIXED IN ADVANCE: Executes the binary file natively inside Process 1
+# 7. Executes the binary file natively inside Process 1
 CMD ["./backend-bin"]
