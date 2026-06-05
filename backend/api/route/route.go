@@ -3,6 +3,8 @@ package route
 import (
 	"context"
 	"net/http"
+	"os"
+	"strings"
 	"tindahan-backend/api/handlers/middleware"
 	"tindahan-backend/bootstrap"
 	"tindahan-backend/graphql"
@@ -19,8 +21,20 @@ import (
 func Setup(router *gin.Engine, app *bootstrap.Application) {
 
 	// CORS middleware
+	rawOrigins := strings.Split(os.Getenv("ALLOWED_ORIGINS"), ",")
+	var originsList []string
+
+	// 2. Loop through and automatically strip away any accidental spaces
+	for _, origin := range rawOrigins {
+		trimmed := strings.TrimSpace(origin)
+		if trimmed != "" {
+			originsList = append(originsList, trimmed)
+		}
+	}
+
+	// 3. Pass the perfectly clean array into the CORS config
 	router.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"http://localhost:5173", "http://localhost:3000", "http://127.0.0.1:5173", "http://127.0.0.1:3000", "https://0f74-143-44-240-127.ngrok-free.app"},
+		AllowOrigins:     originsList,
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "Apollo-Require-Preflight", "X-Apollo-Operation-Name", "X-Apollo-Operation-Id"},
 		ExposeHeaders:    []string{"Content-Length"},
