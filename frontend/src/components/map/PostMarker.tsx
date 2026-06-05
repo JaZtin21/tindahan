@@ -34,12 +34,29 @@ export function getPostBubbleHtml(post: Post): string {
   const shortText = post.text && post.text.length > 60 ? post.text.substring(0, 60) + '...' : (post.text || '');
   const profilePhoto = post.author?.profilePhoto;
   const hasProfilePhoto = !!profilePhoto;
+
+  const isGoogleProfileImage = (url: string): boolean => {
+    return url?.includes('googleusercontent.com') || url?.includes('google.com') || false
+  }
+
+    const getSafeProfilePhoto = (): string | null => {
+    if (!profilePhoto) return null
+    const photo = profilePhoto
+    
+    // Google profile images have strict CORS - use as-is but with special img attributes
+    // or use a proxy if available
+    if (isGoogleProfileImage(photo)) {
+      // For now, return the URL but we'll add crossOrigin attribute to img
+      // Consider using a backend proxy for Google images in production
+      return optimizeCloudinaryUrl(profilePhoto, { width: 50, height: 50, crop: 'thumb', quality: 90 })
+    }
+    
+    return optimizeCloudinaryUrl(profilePhoto, { width: 50, height: 50, crop: 'thumb', quality: 90 })
+  }
   
   // FIXED DIRECT ASSIGNMENT: Instead of a generic CSS var(), we inject the absolute optimized URL string 
   // directly into the background-image rule. This ensures it displays out of memory instantly on cycles/zooms.
-  const optimizedProfileUrl = hasProfilePhoto
-    ? optimizeCloudinaryUrl(profilePhoto, { width: 50, height: 50, crop: 'thumb', quality: 90 })
-    : '';
+  const optimizedProfileUrl = getSafeProfilePhoto()
 
   const avatarHtml = hasProfilePhoto 
     ? `<div class="post-bubble-avatar-img" style="background-image: url('${optimizedProfileUrl}'); background-size: cover; background-position: center; width: 100%; height: 100%; border-radius: 50%;">
