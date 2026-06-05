@@ -6,6 +6,7 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -460,25 +461,40 @@ func setRefreshTokenCookie(ctx context.Context, token string) {
 		return
 	}
 
-	// Determine if we're in development (localhost) or production
-	isDevelopment := ginCtx.Request.Host == "localhost:8080" ||
-		ginCtx.Request.Host == "127.0.0.1:8080" ||
-		ginCtx.Request.Host == "localhost:3000" ||
-		ginCtx.Request.Host == "127.0.0.1:3000"
+	// Read environment variable directly (defaults to development if not 'production')
+	isProduction := os.Getenv("GO_ENV") == "production"
 
-	// Set the refresh token as a secure, httpOnly, same-site cookie
-	// Secure flag is false for development (localhost), true for production
+	var sameSiteCode http.SameSite
+	var cookieDomain string
+	var isSecure bool
+
+	if isProduction {
+		// Production attributes for cross-subdomain support
+		sameSiteCode = http.SameSiteNoneMode
+		cookieDomain = ".hanaptindahan.com" // Allows cookie access across subdomains
+		isSecure = true                     // SameSite=None strictly requires HTTPS
+	} else {
+		// Local development fallback
+		sameSiteCode = http.SameSiteLaxMode
+		cookieDomain = ""                   // Leave blank for localhost matching
+		isSecure = false                    // Localhost runs over raw HTTP
+	}
+
+	// Securely set the refresh token cookie
 	http.SetCookie(ginCtx.Writer, &http.Cookie{
 		Name:     "refresh_token",
 		Value:    token,
 		Path:     "/",
-		MaxAge:   7 * 24 * 60 * 60,     // 7 days
-		Secure:   !isDevelopment,       // HTTPS only (false for localhost)
-		HttpOnly: true,                 // Not accessible via JavaScript
-		SameSite: http.SameSiteLaxMode, // Lax mode for better compatibility
+		MaxAge:   7 * 24 * 60 * 60, // 7 days
+		Secure:   isSecure,
+		HttpOnly: true,             // Shields cookie from JavaScript/XSS theft
+		SameSite: sameSiteCode,
+		Domain:   cookieDomain,
 	})
-	log.Printf("✅ Refresh token set as secure cookie (development=%v)", isDevelopment)
+
+	log.Printf("✅ Refresh token cookie set successfully (isProduction=%v, domain=%s)", isProduction, cookieDomain)
 }
+
 
 // getRefreshTokenFromCookie retrieves the refresh token from the cookie
 func getRefreshTokenFromCookie(ctx context.Context) (string, error) {
@@ -512,7 +528,6 @@ func (r *AuthResolver) Logout(ctx context.Context) (map[string]interface{}, erro
 	}, nil
 }
 
-// clearRefreshTokenCookie clears the refresh token cookie
 func clearRefreshTokenCookie(ctx context.Context) {
 	// Get the Gin context from the GraphQL context
 	ginCtx, ok := ctx.Value("ginContext").(*gin.Context)
@@ -521,21 +536,36 @@ func clearRefreshTokenCookie(ctx context.Context) {
 		return
 	}
 
-	// Determine if we're in development (localhost) or production
-	isDevelopment := ginCtx.Request.Host == "localhost:8080" ||
-		ginCtx.Request.Host == "127.0.0.1:8080" ||
-		ginCtx.Request.Host == "localhost:3000" ||
-		ginCtx.Request.Host == "127.0.0.1:3000"
+	// Read environment variable directly (matches the login logic)
+	isProduction := os.Getenv("GO_ENV") == "production"
 
-	// Clear the refresh token cookie by setting it to empty with expired MaxAge
+	var sameSiteCode http.SameSite
+	var cookieDomain string
+	var isSecure bool
+
+	if isProduction {
+		// Must match production login attributes exactly to clear it successfully
+		sameSiteCode = http.SameSiteNoneMode
+		cookieDomain = ".hanaptindahan.com"
+		isSecure = true
+	} else {
+		// Local development attributes
+		sameSiteCode = http.SameSiteLaxMode
+		cookieDomain = ""
+		isSecure = false
+	}
+
+	// Clear the refresh token cookie by setting an empty value and an expired MaxAge
 	http.SetCookie(ginCtx.Writer, &http.Cookie{
 		Name:     "refresh_token",
 		Value:    "",
 		Path:     "/",
-		MaxAge:   -1,                   // Expire immediately
-		Secure:   !isDevelopment,       // HTTPS only (false for localhost)
-		HttpOnly: true,                 // Not accessible via JavaScript
-		SameSite: http.SameSiteLaxMode, // Lax mode for better compatibility
+		MaxAge:   -1, // Expire immediately tells the browser to delete it on the spot
+		Secure:   isSecure,
+		HttpOnly: true,
+		SameSite: sameSiteCode,
+		Domain:   cookieDomain,
 	})
-	log.Printf("✅ Refresh token cookie cleared (development=%v)", isDevelopment)
+	
+	log.Printf("✅ Refresh token cookie cleared successfully (isProduction=%v, domain=%s)", isProduction, cookieDomain)
 }
