@@ -175,10 +175,8 @@ export function OwnerPage() {
   const isShopView = selectedShop !== null;
 
   return (
-    <div className="min-h-screen bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 p-6">
-      <div className="max-w-6xl mx-auto">
-        <h1 className="text-3xl font-bold mb-8">Shop Owner Portal</h1>
-
+    <div className="min-h-screen bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 p-6 ">
+      <div className="max-w-6xl mx-auto mt-20">
         {isShopView && (
           <div className="mb-6">
             <button

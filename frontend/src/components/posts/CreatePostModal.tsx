@@ -118,133 +118,132 @@ function CreatePostModalInner({ isOpen, onClose, onSubmit, isSubmitting: externa
   const isLoading = externalSubmitting || isSubmitting;
 
   return (
-    <Modal 
-      isOpen={isOpen} 
-      onClose={handleClose} 
+    <Modal
+      isOpen={isOpen}
+      onClose={handleClose}
       title="Create Post"
       maxWidth="lg"
       mobileBottomSheet
     >
       <div>
-          {/* Food name input */}
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="Food name..."
-            className="w-full p-3 mb-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 font-medium"
-          />
+        {/* Food name input */}
+        <input
+          type="text"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="Food name..."
+          className="w-full p-3 mb-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-primary text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 font-medium"
+        />
 
-          {/* Text/Description input */}
-          <textarea
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            placeholder="What's on your mind?"
-            className="w-full min-h-[120px] p-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500"
-          />
+        {/* Text/Description input */}
+        <textarea
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder="What's on your mind?"
+          className="w-full min-h-[120px] p-3 bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-primary text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500"
+        />
 
-          {/* Types selection */}
-          <div className="mt-4">
-            <label className="block text-sm font-medium mb-2 text-zinc-700 dark:text-zinc-300">
-              Type (optional)
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {POST_TYPES.map((type) => (
-                <button
-                  key={type}
-                  type="button"
-                  onClick={() => toggleType(type)}
-                  className={`px-3 py-1.5 text-sm rounded-full transition-colors ${
-                    selectedTypes.includes(type)
-                      ? 'bg-primary text-white'
-                      : 'bg-zinc-100 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-600'
-                  }`}
-                >
-                  {type}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Location Picker - Required Field */}
-          <div className="mt-4">
-            <label className="block text-sm font-medium mb-2 text-zinc-700 dark:text-zinc-300">
-              Location <span className="text-red-500">*</span>
-            </label>
-            <LocationPicker
-              onLocationSelect={handleLocationSelect}
-              initialLocation={selectedLocation || (currentLocation ? { lat: currentLocation.lat, lng: currentLocation.lng } : undefined)}
-            />
-            <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
-              Click to select your location on the map
-            </p>
-          </div>
-
-          {/* Photo previews */}
-          {photoPreviews.length > 0 && (
-            <div className="grid grid-cols-2 gap-2 mt-4">
-              {photoPreviews.map((preview, index) => (
-                <div key={index} className="relative aspect-square rounded-lg overflow-hidden">
-                  <img
-                    src={preview}
-                    alt={`Preview ${index + 1}`}
-                    className="w-full h-full object-cover"
-                  />
-                  <button
-                    onClick={() => removePhoto(index)}
-                    className="absolute top-1 right-1 p-1 bg-black/50 hover:bg-black/70 rounded-full transition-colors"
-                  >
-                    <XIcon className="w-4 h-4 text-white" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Add photo button - Required */}
-          <div className="mt-4">
-            <label className="block text-sm font-medium mb-2 text-zinc-700 dark:text-zinc-300">
-              Photos <span className="text-red-500">*</span>
-            </label>
-            {photos.length < 4 && (
+        {/* Types selection */}
+        <div className="mt-4">
+          <label className="block text-sm font-medium mb-2 text-zinc-700 dark:text-zinc-300">
+            Type (optional)
+          </label>
+          <div className="flex flex-wrap gap-2">
+            {POST_TYPES.map((type) => (
               <button
-                onClick={() => fileInputRef.current?.click()}
-                className="flex items-center gap-2 px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors text-zinc-700 dark:text-zinc-300"
+                key={type}
+                type="button"
+                onClick={() => toggleType(type)}
+                className={`px-3 py-1.5 text-sm rounded-full transition-colors ${selectedTypes.includes(type)
+                  ? 'bg-primary text-white'
+                  : 'bg-zinc-100 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-600'
+                  }`}
               >
-                <ImageIcon className="w-5 h-5" />
-                <span className="text-sm font-medium">Add Photo</span>
+                {type}
               </button>
-            )}
-            {photos.length === 0 && (
-              <p className="text-xs text-red-500 mt-1">At least one photo is required</p>
-            )}
-          </div>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            multiple
-            onChange={handlePhotoSelect}
-            className="hidden"
-          />
-
-          {/* Footer Buttons - inside scrollable area */}
-          <div className="flex items-center justify-end gap-2 px-4 py-4 mt-4 border-t border-zinc-200 dark:border-zinc-700">
-            <button
-              onClick={handleClose}
-              className="px-4 py-2 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSubmit}
-              disabled={!title.trim() || photos.length === 0 || !selectedLocation || isLoading}
-              className="px-4 py-2 text-sm font-medium text-white bg-primary hover:bg-primary-700 disabled:bg-zinc-300 dark:disabled:bg-zinc-600 disabled:cursor-not-allowed rounded-lg transition-colors"
-            >
-              {isLoading ? 'Posting...' : 'Post'}
-            </button>
+            ))}
           </div>
         </div>
+
+        {/* Location Picker - Required Field */}
+        <div className="mt-4">
+          <label className="block text-sm font-medium mb-2 text-zinc-700 dark:text-zinc-300">
+            Location <span className="text-red-500">*</span>
+          </label>
+          <LocationPicker
+            onLocationSelect={handleLocationSelect}
+            initialLocation={selectedLocation || (currentLocation ? { lat: currentLocation.lat, lng: currentLocation.lng } : undefined)}
+          />
+          <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+            Click to select your location on the map
+          </p>
+        </div>
+
+        {/* Photo previews */}
+        {photoPreviews.length > 0 && (
+          <div className="grid grid-cols-2 gap-2 mt-4">
+            {photoPreviews.map((preview, index) => (
+              <div key={index} className="relative aspect-square rounded-lg overflow-hidden">
+                <img
+                  src={preview}
+                  alt={`Preview ${index + 1}`}
+                  className="w-full h-full object-cover"
+                />
+                <button
+                  onClick={() => removePhoto(index)}
+                  className="absolute top-1 right-1 p-1 bg-black/50 hover:bg-black/70 rounded-full transition-colors"
+                >
+                  <XIcon className="w-4 h-4 text-white" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Add photo button - Required */}
+        <div className="mt-4">
+          <label className="block text-sm font-medium mb-2 text-zinc-700 dark:text-zinc-300">
+            Photos <span className="text-red-500">*</span>
+          </label>
+          {photos.length < 4 && (
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="flex items-center gap-2 px-4 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors text-zinc-700 dark:text-zinc-300"
+            >
+              <ImageIcon className="w-5 h-5" />
+              <span className="text-sm font-medium">Add Photo</span>
+            </button>
+          )}
+          {photos.length === 0 && (
+            <p className="text-xs text-red-500 mt-1">At least one photo is required</p>
+          )}
+        </div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          multiple
+          onChange={handlePhotoSelect}
+          className="hidden"
+        />
+
+        {/* Footer Buttons - inside scrollable area */}
+        <div className="flex items-center justify-end gap-2 px-4 py-4 mt-4 border-t border-zinc-200 dark:border-zinc-700">
+          <button
+            onClick={handleClose}
+            className="px-4 py-2 text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={!title.trim() || photos.length === 0 || !selectedLocation || isLoading}
+            className="px-4 py-2 text-sm font-medium text-white bg-primary hover:bg-primary-700 disabled:bg-zinc-300 dark:disabled:bg-zinc-600 disabled:cursor-not-allowed rounded-lg transition-colors"
+          >
+            {isLoading ? 'Posting...' : 'Post'}
+          </button>
+        </div>
+      </div>
     </Modal>
   );
 }

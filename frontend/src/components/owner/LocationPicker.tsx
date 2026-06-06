@@ -15,23 +15,23 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
 
   const handleMapClick = (lat: number, lng: number) => {
     setSelectedLocation({ lat, lng });
-    
+
     // Add marker to map
     if (mapInstanceRef.current) {
       const L = (window as any).L;
-      
+
       // Clear existing markers
       mapInstanceRef.current.eachLayer((layer: any) => {
         if (layer instanceof L.Marker) {
           mapInstanceRef.current.removeLayer(layer);
         }
       });
-      
+
       // Add new marker with custom icon
       const customIcon = L.divIcon({
         html: `
           <div style="
-            background: #4285f4;
+            background: #efb666;
             width: 36px;
             height: 36px;
             border-radius: 8px;
@@ -62,7 +62,7 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
           </div>
         `);
     }
-    
+
     // Reverse geocoding to get address
     fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`)
       .then(response => response.json())
@@ -78,14 +78,14 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
 
   const handleGetCurrentLocation = (e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent event from reaching form behind
-    
+
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const { latitude, longitude } = position.coords;
           const newLocation = { lat: latitude, lng: longitude };
           setSelectedLocation(newLocation);
-          
+
           // Center map on new location with MAX zoom like MapPage
           if (mapInstanceRef.current) {
             mapInstanceRef.current.setView([latitude, longitude], 20); // MAX zoom
@@ -116,19 +116,19 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
 
   const handleSearch = useCallback(async (query: string) => {
     setSearchQuery(query);
-    
+
     // Clear previous debounce timer
     if (debounceRef.current) {
       clearTimeout(debounceRef.current);
     }
-    
+
     if (query.length < 3) {
       setSearchResults([]);
       return;
     }
 
     setIsSearching(true);
-    
+
     // Debounce the API call
     debounceRef.current = setTimeout(async () => {
       try {
@@ -188,17 +188,17 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
 
     script.onload = () => {
       const L = (window as any).L;
-      
+
       // Check if container already has a map
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
       }
-      
+
       // Clear any existing content
       if (mapRef.current) {
         mapRef.current.innerHTML = '';
       }
-      
+
       // Initialize map
       const map = L.map(mapRef.current).setView([selectedLocation.lat, selectedLocation.lng], 15);
       mapInstanceRef.current = map;
@@ -246,7 +246,7 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
       const customIcon = L.divIcon({
         html: `
           <div style="
-            background: #4285f4;
+            background: #efb666;
             width: 36px;
             height: 36px;
             border-radius: 8px;
@@ -313,7 +313,7 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
       <button
         type="button"
         onClick={() => setShowModal(true)}
-        className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-left text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500"
+        className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-900 focus:ring-2 focus:ring-primary focus:border-primary text-left text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500"
       >
         {getButtonText()}
       </button>
@@ -340,8 +340,8 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
         <div className="flex flex-col md:flex-row ">
           {/* Map Container */}
           <div className="flex-1 relative p-4" onClick={(e) => e.stopPropagation()}>
-            <div 
-              ref={mapRef} 
+            <div
+              ref={mapRef}
               className="w-full h-[300px] md:h-[500px] rounded-lg overflow-hidden pointer-events-auto"
               style={{ cursor: 'crosshair' }}
             />
@@ -358,7 +358,7 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
                   value={searchQuery}
                   onChange={(e) => handleSearch(e.target.value)}
                   placeholder="Search for a location..."
-                  className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                  className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-primary"
                 />
                 {isSearching && (
                   <div className="flex items-center gap-2 mt-2 text-sm text-zinc-500">
@@ -393,7 +393,7 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
 
               <button
                 onClick={handleGetCurrentLocation}
-                className="w-full px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors"
+                className="w-full px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-700 transition-colors"
                 type="button"
               >
                 📍 Use My Location
