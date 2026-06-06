@@ -146,6 +146,7 @@ export function getMapMarkerStyles(): string {
     }
 
     .post-bubble-container {
+      
       position: absolute;
       bottom: 46px; /* Position above avatar (44px + 8px gap) */
       left: 0;
@@ -153,11 +154,12 @@ export function getMapMarkerStyles(): string {
     }
 
     .post-bubble-new {
-      background: white;
+
+      background: #fffffff1;
       border-radius: 16px;
       padding: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-      border: 1px solid #e0e0e0;
+      box-shadow: 0 3px 2px rgba(0,0,0,0.15);
+      border: 1px solid #efb666;
       width: 180px;
       position: relative;
       margin-bottom: 0;
@@ -176,12 +178,12 @@ export function getMapMarkerStyles(): string {
       height: 0;
       border-left: 8px solid transparent;
       border-right: 8px solid transparent;
-      border-top: 8px solid white;
+      border-top: 8px solid #efb666;
       margin-left: 17px; /* Center on avatar: 17 + 8 = 25px (avatar center) */
-      margin-top: -2px;
+      margin-top: -1px;
       margin-bottom: 0;
       position: relative;
-      z-index: 1;
+      z-index: -1;
     }
 
     .post-bubble-avatar-new {
@@ -195,7 +197,7 @@ export function getMapMarkerStyles(): string {
       color: white;
       font-size: 18px;
       font-weight: 600;
-      border: 3px solid white;
+      border: 2px solid #efb666;
       box-shadow: 0 2px 8px rgba(0,0,0,0.3);
       flex-shrink: 0;
       margin-top: 0;
@@ -588,15 +590,23 @@ export function getMapMarkerStyles(): string {
 
     @media screen and (max-width: 767px) {
   .post-bubble-new {
-    background: white;
+    background: #fffffff1;
     border-radius: 16px;
     padding: 9px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    border: 1px solid #e0e0e0;
-    width: 131px;
+    box-shadow: 0 3px 2px rgba(0,0,0,0.15);
+    border: 1px solid #efb666;
+    width: 138px;
     position: relative;
     margin-bottom: 0;
-}
+  }
+    .food-type-icon{
+      font-size: 12px;
+    }
+    .post-bubble-new > div{
+      font-weight: 600!important;
+      font-size: 11px!important;
+      margin-bottom: 0;
+    }
     .post-bubble-avatar-new {
     width: 35px;
     height: 35px;

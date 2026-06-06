@@ -68,7 +68,7 @@ export function TopNav() {
   const getSafeProfilePhoto = (): string | null => {
     if (!userInfo?.profilePhoto) return null
     const photo = userInfo.profilePhoto
-    
+
     // Google profile images have strict CORS - use as-is but with special img attributes
     // or use a proxy if available
     if (isGoogleProfileImage(photo)) {
@@ -76,7 +76,7 @@ export function TopNav() {
       // Consider using a backend proxy for Google images in production
       return photo
     }
-    
+
     return photo
   }
 
@@ -85,10 +85,10 @@ export function TopNav() {
   const safePhoto = getSafeProfilePhoto()
 
   return (
-    <header className="border-b border-zinc-200 dark:border-zinc-800 fixed top-0 left-0 right-0 z-50 bg-white dark:bg-zinc-900">
+    <header className="border-b border-zinc-200 dark:border-zinc-800 fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-[5px] dark:bg-zinc-900">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
         <Link to="/map" className="font-semibold tracking-tight flex flex-row gap-2 items-center text-zinc-600 dark:text-zinc-300">
-        <img src='/icon-180.svg' className='h-8 w-8 '  />
+          <img src='/icon-180.svg' className='h-8 w-8 ' />
           Tindahan
         </Link>
         <nav className="flex items-center gap-4 text-sm text-zinc-600 dark:text-zinc-300">
@@ -102,7 +102,7 @@ export function TopNav() {
               <FiSearch size={20} />
             </button>
           )}
-          
+
           {/* ThemeToggle, Map, Owner - hide on mobile */}
           {!isMobile && <ThemeToggle />}
           {!isMobile && (
@@ -115,7 +115,7 @@ export function TopNav() {
               Shops
             </Link>
           )}
-          
+
           {isAuthenticated && userInfo ? (
             <div className="relative" ref={dropdownRef}>
               <button
@@ -123,9 +123,9 @@ export function TopNav() {
                 className="flex items-center gap-2 focus:outline-none"
               >
                 {safePhoto && !imgError ? (
-                  <img 
-                    src={safePhoto} 
-                    alt="Profile" 
+                  <img
+                    src={safePhoto}
+                    alt="Profile"
                     crossOrigin="anonymous"
                     referrerPolicy="no-referrer"
                     onError={() => setImgError(true)}
@@ -137,7 +137,7 @@ export function TopNav() {
                   </div>
                 )}
               </button>
-              
+
               {isDropdownOpen && (
                 <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-md shadow-lg py-1 z-50">
                   <div className="px-4 py-2 border-b border-zinc-200 dark:border-zinc-700">
@@ -148,7 +148,7 @@ export function TopNav() {
                       {userInfo.email}
                     </p>
                   </div>
-                  
+
                   {/* Mobile-only: Reordered dropdown items */}
                   {isMobile && (
                     <>
@@ -203,7 +203,7 @@ export function TopNav() {
                       </button>
                     </>
                   )}
-                  
+
                   {/* Desktop-only dropdown items */}
                   {!isMobile && (
                     <>

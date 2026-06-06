@@ -3,9 +3,7 @@ export { SearchBar } from './SearchBar';
 export { CachedTileLayer, tileCache } from './CachedTileLayer';
 export {
   getPostBubbleHtml,
-  getPostPopupHtml,
   getPostIcon,
-  createPostMarker,
   getPostGroupBubbleHtml,
 } from './PostMarker';
 export {

@@ -13,7 +13,7 @@ export function SearchBar({ onSearch, onStoreSelect, onProductSelect, onPostSele
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  
+
   // GraphQL lazy queries - returns a function we can call to fetch data
   const [searchShops] = useLazyQuery(SEARCH_SHOPS_QUERY);
   const [searchProducts] = useLazyQuery(ITEMS_QUERY);
@@ -21,33 +21,33 @@ export function SearchBar({ onSearch, onStoreSelect, onProductSelect, onPostSele
 
   const handleInputChange = (value: string) => {
     setQuery(value);
-    
+
     // Clear previous timeout
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
     }
-    
+
     if (value.trim()) {
       setIsLoading(true);
-      
+
       // Debounce search - wait 300ms after typing stops
       const timeout = setTimeout(async () => {
         console.log('Debounce triggered for:', value);
-        
+
         // Trigger all searches and AWAIT the results (fixes race condition)
         const [shopsResult, productsResult, postsResult] = await Promise.all([
           searchShops({ variables: { query: value, page: 1, limit: 10 } }),
           searchProducts({ variables: { input: { query: value, page: 1, limit: 10 } } }),
           searchPosts({ variables: { query: value, page: 1, limit: 10 } })
         ]);
-        
+
         const shops = shopsResult.data?.searchShops?.data || [];
         const products = productsResult.data?.items?.data || [];
         const posts = postsResult.data?.searchPostsByTitle?.data || [];
-        
+
         // Search for locations
         const locationResults = await searchLocation(value);
-        
+
         // Format results
         const formattedShops = shops.map((shop: any) => ({
           type: 'store',
@@ -63,7 +63,7 @@ export function SearchBar({ onSearch, onStoreSelect, onProductSelect, onPostSele
           hours: shop.businessHours ? `${shop.businessHours.openTime} - ${shop.businessHours.closeTime}` : undefined,
           source: 'api'
         }));
-        
+
         // Format products - only show unique product names
         const uniqueProducts = new Map();
         products.forEach((product: any) => {
@@ -77,7 +77,7 @@ export function SearchBar({ onSearch, onStoreSelect, onProductSelect, onPostSele
           }
         });
         const formattedProducts = Array.from(uniqueProducts.values());
-        
+
         // Format posts - only show unique post titles
         const uniquePosts = new Map();
         posts.forEach((post: any) => {
@@ -94,7 +94,7 @@ export function SearchBar({ onSearch, onStoreSelect, onProductSelect, onPostSele
           }
         });
         const formattedPosts = Array.from(uniquePosts.values());
-        
+
         // Combine results
         const allResults = [
           ...formattedShops,
@@ -102,12 +102,12 @@ export function SearchBar({ onSearch, onStoreSelect, onProductSelect, onPostSele
           ...formattedPosts,
           ...locationResults.map((item: any) => ({ ...item, source: 'geocoding' }))
         ];
-        
+
         setSuggestions(allResults);
         setShowSuggestions(true);
         setIsLoading(false);
       }, 300);
-      
+
       searchTimeoutRef.current = timeout;
     } else {
       setSuggestions([]);
@@ -126,9 +126,9 @@ export function SearchBar({ onSearch, onStoreSelect, onProductSelect, onPostSele
 
   const handleSuggestionClick = async (suggestion: any) => {
     setQuery(suggestion.name);
-    
+
     console.log('[SearchBar] Clicked suggestion:', suggestion.type, suggestion.name);
-    
+
     // If it's a store, call the store select callback (navigates to shop)
     // AND clear any product search stores from map
     if (suggestion.type === 'store' && onStoreSelect && suggestion.lat && suggestion.lng) {
@@ -149,7 +149,7 @@ export function SearchBar({ onSearch, onStoreSelect, onProductSelect, onPostSele
         hours: suggestion.hours
       });
     }
-    
+
     // If it's a location, fly to it AND clear product search stores
     else if (suggestion.type === 'location' && onStoreSelect && suggestion.lat && suggestion.lng) {
       console.log('[SearchBar] Clearing product stores for location click');
@@ -162,26 +162,26 @@ export function SearchBar({ onSearch, onStoreSelect, onProductSelect, onPostSele
         name: suggestion.name
       });
     }
-    
+
     // If it's a product, fetch stores that have this product and show on map (no navigation)
     // Don't clear - product search will set new stores
     else if (suggestion.type === 'product' && onProductSelect) {
       console.log('[SearchBar] Product clicked, not clearing stores');
       onProductSelect(suggestion.name, []);
     }
-    
+
     // If it's a post, call the post select callback to show post markers
     else if (suggestion.type === 'post' && onPostSelect) {
       console.log('[SearchBar] Post clicked:', suggestion.name);
       onPostSelect(suggestion.name);
     }
-    
+
     handleSearch(suggestion.name);
   };
 
-  const cleanMarkers =()=>{
-    if(showClearMarkersButton && onClearAllMarkers)
-    onClearAllMarkers() 
+  const cleanMarkers = () => {
+    if (showClearMarkersButton && onClearAllMarkers)
+      onClearAllMarkers()
     setQuery('')
     if (onClear) onClear()
   }
@@ -195,7 +195,7 @@ export function SearchBar({ onSearch, onStoreSelect, onProductSelect, onPostSele
           onChange={(e) => handleInputChange(e.target.value)}
           onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
           placeholder={placeholder}
-          className="w-full px-4 py-3 pl-12 text-lg border border-zinc-300 dark:border-zinc-600 rounded-xl bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent shadow-lg"
+          className="w-full px-4 py-3 pl-12 text-lg   rounded-full bg-white/80 backdrop-blur-[5px] dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent shadow-sm transition-colors"
         />
         <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-zinc-400">
           {isLoading ? (
@@ -210,7 +210,7 @@ export function SearchBar({ onSearch, onStoreSelect, onProductSelect, onPostSele
       {showClearMarkersButton && onClearAllMarkers && (
         <button
           onClick={cleanMarkers}
-          className="px-4 py-3 bg-primary hover:bg-primary-700 text-white rounded-xl shadow-lg transition-colors flex items-center gap-2"
+          className="px-4 py-3 bg-primary hover:bg-primary-700 text-white rounded-full shadow-sm transition-colors flex items-center gap-2"
           title="Clear all markers"
         >
           <FiX size={20} />
@@ -233,13 +233,13 @@ export function SearchBar({ onSearch, onStoreSelect, onProductSelect, onPostSele
                     {suggestion.name}
                   </div>
                   <div className="text-sm text-zinc-500 dark:text-zinc-400">
-                    {suggestion.type === 'store' 
+                    {suggestion.type === 'store'
                       ? `🏪 ${suggestion.location || 'Store'} (Click to view)`
                       : suggestion.type === 'product'
-                      ? `📦 Click to see stores with this product`
-                      : suggestion.type === 'post'
-                      ? `📝 Click to see posts that match this product`
-                      : `🌍 ${suggestion.details} (Click to fly here)`
+                        ? `📦 Click to see stores with this product`
+                        : suggestion.type === 'post'
+                          ? `📝 Click to see posts that match this product`
+                          : `🌍 ${suggestion.details} (Click to fly here)`
                     }
                   </div>
                 </div>
@@ -254,8 +254,8 @@ export function SearchBar({ onSearch, onStoreSelect, onProductSelect, onPostSele
 
       {/* Close suggestions when clicking outside */}
       {showSuggestions && (
-        <div 
-          className="fixed inset-0 z-40" 
+        <div
+          className="fixed inset-0 z-40"
           onClick={() => setShowSuggestions(false)}
         />
       )}
