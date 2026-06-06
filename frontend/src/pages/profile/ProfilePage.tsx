@@ -33,13 +33,13 @@ import type { RootState } from '../../store'
 export function ProfilePage() {
   const { userId } = useParams<{ userId?: string }>()
   const currentUser = useSelector((state: RootState) => state.user)
-  
+
   // Determine if viewing own profile or another user's profile
   const isOwnProfile = !userId || userId === currentUser?.id
   const targetUserId = isOwnProfile ? currentUser?.id : userId
 
   const { isLoading: authLoading, isAuthenticated } = useAuth()
-  
+
   // Fetch profile data
   const { data: meData, loading: meLoading } = useGetMe(!isAuthenticated || !isOwnProfile)
   const { data: userData, loading: userLoading } = useGetUser(targetUserId || null, isOwnProfile || !targetUserId)
@@ -48,12 +48,12 @@ export function ProfilePage() {
   const profileData = isOwnProfile ? meData?.me?.data : userData?.user
   const profileLoading = isOwnProfile ? meLoading : userLoading
 
-  const { data: myPostsData, loading: myPostsLoading, fetchMore: fetchMoreMyPosts} = useMyPosts(1, 10, !isAuthenticated || !isOwnProfile)
-  const { data: userPostsData, loading: userPostsLoading, fetchMore: fetchMoreUserPosts} = useGetUserPosts(targetUserId || null, 1, 10, isOwnProfile || !targetUserId)
+  const { data: myPostsData, loading: myPostsLoading, fetchMore: fetchMoreMyPosts } = useMyPosts(1, 10, !isAuthenticated || !isOwnProfile)
+  const { data: userPostsData, loading: userPostsLoading, fetchMore: fetchMoreUserPosts } = useGetUserPosts(targetUserId || null, 1, 10, isOwnProfile || !targetUserId)
   const { updateProfile, loading: updating } = useUpdateProfile()
   const { uploadProfilePhoto, loading: uploadingProfile } = useUploadProfilePhoto()
   const { uploadCoverPhoto, loading: uploadingCover } = useUploadCoverPhoto()
-  
+
   // Follow/unfollow hooks
   const { follow, loading: followLoading } = useFollowUser()
   const { unfollow, loading: unfollowLoading } = useUnfollowUser()
@@ -113,10 +113,10 @@ export function ProfilePage() {
   const [previewPost, setPreviewPost] = useState<Post | null>(null)
   const [isPreviewOpen, setIsPreviewOpen] = useState(false)
   const [isEditPostOpen, setIsEditPostOpen] = useState(false)
-  
+
   // Delete confirmation modal state
   const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; post: Post | null }>({ isOpen: false, post: null })
-  
+
   const [deletePost] = useMutation(DELETE_POST_MUTATION)
 
   // Modal state for success/error messages
@@ -330,7 +330,7 @@ export function ProfilePage() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl pb-8">
+    <div className="mx-auto max-w-4xl pb-8 mt-[64px]">
       <CoverPhotoSection
         profile={profileData}
         coverImgError={coverImgError}
@@ -426,7 +426,7 @@ export function ProfilePage() {
         onConfirm={async () => {
           if (deleteModal.post) {
             try {
-              const result = await deletePost({ 
+              const result = await deletePost({
                 variables: { id: deleteModal.post.id },
                 update: (cache) => {
                   // Remove the post from the cache without refetching
