@@ -184,7 +184,7 @@ export function OwnerPage() {
                 setSelectedShop(null);
                 setActiveTab('shops');
               }}
-              className="text-emerald-600 hover:text-emerald-700 font-medium"
+              className="text-primary hover:text-primary-700 font-medium"
             >
               ← Back to My Shops
             </button>
@@ -212,7 +212,7 @@ export function OwnerPage() {
         {/* Loading State - Show auth loading or shops loading */}
         {(authLoading || shopsLoading) && (
           <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
             <span className="ml-3 text-zinc-600 dark:text-zinc-400">
               {authLoading ? 'Authenticating...' : 'Loading shops...'}
             </span>
@@ -228,7 +228,7 @@ export function OwnerPage() {
                 <p className="text-zinc-600 dark:text-zinc-400">You don&apos;t have any shops yet.</p>
                 <button
                   onClick={() => setActiveTab('add-shop')}
-                  className="mt-4 px-6 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors"
+                  className="mt-4 px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary-700 transition-colors"
                 >
                   Create Your First Shop
                 </button>

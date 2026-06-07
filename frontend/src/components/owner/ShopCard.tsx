@@ -4,14 +4,20 @@ export function ShopCard({ shop, onManageShop, onDeleteShop }: ShopCardProps) {
   return (
     <div className="bg-zinc-50 dark:bg-zinc-800 rounded-lg p-6 shadow-lg flex flex-col">
       <div className="aspect-video mb-4 rounded-lg overflow-hidden">
-        <img
-          src={shop.coverPhoto}
-          alt={shop.name}
-          className="w-full h-full object-cover"
-          onError={(e) => {
-            e.currentTarget.src = 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=400';
-          }}
-        />
+        {shop.coverPhoto ? (
+          <img
+            src={shop.coverPhoto}
+            alt={shop.name}
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              e.currentTarget.src = 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=400';
+            }}
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-zinc-500 dark:text-zinc-400 bg-primary/20">
+            <span className="ml-2">No image available</span>
+          </div>
+        )}
       </div>
       <h3 className="text-xl font-semibold mb-2">{shop.name}</h3>
       {shop.description && (
@@ -38,20 +44,20 @@ export function ShopCard({ shop, onManageShop, onDeleteShop }: ShopCardProps) {
       </div>
 
       <div className="mt-auto pt-4 flex justify-end gap-3">
+        <button
+          onClick={() => onManageShop(shop.id)}
+          className="px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors"
+        >
+          Manage Shop
+        </button>
+        {onDeleteShop && (
           <button
-            onClick={() => onManageShop(shop.id)}
-            className="px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors"
+            onClick={() => onDeleteShop(shop.id)}
+            className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
           >
-            Manage Shop
+            Delete
           </button>
-          {onDeleteShop && (
-            <button
-              onClick={() => onDeleteShop(shop.id)}
-              className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors"
-            >
-              Delete
-            </button>
-          )}
+        )}
       </div>
     </div>
   );

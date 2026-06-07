@@ -22,11 +22,10 @@ export function Tabs({ activeTab, onTabChange, isShopView = false }: TabsProps) 
           <button
             key={tab.id}
             onClick={() => onTabChange(tab.id)}
-            className={`py-2 px-1 border-b-2 font-medium text-sm ${
-              activeTab === tab.id
-                ? 'border-emerald-500 text-emerald-600'
-                : 'border-transparent text-zinc-500 hover:text-zinc-700 hover:border-zinc-300'
-            }`}
+            className={`py-2 px-1 border-b-2 font-medium text-sm ${activeTab === tab.id
+              ? 'border-primary text-primary'
+              : 'border-transparent text-zinc-500 hover:text-zinc-700 hover:border-zinc-300'
+              }`}
           >
             {tab.label}
           </button>

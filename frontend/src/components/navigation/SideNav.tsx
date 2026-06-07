@@ -38,35 +38,35 @@ export function SideNav({ isOpen, onClose, selectedLocation }: SideNavProps) {
   const dispatch = useDispatch();
   const isMobile = useIsMobile(768);
   const { userInfo, isAuthenticated } = useAuth();
-  
+
   // Tab state - always start on 'about'
   const [activeTab, setActiveTab] = useState<TabType>('about');
-  
+
   // LAZY LOADING: Track if reviews tab has EVER been opened for current store
   const [hasOpenedReviews, setHasOpenedReviews] = useState(false);
-  
+
   // Track last store to reset state when store changes
   const lastStoreIdRef = useRef<string | undefined>(undefined);
-  
+
   // Reset to 'about' tab and clear hasOpenedReviews when switching stores
   if (lastStoreIdRef.current !== selectedLocation?.storeId) {
     lastStoreIdRef.current = selectedLocation?.storeId;
     if (activeTab !== 'about') setActiveTab('about');
     setHasOpenedReviews(false);
   }
-  
+
   // Modal states
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [editingReview, setEditingReview] = useState<Review | null>(null);
   const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; review: Review | null }>({ isOpen: false, review: null });
   const [feedbackModal, setFeedbackModal] = useState<{ isOpen: boolean; title: string; message: string; type: 'success' | 'error' }>({ isOpen: false, title: '', message: '', type: 'success' });
-  
+
   // Computed from deleteModal for convenience
   const reviewToDelete = deleteModal.review;
-  
+
   // Desktop ref
   const sideNavRef = useRef<HTMLDivElement>(null);
-  
+
   // Refs for callbacks
   const reviewsActionsRef = useRef<{ refetchReviews: () => void; refetchStats: () => void; addReviewToCache: (r: Review) => void; removeReviewFromCache: (id: string) => void } | null>(null);
 
@@ -139,9 +139,9 @@ export function SideNav({ isOpen, onClose, selectedLocation }: SideNavProps) {
       };
     };
   }>(USER_INQUIRY_FOR_SHOP_QUERY, {
-    variables: { 
+    variables: {
       userID: userInfo?.id || '',
-      shopID: selectedLocation?.storeId || '' 
+      shopID: selectedLocation?.storeId || ''
     },
     skip: !selectedLocation?.storeId || !userInfo?.id,
     fetchPolicy: 'cache-and-network'
@@ -151,7 +151,7 @@ export function SideNav({ isOpen, onClose, selectedLocation }: SideNavProps) {
 
   const handleSubmitInquiry = async () => {
     if (!selectedLocation?.storeId || !inquiryItem.trim() || !inquiryMessage.trim()) return;
-    
+
     setIsSubmittingInquiry(true);
     try {
       const result = await createInquiry({
@@ -163,7 +163,7 @@ export function SideNav({ isOpen, onClose, selectedLocation }: SideNavProps) {
           }
         }
       });
-      
+
       if (result.data?.createInquiry?.success) {
         showSuccess('Inquiry Sent', 'Your inquiry has been sent to the shop owner.');
         setInquiryItem('');
@@ -188,7 +188,7 @@ export function SideNav({ isOpen, onClose, selectedLocation }: SideNavProps) {
     }
   }, [isOpen, selectedLocation, dispatch]);
 
-  
+
   // Modal helpers
   const showSuccess = (title: string, message: string) => setFeedbackModal({ isOpen: true, title, message, type: 'success' });
   const showError = (title: string, message: string) => setFeedbackModal({ isOpen: true, title, message, type: 'error' });
@@ -229,7 +229,7 @@ export function SideNav({ isOpen, onClose, selectedLocation }: SideNavProps) {
       {/* Desktop SideNav */}
       {!isMobile && (
         <div ref={sideNavRef} className="fixed top-0 left-0 h-full w-80 max-w-sm bg-white dark:bg-zinc-900 shadow-2xl z-50" style={{ transform: isOpen ? 'translateX(0)' : 'translateX(-100%)', transition: 'transform 0.3s ease-in-out' }}>
-          <SideNavContent 
+          <SideNavContent
             selectedLocation={selectedLocation}
             activeTab={activeTab}
             onTabClick={handleTabClick}
@@ -267,7 +267,7 @@ export function SideNav({ isOpen, onClose, selectedLocation }: SideNavProps) {
           showCloseButton={true}
           title={selectedLocation?.type === 'store' ? 'Store Details' : 'Location Details'}
         >
-          <SideNavContent 
+          <SideNavContent
             selectedLocation={selectedLocation}
             activeTab={activeTab}
             onTabClick={handleTabClick}
@@ -376,18 +376,18 @@ interface SideNavContentProps {
   setIsSearchProductModalOpen: (value: boolean) => void;
 }
 
-function SideNavContent({ 
-  selectedLocation, 
-  activeTab, 
-  onTabClick, 
-  onClose, 
-  isStore, 
-  hasStoreId, 
-  showReviews, 
-  onAddReview, 
-  onEditReview, 
-  onDeleteReview, 
-  onReviewsChange, 
+function SideNavContent({
+  selectedLocation,
+  activeTab,
+  onTabClick,
+  onClose,
+  isStore,
+  hasStoreId,
+  showReviews,
+  onAddReview,
+  onEditReview,
+  onDeleteReview,
+  onReviewsChange,
   isMobile = false,
   isAuthenticated,
   inquiryItem,
@@ -404,7 +404,7 @@ function SideNavContent({
   return (
     <>
       {!isMobile && (
-        <div className="flex items-center justify-between px-4 border-b border-zinc-200 dark:border-zinc-700" style={{ height: '77px' }}>
+        <div className="flex items-center justify-between px-4 border-b border-zinc-200 dark:border-zinc-700" style={{ height: '64px' }}>
           <h2 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">
             {selectedLocation?.type === 'store' ? 'Store Details' : 'Location Details'}
           </h2>
@@ -450,7 +450,7 @@ function SideNavContent({
                     {selectedLocation.email && <div className="flex items-center gap-3"><div className="w-8 h-8 bg-purple-100 dark:bg-purple-900 rounded-full flex items-center justify-center text-sm">📧</div><div><p className="font-medium text-zinc-900 dark:text-zinc-100">Email</p><p className="text-zinc-600 dark:text-zinc-400">{selectedLocation.email}</p></div></div>}
                     {selectedLocation.hours && <div className="flex items-center gap-3"><div className="w-8 h-8 bg-green-100 dark:bg-green-900 rounded-full flex items-center justify-center text-sm">🕐</div><div><p className="font-medium text-zinc-900 dark:text-zinc-100">Hours</p><p className="text-zinc-600 dark:text-zinc-400">{selectedLocation.hours}</p></div></div>}
                   </div>
-                  
+
                   {/* Search Product Section - Only show for stores */}
                   {isStore && selectedLocation.storeId && (
                     <div className="pt-4 border-t border-zinc-200 dark:border-zinc-700">
@@ -465,7 +465,7 @@ function SideNavContent({
                       </button>
                     </div>
                   )}
-                  
+
                   {/* Inquiry Section - Only show for stores and authenticated users */}
                   {isStore && selectedLocation.storeId && isAuthenticated && (
                     <div className="pt-4 border-t border-zinc-200 dark:border-zinc-700">
@@ -473,7 +473,7 @@ function SideNavContent({
                         <span className="w-6 h-6 bg-orange-100 dark:bg-orange-900 rounded-full flex items-center justify-center text-sm">💬</span>
                         {existingInquiry ? 'Your Conversation' : 'Send Inquiry'}
                       </h4>
-                      
+
                       {existingInquiry ? (
                         <button
                           onClick={() => setIsConversationModalOpen(true)}
@@ -514,7 +514,7 @@ function SideNavContent({
                       )}
                     </div>
                   )}
-                  
+
                   {!isStore && <div className="pt-4 border-t border-zinc-200 dark:border-zinc-700"><p className="text-zinc-500 dark:text-zinc-400 text-sm">Reviews are only available for stores.</p></div>}
                 </>
               )}

@@ -12,10 +12,10 @@ export function ProductStoreMarkers({ stores, onStoreClick }: ProductStoreMarker
   const markersRef = useRef<any[]>([]);
   const storesRef = useRef<string>('');
   const onClickRef = useRef(onStoreClick);
-  
+
   // Keep callback ref updated
   onClickRef.current = onStoreClick;
-  
+
   useEffect(() => {
     if (!stores || stores.length === 0) {
       // Clear existing markers if no stores
@@ -25,32 +25,32 @@ export function ProductStoreMarkers({ stores, onStoreClick }: ProductStoreMarker
       markersRef.current = [];
       return;
     }
-    
+
     // Create a key to detect actual stores changes
     const storesKey = stores.map(s => `${s.id}-${s.lat}-${s.lng}`).sort().join('|');
-    
+
     // If same stores, don't re-render
     if (storesKey === storesRef.current) {
       return;
     }
-    
+
     storesRef.current = storesKey;
-    
+
     const init = async () => {
       const L = await import('leaflet');
-      
+
       // Remove existing markers
       markersRef.current.forEach(marker => {
         if (marker) map.removeLayer(marker);
       });
       markersRef.current = [];
-      
+
       // Create markers for each store
       const newMarkers = stores.map(store => {
         // Create shop icon using emoji - same style as shop marker
         const icon = L.divIcon({
           html: `
-            <div style="position: relative; width: 28px; height: 28px; background: white; border-radius: 50%; border: 2px solid #3B82F6; display: flex; align-items: center; justify-content: center; font-size: 16px; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.3); transition: transform 0.2s; will-change: transform;">
+            <div style="position: relative; width: 28px; height: 28px; background: white; border-radius: 50%; border: 2px solid #efb666; display: flex; align-items: center; justify-content: center; font-size: 16px; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.3); transition: transform 0.2s; will-change: transform;">
               🏪
             </div>
           `,
@@ -59,19 +59,19 @@ export function ProductStoreMarkers({ stores, onStoreClick }: ProductStoreMarker
           iconAnchor: [14, 14],
           popupAnchor: [0, -14]
         });
-        
-        const marker = L.marker([store.lat, store.lng], { 
+
+        const marker = L.marker([store.lat, store.lng], {
           icon,
           zIndexOffset: 1000,
           riseOnHover: false,
           bubblingMouseEvents: false
         });
-        
+
         // Add click handler using ref
         marker.on('click', () => {
           onClickRef.current?.(store);
         });
-        
+
         // Add hover effects
         marker.on('mouseover', () => {
           const element = marker.getElement();
@@ -82,7 +82,7 @@ export function ProductStoreMarkers({ stores, onStoreClick }: ProductStoreMarker
             }
           }
         });
-        
+
         marker.on('mouseout', () => {
           const element = marker.getElement();
           if (element) {
@@ -92,7 +92,7 @@ export function ProductStoreMarkers({ stores, onStoreClick }: ProductStoreMarker
             }
           }
         });
-        
+
         // Add popup with store info
         const storeName = store.name || (store as any).title || 'Store';
         const popupContent = `
@@ -102,14 +102,14 @@ export function ProductStoreMarkers({ stores, onStoreClick }: ProductStoreMarker
           </div>
         `;
         marker.bindPopup(popupContent);
-        
+
         marker.addTo(map);
         return marker;
       });
-      
+
       markersRef.current = newMarkers;
     };
-    
+
     init();
   }, [stores, map]);
 

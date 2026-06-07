@@ -244,7 +244,7 @@ export function SearchBar({ onSearch, onStoreSelect, onProductSelect, onPostSele
                   </div>
                 </div>
                 <div className="text-xs px-2 py-1 bg-zinc-100 dark:bg-zinc-800 rounded-full text-zinc-600 dark:text-zinc-400">
-                  {suggestion.source === 'geocoding' ? '📍 Location' : suggestion.type}
+                  {suggestion.source === 'geocoding' ? '' : suggestion.type}
                 </div>
               </div>
             </div>
