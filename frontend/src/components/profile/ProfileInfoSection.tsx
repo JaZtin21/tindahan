@@ -106,11 +106,10 @@ export function ProfileInfoSection({
           <button
             onClick={isFollowing ? onUnfollow : onFollow}
             disabled={followLoading}
-            className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
-              isFollowing
-                ? 'bg-zinc-200 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-100 hover:bg-zinc-300 dark:hover:bg-zinc-700'
-                : 'bg-emerald-600 text-white hover:bg-emerald-700'
-            } disabled:opacity-50`}
+            className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${isFollowing
+              ? 'bg-zinc-200 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-100 hover:bg-zinc-300 dark:hover:bg-zinc-700'
+              : 'bg-primary text-white hover:bg-primary-700'
+              } disabled:opacity-50`}
           >
             {followLoading ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -198,7 +197,7 @@ export function ProfileInfoSection({
           <div className="max-h-96 overflow-y-auto">
             {usersLoading ? (
               <div className="flex justify-center py-8">
-                <Loader2 className="h-6 w-6 animate-spin text-emerald-500" />
+                <Loader2 className="h-6 w-6 animate-spin text-primary" />
               </div>
             ) : users.length === 0 ? (
               <p className="text-center text-zinc-500 py-4">

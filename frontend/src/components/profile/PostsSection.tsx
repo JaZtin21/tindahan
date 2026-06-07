@@ -44,7 +44,7 @@ export function PostsSection({ posts, postsLoading, profilePhoto, isMyPosts, onE
 
       {postsLoading && posts.length === 0 ? (
         <div className="flex justify-center py-8">
-          <Loader2 className="h-6 w-6 animate-spin text-emerald-500" />
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
         </div>
       ) : posts.length === 0 ? (
         <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-900/40 p-8 text-center">
@@ -68,7 +68,7 @@ export function PostsSection({ posts, postsLoading, profilePhoto, isMyPosts, onE
             <div ref={observerTarget} className="py-4">
               {loadingMore && (
                 <div className="flex justify-center">
-                  <Loader2 className="h-6 w-6 animate-spin text-emerald-500" />
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
                 </div>
               )}
             </div>

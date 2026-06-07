@@ -20,9 +20,9 @@ import { useFollowUser, useUnfollowUser } from '../../hooks';
 function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: PostPreviewModalProps & { onEdit?: (post: Post) => void; onDelete?: (post: Post) => void }) {
   const navigate = useNavigate();
   const currentUser = useSelector((state: RootState) => state.user);
-  
+
   console.log('[PostPreviewModal] Render - isOpen:', isOpen, 'post:', post, 'post.author.profilePhoto:', post?.author?.profilePhoto)
-  
+
   // Keyboard handling for mobile
   const { isOpen: isKeyboardOpen, height: keyboardHeight } = useKeyboard();
 
@@ -60,7 +60,7 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
   // Dropdown menu state
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-  
+
   // Comment input ref for keyboard handling
   const commentInputRef = useRef<HTMLInputElement>(null);
 
@@ -171,28 +171,28 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
       console.error('Error toggling follow:', error);
     }
   };
-  
+
   const handleProfileClick = () => {
     if (post?.author?.id && !isCurrentUser) {
       navigate(`/profile/${post.author.id}`);
       onClose();
     }
   };
-  
+
   // Handle like/unlike - optimistic update with proper state management
   const handleLikeToggle = async () => {
     if (!post?.id || likePendingRef.current) return;
-    
+
     const newIsLiked = !isLiked;
     const newLikesCount = newIsLiked ? likesCount + 1 : Math.max(0, likesCount - 1);
-    
+
     // Mark mutation as pending to prevent POST_QUERY from overriding
     likePendingRef.current = true;
-    
+
     // Optimistic update
     setIsLiked(newIsLiked);
     setLikesCount(newLikesCount);
-    
+
     try {
       if (newIsLiked) {
         await likePost({ variables: { id: post.id } });
@@ -211,15 +211,15 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
       }, 500);
     }
   };
-  
+
   // Handle add comment - optimistic update
   const handleAddComment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!post?.id || !commentText.trim()) return;
-    
+
     const trimmedText = commentText.trim();
     const tempId = `temp-${Date.now()}`;
-    
+
     // Create optimistic comment
     const optimisticComment: Comment = {
       id: tempId,
@@ -232,18 +232,18 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
       },
       createdAt: new Date().toISOString(),
     };
-    
+
     // Optimistic update - add to top immediately
     setComments(prev => [optimisticComment, ...prev]);
     setLocalCommentCount(prev => prev + 1);
     setCommentText('');
     setIsSubmittingComment(true);
-    
+
     try {
       const { data } = await addComment({
         variables: { postId: post.id, text: trimmedText }
       });
-      
+
       if (data?.addComment?.success) {
         // Replace temp comment with real one from API
         const realComment = data.addComment.data;
@@ -262,16 +262,16 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
       setIsSubmittingComment(false);
     }
   };
-  
+
   // Handle delete comment
   const handleDeleteComment = async (commentId: string) => {
     if (!post?.id) return;
-    
+
     try {
       const { data } = await deleteComment({
         variables: { commentId, postId: post.id }
       });
-      
+
       if (data?.deleteComment?.success) {
         setComments(prev => prev.filter(c => c.id !== commentId));
         // Update comment count
@@ -281,16 +281,16 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
       console.error('Error deleting comment:', error);
     }
   };
-  
+
   // Separate lazy query for loading more (doesn't trigger the useEffect)
   const [loadMoreComments] = useLazyQuery(COMMENTS_QUERY, {
     fetchPolicy: 'network-only',
   });
-  
+
   // Handle load more comments
   const handleLoadMoreComments = async () => {
     if (!post?.id || !hasMoreComments) return;
-    
+
     const nextPage = commentPage + 1;
     try {
       const { data } = await loadMoreComments({
@@ -300,7 +300,7 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
           limit: 5
         }
       });
-      
+
       if (data?.comments?.data) {
         // Deduplicate - filter out comments we already have
         const existingIds = new Set(comments.map(c => c.id));
@@ -314,17 +314,17 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
       console.error('Error loading more comments:', error);
     }
   };
-  
+
   // Pre-compute values used by both mobile and desktop
   const authorInitial = post?.author?.name.charAt(0).toUpperCase() || '?';
-  const formattedDate = post?.createdAt 
-    ? new Date(post.createdAt).toLocaleDateString('en-US', { 
-        month: 'short', 
-        day: 'numeric', 
-        year: 'numeric' 
-      })
+  const formattedDate = post?.createdAt
+    ? new Date(post.createdAt).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    })
     : '';
-  
+
   // Use profilePhoto from post if available, otherwise use userInfo's profilePhoto if author is current user
   const hasProfilePhoto = !!post?.author?.profilePhoto;
   const profilePhotoUrl = post?.author?.profilePhoto;
@@ -340,12 +340,11 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
         post ? (
           <div className="flex items-center gap-3">
             {hasProfilePhoto ? (
-              <img 
+              <img
                 src={profilePhotoUrl}
                 alt={post.author?.name || 'User'}
-                className={`w-10 h-10 rounded-full object-cover border-2 border-emerald-400 ${
-                  isCurrentUser ? '' : 'cursor-pointer hover:opacity-80'
-                }`}
+                className={`w-10 h-10 rounded-full object-cover border-2 border-primary ${isCurrentUser ? '' : 'cursor-pointer hover:opacity-80'
+                  }`}
                 crossOrigin="anonymous"
                 referrerPolicy="no-referrer"
                 onClick={isCurrentUser ? undefined : handleProfileClick}
@@ -354,22 +353,20 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
                 }}
               />
             ) : (
-              <div 
-                className={`w-10 h-10 rounded-full bg-gradient-to-br from-emerald-400 to-blue-500 flex items-center justify-center text-white font-semibold text-lg ${
-                  isCurrentUser ? '' : 'cursor-pointer hover:opacity-80'
-                }`}
+              <div
+                className={`w-10 h-10 rounded-full bg-gradient-to-br from-emerald-400 to-blue-500 flex items-center justify-center text-white font-semibold text-lg ${isCurrentUser ? '' : 'cursor-pointer hover:opacity-80'
+                  }`}
                 onClick={isCurrentUser ? undefined : handleProfileClick}
               >
                 {authorInitial}
               </div>
             )}
             <div className="flex-1 min-w-0">
-              <h3 
-                className={`font-semibold text-zinc-900 dark:text-zinc-100 transition-colors ${
-                  isCurrentUser 
-                    ? '' 
+              <h3
+                className={`font-semibold text-zinc-900 dark:text-zinc-100 transition-colors ${isCurrentUser
+                    ? ''
                     : 'hover:text-emerald-600 cursor-pointer'
-                }`}
+                  }`}
                 onClick={isCurrentUser ? undefined : handleProfileClick}
               >
                 {post.author?.name || 'Unknown User'}
@@ -379,12 +376,11 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
               )}
             </div>
             {!isCurrentUser && post.author?.id && (
-              <button 
-                className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${
-                  isFollowing
+              <button
+                className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${isFollowing
                     ? 'bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-600'
                     : 'bg-primary hover:bg-primary-700 text-white'
-                }`}
+                  }`}
                 onClick={handleFollowToggle}
                 disabled={followLoading || unfollowLoading}
               >
@@ -447,167 +443,166 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
       ) : (
         <>
 
-        {/* Post Content */}
-        <div className="p-2">
-          {/* Title */}
-          {post.title && (
-            <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-100 mb-3">
-              {post.title}
-            </h2>
-          )}
-          
-          {/* Text Content */}
-          {post.text && (
-            <p className="text-zinc-700 dark:text-zinc-300 leading-relaxed mb-4 whitespace-pre-wrap">
-              {post.text}
-            </p>
-          )}
+          {/* Post Content */}
+          <div className="p-2">
+            {/* Title */}
+            {post.title && (
+              <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-100 mb-3">
+                {post.title}
+              </h2>
+            )}
 
-          {/* Photos Gallery - Facebook Style with Lightbox */}
-          {post.photos && post.photos.length > 0 && (
-            <div className="mb-4">
-              <PhotoGallery photos={post.photos} size="large" />
-            </div>
-          )}
+            {/* Text Content */}
+            {post.text && (
+              <p className="text-zinc-700 dark:text-zinc-300 leading-relaxed mb-4 whitespace-pre-wrap">
+                {post.text}
+              </p>
+            )}
 
-          {/* Stats */}
-          <div className="flex items-center gap-6 pt-4 pb-2 border-t border-zinc-100 dark:border-zinc-800">
-            <button
-              onClick={handleLikeToggle}
-              className={`flex items-center gap-2 transition-colors ${isLiked ? 'text-pink-600 dark:text-pink-400' : 'text-zinc-600 dark:text-zinc-400 hover:text-pink-500'}`}
-            >
-              <svg className="w-5 h-5" fill={isLiked ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-              </svg>
-              <span className="font-medium">{likesCount} likes</span>
-            </button>
-            <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-              </svg>
-              <span className="font-medium">{localCommentCount} comments</span>
+            {/* Photos Gallery - Facebook Style with Lightbox */}
+            {post.photos && post.photos.length > 0 && (
+              <div className="mb-4">
+                <PhotoGallery photos={post.photos} size="large" />
+              </div>
+            )}
+
+            {/* Stats */}
+            <div className="flex items-center gap-6 pt-4 pb-2 border-t border-zinc-100 dark:border-zinc-800">
+              <button
+                onClick={handleLikeToggle}
+                className={`flex items-center gap-2 transition-colors ${isLiked ? 'text-pink-600 dark:text-pink-400' : 'text-zinc-600 dark:text-zinc-400 hover:text-pink-500'}`}
+              >
+                <svg className="w-5 h-5" fill={isLiked ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                </svg>
+                <span className="font-medium">{likesCount} likes</span>
+              </button>
+              <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+                <span className="font-medium">{localCommentCount} comments</span>
+              </div>
             </div>
           </div>
-        </div>
 
-      {/* Comments Section - Fixed height with sticky input */}
-      <div 
-        className="border-t mx-2 py-2 border-zinc-100 dark:border-zinc-800 flex flex-col transition-all duration-300 relative"
-      >
-        
-          {/* Scrollable Comments List */}
-          <div 
-            className="flex-1 overflow-y-auto p-0 py-2 space-y-3 transition-all duration-300"
+          {/* Comments Section - Fixed height with sticky input */}
+          <div
+            className="border-t mx-2 py-2 border-zinc-100 dark:border-zinc-800 flex flex-col transition-all duration-300 relative"
           >
-            {comments.length === 0 ? (
-              <p className="text-sm text-zinc-500 text-center py-4">No comments yet. Be the first to comment!</p>
-            ) : (
-              comments.map((comment) => (
-                <div key={comment.id} className="flex items-start gap-3">
-                  {/* Comment Author Avatar - Clickable */}
-                  <button
-                    onClick={() => {
-                      if (comment.author?.id && comment.author.id !== currentUser?.id) {
-                        navigate(`/profile/${comment.author.id}`);
-                        onClose();
-                      }
-                    }}
-                    className={`flex-shrink-0 ${comment.author?.id === currentUser?.id ? '' : 'cursor-pointer hover:opacity-80'}`}
-                    disabled={comment.author?.id === currentUser?.id}
-                  >
-                    {comment.author?.profilePhoto ? (
-                      <img
-                        src={comment.author.profilePhoto}
-                        alt={comment.author.name}
-                        className="w-8 h-8 rounded-full object-cover"
-                        crossOrigin="anonymous"
-                        referrerPolicy="no-referrer"
-                      />
-                    ) : (
-                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-400 to-blue-500 flex items-center justify-center text-white text-sm font-semibold">
-                        {comment.author?.name?.charAt(0).toUpperCase() || '?'}
-                      </div>
-                    )}
-                  </button>
 
-                  {/* Comment Content */}
-                  <div className="flex-1 min-w-0">
-                    <div className="bg-zinc-100 dark:bg-zinc-800 rounded-2xl px-3 py-2">
-                      {/* Clickable Author Name */}
-                      <button
-                        onClick={() => {
-                          if (comment.author?.id && comment.author.id !== currentUser?.id) {
-                            navigate(`/profile/${comment.author.id}`);
-                            onClose();
-                          }
-                        }}
-                        className={`text-sm font-semibold text-zinc-900 dark:text-zinc-100 block ${
-                          comment.author?.id === currentUser?.id ? '' : 'hover:text-emerald-600 cursor-pointer'
-                        }`}
-                      >
-                        {comment.author?.name || 'Unknown'}
-                      </button>
-                      <p className="text-sm text-zinc-700 dark:text-zinc-300 break-words">
-                        {comment.text}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-3 mt-1 ml-2">
-                      <span className="text-xs text-zinc-500">
-                        {comment.createdAt
-                          ? new Date(comment.createdAt).toLocaleDateString('en-US', {
+            {/* Scrollable Comments List */}
+            <div
+              className="flex-1 overflow-y-auto p-0 py-2 space-y-3 transition-all duration-300"
+            >
+              {comments.length === 0 ? (
+                <p className="text-sm text-zinc-500 text-center py-4">No comments yet. Be the first to comment!</p>
+              ) : (
+                comments.map((comment) => (
+                  <div key={comment.id} className="flex items-start gap-3">
+                    {/* Comment Author Avatar - Clickable */}
+                    <button
+                      onClick={() => {
+                        if (comment.author?.id && comment.author.id !== currentUser?.id) {
+                          navigate(`/profile/${comment.author.id}`);
+                          onClose();
+                        }
+                      }}
+                      className={`flex-shrink-0 ${comment.author?.id === currentUser?.id ? '' : 'cursor-pointer hover:opacity-80'}`}
+                      disabled={comment.author?.id === currentUser?.id}
+                    >
+                      {comment.author?.profilePhoto ? (
+                        <img
+                          src={comment.author.profilePhoto}
+                          alt={comment.author.name}
+                          className="w-8 h-8 rounded-full object-cover"
+                          crossOrigin="anonymous"
+                          referrerPolicy="no-referrer"
+                        />
+                      ) : (
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-400 to-blue-500 flex items-center justify-center text-white text-sm font-semibold">
+                          {comment.author?.name?.charAt(0).toUpperCase() || '?'}
+                        </div>
+                      )}
+                    </button>
+
+                    {/* Comment Content */}
+                    <div className="flex-1 min-w-0">
+                      <div className="bg-zinc-100 dark:bg-zinc-800 rounded-2xl px-3 py-2">
+                        {/* Clickable Author Name */}
+                        <button
+                          onClick={() => {
+                            if (comment.author?.id && comment.author.id !== currentUser?.id) {
+                              navigate(`/profile/${comment.author.id}`);
+                              onClose();
+                            }
+                          }}
+                          className={`text-sm font-semibold text-zinc-900 dark:text-zinc-100 block ${comment.author?.id === currentUser?.id ? '' : 'hover:text-emerald-600 cursor-pointer'
+                            }`}
+                        >
+                          {comment.author?.name || 'Unknown'}
+                        </button>
+                        <p className="text-sm text-zinc-700 dark:text-zinc-300 break-words">
+                          {comment.text}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-3 mt-1 ml-2">
+                        <span className="text-xs text-zinc-500">
+                          {comment.createdAt
+                            ? new Date(comment.createdAt).toLocaleDateString('en-US', {
                               month: 'short',
                               day: 'numeric',
                               hour: '2-digit',
                               minute: '2-digit',
                             })
-                          : ''}
-                      </span>
-                      {(comment.author?.id === currentUser?.id || post?.author?.id === currentUser?.id) && (
-                        <button
-                          onClick={() => handleDeleteComment(comment.id)}
-                          className="text-xs text-zinc-500 hover:text-red-500 transition-colors"
-                        >
-                          Delete
-                        </button>
-                      )}
+                            : ''}
+                        </span>
+                        {(comment.author?.id === currentUser?.id || post?.author?.id === currentUser?.id) && (
+                          <button
+                            onClick={() => handleDeleteComment(comment.id)}
+                            className="text-xs text-zinc-500 hover:text-red-500 transition-colors"
+                          >
+                            Delete
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))
-            )}
+                ))
+              )}
 
-            {/* Load More Comments */}
-            {hasMoreComments && (
-              <button
-                onClick={handleLoadMoreComments}
-                className="w-full py-2 text-sm text-emerald-600 dark:text-emerald-400 font-medium hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg transition-colors"
-              >
-                Load more comments
-              </button>
-            )}
-          </div>
+              {/* Load More Comments */}
+              {hasMoreComments && (
+                <button
+                  onClick={handleLoadMoreComments}
+                  className="w-full py-2 text-sm text-emerald-600 dark:text-emerald-400 font-medium hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg transition-colors"
+                >
+                  Load more comments
+                </button>
+              )}
+            </div>
 
-          <div className="p-4 border-t border-zinc-100 dark:border-zinc-800 bg-white dark:bg-zinc-900 fixed md:sticky bottom-0 md:-bottom-6 left-0 right-0 ">
-            <form onSubmit={handleAddComment} className="flex gap-2">
-              <input
-                ref={commentInputRef}
-                type="text"
-                value={commentText}
-                onChange={(e) => setCommentText(e.target.value)}
-                placeholder="Write a comment..."
-                className="flex-1 px-4 py-2 bg-zinc-100 dark:bg-zinc-800 border-0 rounded-lg text-zinc-900 dark:text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-primary"
-                disabled={isSubmittingComment}
-              />
-              <button
-                type="submit"
-                disabled={!commentText.trim() || isSubmittingComment}
-                className="px-4 py-2 bg-primary hover:bg-primary-700 disabled:bg-zinc-400 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors"
-              >
-                {isSubmittingComment ? '...' : 'Post'}
-              </button>
-            </form>
+            <div className="p-4 border-t border-zinc-100 dark:border-zinc-800 bg-white dark:bg-zinc-900 fixed md:sticky bottom-0 md:-bottom-6 left-0 right-0 ">
+              <form onSubmit={handleAddComment} className="flex gap-2">
+                <input
+                  ref={commentInputRef}
+                  type="text"
+                  value={commentText}
+                  onChange={(e) => setCommentText(e.target.value)}
+                  placeholder="Write a comment..."
+                  className="flex-1 px-4 py-2 bg-zinc-100 dark:bg-zinc-800 border-0 rounded-lg text-zinc-900 dark:text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-primary"
+                  disabled={isSubmittingComment}
+                />
+                <button
+                  type="submit"
+                  disabled={!commentText.trim() || isSubmittingComment}
+                  className="px-4 py-2 bg-primary hover:bg-primary-700 disabled:bg-zinc-400 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors"
+                >
+                  {isSubmittingComment ? '...' : 'Post'}
+                </button>
+              </form>
+            </div>
           </div>
-        </div>
         </>
       )}
     </Modal>

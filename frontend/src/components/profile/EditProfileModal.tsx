@@ -32,7 +32,7 @@ export function EditProfileModal({
                 type="text"
                 value={editForm.firstName}
                 onChange={(e) => onChange({ ...editForm, firstName: e.target.value })}
-                className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white placeholder-zinc-500 focus:border-emerald-500 focus:outline-none"
+                className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white placeholder-zinc-500 focus:border-primary focus:outline-none"
                 placeholder="First name"
               />
             </div>
@@ -42,7 +42,7 @@ export function EditProfileModal({
                 type="text"
                 value={editForm.lastName}
                 onChange={(e) => onChange({ ...editForm, lastName: e.target.value })}
-                className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white placeholder-zinc-500 focus:border-emerald-500 focus:outline-none"
+                className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white placeholder-zinc-500 focus:border-primary focus:outline-none"
                 placeholder="Last name"
               />
             </div>
@@ -54,7 +54,7 @@ export function EditProfileModal({
               type="date"
               value={editForm.birthday}
               onChange={(e) => onChange({ ...editForm, birthday: e.target.value })}
-              className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white placeholder-zinc-500 focus:border-emerald-500 focus:outline-none"
+              className="w-full rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-white placeholder-zinc-500 focus:border-primary focus:outline-none"
             />
           </div>
         </div>
@@ -69,7 +69,7 @@ export function EditProfileModal({
           <button
             onClick={onSave}
             disabled={updating}
-            className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-emerald-500 px-4 py-2 text-sm font-medium text-emerald-950 transition-colors hover:bg-emerald-400 disabled:opacity-50"
+            className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-700 disabled:opacity-50"
           >
             {updating ? (
               <Loader2 className="h-4 w-4 animate-spin" />
