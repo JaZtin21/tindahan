@@ -36,7 +36,7 @@ export function ShopForm({ shop, onSaveShop, onCancel, isLoading }: ShopFormProp
   const [newCoverFile, setNewCoverFile] = useState<File | null>(null);
   const [newCoverPreview, setNewCoverPreview] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   // Combined preview for display
   const coverPhotoPreview = newCoverPreview || existingCoverPhoto;
 
@@ -54,12 +54,12 @@ export function ShopForm({ shop, onSaveShop, onCancel, isLoading }: ShopFormProp
     if (!files || files.length === 0) return;
 
     const file = files[0];
-    
+
     // Revoke previous preview URL if it was a blob URL
     if (newCoverPreview && newCoverPreview.startsWith('blob:')) {
       URL.revokeObjectURL(newCoverPreview);
     }
-    
+
     setNewCoverFile(file);
     const preview = URL.createObjectURL(file);
     setNewCoverPreview(preview);
@@ -145,7 +145,7 @@ export function ShopForm({ shop, onSaveShop, onCancel, isLoading }: ShopFormProp
         <h2 className="text-2xl font-semibold mb-6">
           {shop ? 'Edit Shop' : 'Add New Shop'}
         </h2>
-        
+
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
             <div>
@@ -153,8 +153,8 @@ export function ShopForm({ shop, onSaveShop, onCancel, isLoading }: ShopFormProp
               <input
                 type="text"
                 value={formData.name}
-                onChange={(e) => setFormData({...formData, name: e.target.value})}
-                className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                className="w-full px-3 py-2 border focus:outline-none border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-900 focus:ring-2 focus:ring-primary"
                 placeholder="Enter shop name"
                 required
               />
@@ -165,8 +165,8 @@ export function ShopForm({ shop, onSaveShop, onCancel, isLoading }: ShopFormProp
             <label className="block text-sm font-medium mb-2">Description</label>
             <textarea
               value={formData.description}
-              onChange={(e) => setFormData({...formData, description: e.target.value})}
-              className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              className="w-full px-3 py-2 focus:outline-none border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-900 focus:ring-2 focus:ring-primary"
               placeholder="Describe your shop, what you sell, special offers, etc."
               rows={4}
             />
@@ -178,19 +178,19 @@ export function ShopForm({ shop, onSaveShop, onCancel, isLoading }: ShopFormProp
               <input
                 type="tel"
                 value={formData.phone}
-                onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                className="w-full px-3 py-2 focus:outline-none border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-900 focus:ring-2 focus:ring-primary"
                 placeholder="+63 XXX XXX XXXX"
               />
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium mb-2">Email</label>
               <input
                 type="email"
                 value={formData.email}
-                onChange={(e) => setFormData({...formData, email: e.target.value})}
-                className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                className="w-full px-3 py-2  focus:outline-none border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-900 focus:ring-2 focus:ring-primary"
                 placeholder="shop@email.com"
               />
             </div>
@@ -228,8 +228,8 @@ export function ShopForm({ shop, onSaveShop, onCancel, isLoading }: ShopFormProp
                 <input
                   type="time"
                   value={formData.openTime}
-                  onChange={(e) => setFormData({...formData, openTime: e.target.value})}
-                  className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                  onChange={(e) => setFormData({ ...formData, openTime: e.target.value })}
+                  className="w-full focus:outline-none px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-900 focus:ring-2 focus:ring-primary"
                 />
               </div>
               <div>
@@ -237,8 +237,8 @@ export function ShopForm({ shop, onSaveShop, onCancel, isLoading }: ShopFormProp
                 <input
                   type="time"
                   value={formData.closeTime}
-                  onChange={(e) => setFormData({...formData, closeTime: e.target.value})}
-                  className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                  onChange={(e) => setFormData({ ...formData, closeTime: e.target.value })}
+                  className="w-full px-3 focus:outline-none py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-900 focus:ring-2 focus:ring-primary"
                 />
               </div>
             </div>
@@ -254,13 +254,12 @@ export function ShopForm({ shop, onSaveShop, onCancel, isLoading }: ShopFormProp
                       const newDays = currentDays.includes(day)
                         ? currentDays.filter(d => d !== day)
                         : [...currentDays, day];
-                      setFormData({...formData, businessDays: newDays});
+                      setFormData({ ...formData, businessDays: newDays });
                     }}
-                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                      formData.businessDays.includes(day)
-                        ? 'bg-emerald-500 text-white'
-                        : 'bg-zinc-100 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-600'
-                    }`}
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${formData.businessDays.includes(day)
+                      ? 'bg-primary text-white'
+                      : 'bg-zinc-100 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-600'
+                      }`}
                   >
                     {day}
                   </button>
@@ -272,7 +271,7 @@ export function ShopForm({ shop, onSaveShop, onCancel, isLoading }: ShopFormProp
           {/* Cover Photo Upload */}
           <div className="border border-zinc-200 dark:border-zinc-700 rounded-lg p-4">
             <label className="block text-sm font-medium mb-4">Cover Photo</label>
-            
+
             {/* Photo preview */}
             {coverPhotoPreview ? (
               <div className="relative aspect-video rounded-lg overflow-hidden border border-zinc-200 dark:border-zinc-700 mb-4">
@@ -306,7 +305,7 @@ export function ShopForm({ shop, onSaveShop, onCancel, isLoading }: ShopFormProp
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                className="flex items-center gap-2 px-4 py-2 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-lg hover:bg-emerald-200 dark:hover:bg-emerald-900/50 transition-colors"
+                className="flex items-center gap-2 px-4 py-2 bg-primary dark:bg-primary text-white dark:text-white rounded-lg hover:bg-primary-700 dark:hover:bg-primary-700 transition-colors"
               >
                 <ImageIcon className="w-5 h-5" />
                 <span>{coverPhotoPreview ? 'Change Photo' : 'Upload Photo'}</span>
@@ -317,7 +316,7 @@ export function ShopForm({ shop, onSaveShop, onCancel, isLoading }: ShopFormProp
                 </span>
               )}
             </div>
-            
+
             <input
               ref={fileInputRef}
               type="file"
@@ -325,7 +324,7 @@ export function ShopForm({ shop, onSaveShop, onCancel, isLoading }: ShopFormProp
               onChange={handleCoverPhotoSelect}
               className="hidden"
             />
-            
+
             <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-2">
               Max 5MB. Recommended aspect ratio: 16:9
             </p>

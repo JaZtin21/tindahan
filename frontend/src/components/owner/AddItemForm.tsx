@@ -143,8 +143,8 @@ export function AddItemForm({ onAddItem, item, onCancel }: AddItemFormProps) {
           <input
             type="text"
             value={newItem.name}
-            onChange={(e) => setNewItem({...newItem, name: e.target.value})}
-            className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+            onChange={(e) => setNewItem({ ...newItem, name: e.target.value })}
+            className="w-full px-3 py-2 border  border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
             placeholder="Enter item name"
           />
         </div>
@@ -155,7 +155,7 @@ export function AddItemForm({ onAddItem, item, onCancel }: AddItemFormProps) {
             <input
               type="number"
               value={newItem.price}
-              onChange={(e) => setNewItem({...newItem, price: e.target.value})}
+              onChange={(e) => setNewItem({ ...newItem, price: e.target.value })}
               className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
               placeholder="0.00"
             />
@@ -166,7 +166,7 @@ export function AddItemForm({ onAddItem, item, onCancel }: AddItemFormProps) {
             <input
               type="number"
               value={newItem.stock}
-              onChange={(e) => setNewItem({...newItem, stock: e.target.value})}
+              onChange={(e) => setNewItem({ ...newItem, stock: e.target.value })}
               className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
               placeholder="0"
             />
@@ -177,7 +177,7 @@ export function AddItemForm({ onAddItem, item, onCancel }: AddItemFormProps) {
           <label className="block text-sm font-medium mb-2">Category (optional)</label>
           <select
             value={newItem.category}
-            onChange={(e) => setNewItem({...newItem, category: e.target.value})}
+            onChange={(e) => setNewItem({ ...newItem, category: e.target.value })}
             className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
           >
             <option value="">Select category</option>
@@ -191,7 +191,7 @@ export function AddItemForm({ onAddItem, item, onCancel }: AddItemFormProps) {
           <label className="block text-sm font-medium mb-2">Description <span className="text-red-500">*</span></label>
           <textarea
             value={newItem.description}
-            onChange={(e) => setNewItem({...newItem, description: e.target.value})}
+            onChange={(e) => setNewItem({ ...newItem, description: e.target.value })}
             className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-900 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
             rows={3}
             placeholder="Enter item description"
