@@ -86,13 +86,13 @@ function EditPostModalInner({ isOpen, onClose, post, onSuccess, onError }: EditP
 
   const handleSubmit = async () => {
     setError('');
-    
+
     // Prevent editing if post has no images
     if (!post || (existingPhotos.length === 0 && newFiles.length === 0)) {
       setError('Posts must have at least one image to be edited');
       return;
     }
-    
+
     try {
       const result = await updatePost({
         variables: {
@@ -106,7 +106,7 @@ function EditPostModalInner({ isOpen, onClose, post, onSuccess, onError }: EditP
           },
         },
       }) as any;
-      
+
       // Get updated post data from mutation result
       const updatedPost = result.data?.updatePost?.data;
       onSuccess?.(updatedPost);
@@ -132,8 +132,8 @@ function EditPostModalInner({ isOpen, onClose, post, onSuccess, onError }: EditP
   };
 
   const toggleType = (type: string) => {
-    setTypes(prev => 
-      prev.includes(type) 
+    setTypes(prev =>
+      prev.includes(type)
         ? prev.filter(t => t !== type)
         : [...prev, type]
     );
@@ -165,7 +165,7 @@ function EditPostModalInner({ isOpen, onClose, post, onSuccess, onError }: EditP
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Enter food name..."
-            className="w-full px-4 py-3 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            className="w-full px-4 py-3 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-primary"
             maxLength={200}
           />
         </div>
@@ -180,7 +180,7 @@ function EditPostModalInner({ isOpen, onClose, post, onSuccess, onError }: EditP
             onChange={(e) => setText(e.target.value)}
             placeholder="What's on your mind?"
             rows={4}
-            className="w-full px-4 py-3 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none"
+            className="w-full px-4 py-3 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-primary resize-none"
             maxLength={2000}
           />
           <p className="text-xs text-zinc-400 mt-1 text-right">{text.length}/2000</p>
@@ -197,11 +197,10 @@ function EditPostModalInner({ isOpen, onClose, post, onSuccess, onError }: EditP
                 key={type}
                 type="button"
                 onClick={() => toggleType(type)}
-                className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                  types.includes(type)
-                    ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300'
-                    : 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'
-                }`}
+                className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${types.includes(type)
+                  ? 'bg-primary text-white dark:text-emerald-300'
+                  : 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'
+                  }`}
               >
                 {type}
               </button>
@@ -214,7 +213,7 @@ function EditPostModalInner({ isOpen, onClose, post, onSuccess, onError }: EditP
           <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
             Photos
           </label>
-          
+
           {/* Photo Gallery */}
           {allPreviews.length > 0 && (
             <div className="mb-3">
@@ -240,7 +239,7 @@ function EditPostModalInner({ isOpen, onClose, post, onSuccess, onError }: EditP
           )}
 
           {/* Upload Button */}
-          <label className="flex items-center justify-center gap-2 w-full py-3 px-4 border-2 border-dashed border-zinc-300 dark:border-zinc-600 rounded-lg cursor-pointer hover:border-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors">
+          <label className="flex items-center justify-center gap-2 w-full py-3 px-4 border-2 border-dashed border-zinc-300 dark:border-zinc-600 rounded-lg cursor-pointer hover:border-primary hover:bg-primary/10 dark:hover:border-primary-700 dark:hover:bg-primary-700/20 transition-colors">
             <input
               ref={fileInputRef}
               type="file"
@@ -283,7 +282,7 @@ function EditPostModalInner({ isOpen, onClose, post, onSuccess, onError }: EditP
             type="button"
             onClick={handleSubmit}
             disabled={loading}
-            className="flex-1 py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 disabled:bg-zinc-400 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors"
+            className="flex-1 py-2.5 px-4 bg-primary hover:bg-primary-700 disabled:bg-zinc-400 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors"
           >
             {loading ? 'Updating...' : 'Update Post'}
           </button>
