@@ -15,7 +15,7 @@ import { CreatePostModal } from '../../components/posts/CreatePostModal';
 import { EditPostModal } from '../../components/posts/EditPostModal';
 import { Modal } from '../../components/Modal';
 import { createPostHandlers } from '../../utils/maps/handlers';
-import { openSideNav, openPostPreview, closePostPreview } from '../../store';
+import { openSideNav, openPostPreview, closePostPreview, setPosts, updatePost, deletePost as deletePostAction } from '../../store';
 import { MdMyLocation } from 'react-icons/md';
 import { SearchBar } from '../../components/map/SearchBar';
 import { hideMobileSearch } from '../../store/slices/mobileSearchSlice';
@@ -48,7 +48,7 @@ export function OptimizedMapsPage() {
       }
     }
   }, [isMobile, isMobileSearchVisible, dispatch])
-  
+
   // Handle getting current location
   const handleGetCurrentLocation = () => {
     if (!navigator.geolocation) {
@@ -57,30 +57,30 @@ export function OptimizedMapsPage() {
     }
 
     console.log('fewq')
-    
+
     setIsGettingLocation(true);
-    
+
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const { latitude, longitude } = position.coords;
         setUserLocation({ lat: latitude, lng: longitude });
         setShowLocationMarker(true); // Show the marker
-        
+
         // Center map on user's location with animation
         if (mapRef.current) {
           mapRef.current.flyTo([latitude, longitude], 18, {
             duration: 1.5 // 1.5 seconds animation
           });
         }
-        
+
         setIsGettingLocation(false);
       },
       (error) => {
         console.error('Error getting location:', error);
         setIsGettingLocation(false);
-        
+
         let errorMessage = 'Unable to get your current location.';
-        switch(error.code) {
+        switch (error.code) {
           case error.PERMISSION_DENIED:
             errorMessage = 'Location access denied. Please enable location permissions.';
             break;
@@ -91,7 +91,7 @@ export function OptimizedMapsPage() {
             errorMessage = 'Location request timed out.';
             break;
         }
-        
+
         showError('Location Error', errorMessage);
       },
       {
@@ -101,71 +101,71 @@ export function OptimizedMapsPage() {
       }
     );
   };
-  
-  
+
+
   // Create Post Modal state
   const [isCreatePostModalOpen, setIsCreatePostModalOpen] = useState(false);
-  
+
   // Edit Post Modal state
   const [postToEdit, setPostToEdit] = useState<Post | null>(null);
   const [isEditPostModalOpen, setIsEditPostModalOpen] = useState(false);
-  
+
   // Delete confirmation modal state
   const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; post: Post | null }>({ isOpen: false, post: null });
-  
+
   // Post preview modal state
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
   const closePostTimeoutRef = useRef<number | null>(null);
-  
+
   // Success/Error feedback modal state
-  const [feedbackModal, setFeedbackModal] = useState<{ 
-    isOpen: boolean; 
-    title: string; 
-    message: string; 
-    type: 'success' | 'error' 
+  const [feedbackModal, setFeedbackModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    type: 'success' | 'error'
   }>({ isOpen: false, title: '', message: '', type: 'success' });
-  
+
   // Track deleted post IDs to filter from map
   const [deletedPostIds, setDeletedPostIds] = useState<Set<string>>(new Set());
-  
+
   // Track recently edited post IDs to skip animation on update
   const [editedPostIds, setEditedPostIds] = useState<Set<string>>(new Set());
-  
+
   // User location state
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [showLocationMarker, setShowLocationMarker] = useState(false);
-  
+
   // Store/Product search states
   const [filteredStores, setFilteredStores] = useState<any[]>([]);
   const [productSearchStores, setProductSearchStores] = useState<any[]>([]);
   const [productNameForSearch, setProductNameForSearch] = useState<string | null>(null);
   const [selectedStore, setSelectedStore] = useState<any | null>(null);
-  
+
   // Post search states
   const [postSearchResults, setPostSearchResults] = useState<any[]>([]);
   const [showPostMarkers, setShowPostMarkers] = useState(false);
-  
+
   // Search marker visibility states
   const [showStoreMarker, setShowStoreMarker] = useState(false);
   const [showLocationPinMarker, setShowLocationPinMarker] = useState(false);
   const [showProductStoreMarkers, setShowProductStoreMarkers] = useState(false);
-  
+
   // Search result marker data
   const [storeMarkerData, setStoreMarkerData] = useState<any | null>(null);
   const [locationPinData, setLocationPinData] = useState<any | null>(null);
-  
+
   // User Location Marker Management
   const locationMarkerRef = useRef<any>(null);
-  
+
   const showSuccess = (title: string, message: string) => {
     setFeedbackModal({ isOpen: true, title, message, type: 'success' });
   };
-  
+
   const showError = (title: string, message: string) => {
     setFeedbackModal({ isOpen: true, title, message, type: 'error' });
   };
-  
+
   // Handle user location marker
   useEffect(() => {
     if (!mapRef.current || !userLocation || !showLocationMarker) {
@@ -176,19 +176,19 @@ export function OptimizedMapsPage() {
       }
       return;
     }
-    
+
     const init = async () => {
       const L = await import('leaflet');
       const map = mapRef.current;
-      
+
       if (!map) return;
-      
+
       // Remove existing marker if any (prevent duplicates)
       if (locationMarkerRef.current) {
         map.removeLayer(locationMarkerRef.current);
         locationMarkerRef.current = null;
       }
-      
+
       // Create custom pin icon for user location
       const icon = L.divIcon({
         html: `
@@ -207,9 +207,9 @@ export function OptimizedMapsPage() {
         iconAnchor: [20, 20], // Center the 40x40 box
         popupAnchor: [0, -20]
       });
-      
+
       const marker = L.marker([userLocation.lat, userLocation.lng], { icon });
-      
+
       // Set marker options to prevent it from moving during zoom
       marker.options.zIndexOffset = 1000;
       marker.options.riseOnHover = false;
@@ -218,9 +218,9 @@ export function OptimizedMapsPage() {
       marker.addTo(map);
       locationMarkerRef.current = marker;
     };
-    
+
     init();
-    
+
     return () => {
       if (locationMarkerRef.current && mapRef.current) {
         mapRef.current.removeLayer(locationMarkerRef.current);
@@ -228,26 +228,26 @@ export function OptimizedMapsPage() {
       }
     };
   }, [userLocation, showLocationMarker]); // Remove map from dependencies
-  
+
   // GraphQL mutations
   const [createPost, { loading: isCreatingPost }] = useCreatePost();
   const [deletePost] = useMutation(DELETE_POST_MUTATION);
-  
+
   // Query to get shops by product name
   const { refetch: refetchShopsByProduct } = useQuery(SHOPS_BY_PRODUCT_QUERY, {
     variables: { productName: productNameForSearch },
     skip: !productNameForSearch
   });
-  
+
   // Query to search posts by title
   const { refetch: refetchPostsByTitle } = useQuery(SEARCH_POSTS_BY_TITLE_QUERY, {
     variables: { query: '', page: 1, limit: 50 },
     skip: true
   });
-  
+
   // Create post handler using factory function
   const { handleCreatePost } = createPostHandlers({ createPost, showSuccess, showError });
-  
+
   // Handle store selection from search (from API - shop marker)
   const handleStoreSelect = (store: { lat: number; lng: number; name: string; id?: string; description?: string; location?: string; coverPhoto?: string; businessType?: string; phone?: string; hours?: string }) => {
     console.log('[Search] Selected store:', store);
@@ -256,17 +256,17 @@ export function OptimizedMapsPage() {
     // Only hide product store markers, keep location pin
     setShowProductStoreMarkers(false);
     setProductSearchStores([]);
-    
+
     // Center map on store
     if (mapRef.current) {
       mapRef.current.flyTo([store.lat, store.lng], 18, { duration: 1.5 });
     }
-    
+
     // Set store marker data and show it
     setStoreMarkerData(store);
     setShowStoreMarker(true);
     setSelectedStore(store);
-    
+
     // Open sidebar with store info
     dispatch(openSideNav({
       name: store.name,
@@ -280,11 +280,11 @@ export function OptimizedMapsPage() {
       storeId: store.id
     }));
   };
-  
+
   // Handle store click from marker (for both single store and product stores)
   const handleStoreMarkerClick = (store: any) => {
     console.log('[Marker] Store clicked:', store);
-    
+
     // Open sidebar with store info
     dispatch(openSideNav({
       name: store.name || store.title,
@@ -298,7 +298,7 @@ export function OptimizedMapsPage() {
       storeId: store.id
     }));
   };
-  
+
   // Handle location selection from search (from geocoding - pin marker)
   const handleLocationSelect = (location: { lat: number; lng: number; name: string; details?: string }) => {
     console.log('[Search] Selected location:', location);
@@ -306,29 +306,29 @@ export function OptimizedMapsPage() {
     clearPostMarkers();
     // Location pin is independent - don't hide shop or product markers
     // Just add the location pin marker
-    
+
     // Center map on location
     if (mapRef.current) {
       mapRef.current.flyTo([location.lat, location.lng], 18, { duration: 1.5 });
     }
-    
+
     // Set location pin data and show it
     setLocationPinData(location);
     setShowLocationPinMarker(true);
   };
-  
+
   // Handle product selection from search
   const handleProductSelect = async (productName: string) => {
     console.log('[Search] Selected product:', productName);
     setProductNameForSearch(productName);
-    
+
     // Clear post markers when selecting a product
     clearPostMarkers();
-    
+
     // Fetch stores that have this product
     const result = await refetchShopsByProduct({ productName }) as { data?: { shopsByProduct?: { data: any[] } } };
     const shops = result.data?.shopsByProduct?.data || [];
-    
+
     // Convert shops to marker format
     const storeMarkers = shops.map((shop: any) => ({
       id: shop.id,
@@ -342,25 +342,25 @@ export function OptimizedMapsPage() {
       businessType: shop.businessType,
       location: shop.contactDetails?.address || shop.location,
     })).filter((s: any) => s.lat && s.lng);
-    
+
     setProductSearchStores(storeMarkers);
     setFilteredStores(storeMarkers);
-    
+
     // Only hide single store marker, keep location pin
     setShowStoreMarker(false);
     setStoreMarkerData(null);
     setShowProductStoreMarkers(true);
-    
+
     // Zoom out to fit all stores using fitBounds
     if (mapRef.current && storeMarkers.length > 0) {
       const bounds = storeMarkers.map(s => [s.lat, s.lng]);
       mapRef.current.fitBounds(bounds, { padding: [50, 50], maxZoom: 15, duration: 1.5 });
     }
-    
+
     // Show success message with store count
     showSuccess('Product Search', `Found ${storeMarkers.length} stores with "${productName}"`);
   };
-  
+
   // Clear product search stores
   const clearProductStores = () => {
     setProductSearchStores([]);
@@ -368,50 +368,51 @@ export function OptimizedMapsPage() {
     setProductNameForSearch(null);
     setShowProductStoreMarkers(false);
   };
-  
+
   // Handle post selection from search
   const handlePostSelect = async (postTitle: string) => {
     console.log('[Search] Selected post title:', postTitle);
-    
+
     // Fetch posts by title
     const result = await refetchPostsByTitle({ query: postTitle, page: 1, limit: 50 }) as { data?: { searchPostsByTitle?: { data: any[] } } };
     const posts = result.data?.searchPostsByTitle?.data || [];
-    
+
     // Convert posts to marker format
     const postMarkers = posts.map((post: any) => ({
       id: post.id,
       title: post.title,
       authorName: post.authorName,
       authorProfilePhoto: post.authorProfilePhoto,
+      photos: post.photos,
       lat: post.location?.lat || 0,
       lng: post.location?.lng || 0,
     })).filter((p: any) => p.lat && p.lng);
-    
+
     setPostSearchResults(postMarkers);
     setShowPostMarkers(true);
-    
+
     // Clear other markers
     setShowStoreMarker(false);
     setStoreMarkerData(null);
     setShowProductStoreMarkers(false);
     setProductSearchStores([]);
-    
+
     // Zoom out to fit all posts using fitBounds
     if (mapRef.current && postMarkers.length > 0) {
       const bounds = postMarkers.map(p => [p.lat, p.lng]);
       mapRef.current.fitBounds(bounds, { padding: [50, 50], maxZoom: 15, duration: 1.5 });
     }
-    
+
     // Show success message with post count
     showSuccess('Post Search', `Found ${postMarkers.length} posts matching "${postTitle}"`);
   };
-  
+
   // Clear post search markers
   const clearPostMarkers = () => {
     setPostSearchResults([]);
     setShowPostMarkers(false);
   };
-  
+
   // Clear all search markers
   const clearAllSearchMarkers = () => {
 
@@ -425,11 +426,11 @@ export function OptimizedMapsPage() {
     setFilteredStores([]);
     setPostSearchResults([]);
   };
-  
+
   // Handle actual delete post execution
   const executeDeletePost = async () => {
     if (!deleteModal.post) return;
-    
+
     try {
       const result = await deletePost({ variables: { id: deleteModal.post.id } }) as { data?: { deletePost?: { success: boolean; message?: string } } };
       if (result.data?.deletePost?.success) {
@@ -453,7 +454,7 @@ export function OptimizedMapsPage() {
     styleEl.textContent = getMapMarkerStyles();
     styleEl.id = 'optimized-map-marker-styles';
     document.head.appendChild(styleEl);
-    
+
     return () => {
       const existing = document.getElementById('optimized-map-marker-styles');
       if (existing && document.head.contains(existing)) {
@@ -470,48 +471,69 @@ export function OptimizedMapsPage() {
 
   // Store live posts in state
   const [livePosts, setLivePosts] = useState<Post[]>([]);
-  
+
   // Handle WebSocket updates - merge new data instead of replacing
   useEffect(() => {
     const newPosts = livePostsData?.livePosts;
     if (!newPosts || !Array.isArray(newPosts)) return;
-    
+
     console.log('[WebSocket] Received posts:', newPosts.length, newPosts.map(p => p.id));
-    
+
     setLivePosts(prevPosts => {
       console.log('[WebSocket] Previous posts:', prevPosts.length, prevPosts.map(p => p.id));
-      
+
       const prevMap = new Map(prevPosts.map(p => [p.id, p]));
       const newMap = new Map(newPosts.map(p => [p.id, p]));
-      
+
       const merged: Post[] = [];
       const handledIds = new Set<string>();
       const newlyEditedIds = new Set<string>();
-      
-      // Process all new/updated posts
+      const newPostIds: string[] = [];
+      const updatedPostIds: string[] = [];
+      const deletedPostIds: string[] = [];
+      const postsToSyncWithRedux: Post[] = [];
+
       for (const [id, newPost] of newMap) {
         const oldPost = prevMap.get(id);
         if (!oldPost) {
           console.log('[WebSocket] New post added:', id);
           merged.push(newPost);
+          newPostIds.push(id);
+
+          // Collect it for bulk insertion
+          postsToSyncWithRedux.push(newPost);
         } else if (JSON.stringify(oldPost) !== JSON.stringify(newPost)) {
           console.log('[WebSocket] Post updated:', id);
           merged.push(newPost);
-          newlyEditedIds.add(id); // Track as edited
+          updatedPostIds.push(id);
+          newlyEditedIds.add(id);
+
+          // Collect it for bulk update
+          postsToSyncWithRedux.push(newPost);
         } else {
-          merged.push(oldPost); // No change, keep old reference
+          merged.push(oldPost);
         }
         handledIds.add(id);
       }
-      
+
+      // 2. DISPATCH ONCE AT THE END OF THE LOOP
+      // Your slice's 'setPosts' reducer will cleanly iterate through these, 
+      // safely building out state.posts.byId and populating your empty store!
+      if (postsToSyncWithRedux.length > 0) {
+        dispatch(setPosts(postsToSyncWithRedux));
+      }
+
       // Remove posts that are no longer in the live posts list (deleted)
       for (const [id, oldPost] of prevMap) {
         if (!handledIds.has(id)) {
           console.log('[WebSocket] Post deleted/removed:', id);
+          deletedPostIds.push(id);
+          // Dispatch Redux action for deleted post
+          dispatch(deletePostAction(id));
           // Don't add to merged - effectively removing it
         }
       }
-      
+
       // Update edited post IDs state (for animation control)
       if (newlyEditedIds.size > 0) {
         setEditedPostIds(prev => new Set([...prev, ...newlyEditedIds]));
@@ -524,11 +546,12 @@ export function OptimizedMapsPage() {
           });
         }, 350);
       }
-      
+
       console.log('[OptimizedMapsPage] Live posts total:', merged.length, merged.map(p => p.id));
+      console.log('[WebSocket Redux] New posts:', newPostIds, 'Updated:', updatedPostIds, 'Deleted:', deletedPostIds);
       return merged;
     });
-  }, [livePostsData]);
+  }, [livePostsData, dispatch]);
 
   // Handle post click
   const handlePostClick = useCallback((post: Post) => {
@@ -540,6 +563,7 @@ export function OptimizedMapsPage() {
       clearTimeout(closePostTimeoutRef.current);
       closePostTimeoutRef.current = null;
     }
+
     setSelectedPost(post);
     dispatch(openPostPreview(post.id));
   }, [dispatch]);
@@ -555,7 +579,6 @@ export function OptimizedMapsPage() {
   const handleEditPost = useCallback((post: Post) => {
     setPostToEdit(post);
     setIsEditPostModalOpen(true);
-    dispatch(closePostPreview());
   }, [dispatch]);
 
   // Handle delete post - opens confirmation modal
@@ -633,18 +656,17 @@ export function OptimizedMapsPage() {
           showUserLocationMarker={showLocationMarker}
         />
       </MapContainer>
-      
+
       {/* Button Container - Fixed to bottom right, aligned to end */}
       <div className="fixed bottom-4 right-4 z-40 flex flex-col items-end gap-2">
         {/* Location Target Button */}
         <button
           onClick={handleGetCurrentLocation}
           disabled={isGettingLocation}
-          className={`w-12 h-12 rounded-full shadow-xl transition-all flex items-center justify-center ${
-            isGettingLocation 
-              ? 'bg-primary text-white animate-pulse' 
-              : 'bg-white hover:bg-gray-100 text-gray-700'
-          }`}
+          className={`w-12 h-12 rounded-full shadow-xl transition-all flex items-center justify-center ${isGettingLocation
+            ? 'bg-primary text-white animate-pulse'
+            : 'bg-white hover:bg-gray-100 text-gray-700'
+            }`}
           title={isGettingLocation ? 'Getting location...' : 'Get my current location'}
         >
           {isGettingLocation ? (
@@ -653,7 +675,7 @@ export function OptimizedMapsPage() {
             <MdMyLocation className="w-6 h-6" />
           )}
         </button>
-        
+
         {/* Add Post Button - Only show if authenticated */}
         {isAuthenticated && (
           <button
@@ -676,7 +698,7 @@ export function OptimizedMapsPage() {
         onEdit={handleEditPost}
         onDelete={handleDeletePost}
       />
-      
+
       {/* Create Post Modal - always render, Modal handles visibility */}
       <CreatePostModal
         isOpen={isCreatePostModalOpen}
@@ -685,7 +707,7 @@ export function OptimizedMapsPage() {
         isSubmitting={isCreatingPost}
         currentLocation={null}
       />
-      
+
       {/* Edit Post Modal - always render, Modal handles visibility */}
       <EditPostModal
         isOpen={isEditPostModalOpen}
@@ -701,7 +723,7 @@ export function OptimizedMapsPage() {
         onError={(message: string) => showError('Update Failed', message)}
         post={postToEdit}
       />
-      
+
       {/* Delete Post Confirmation Modal - always render, Modal handles visibility */}
       <Modal
         isOpen={deleteModal.isOpen}
@@ -712,7 +734,7 @@ export function OptimizedMapsPage() {
         showCancel
         onConfirm={executeDeletePost}
       />
-      
+
       {/* Success/Error Feedback Modal */}
       {feedbackModal.isOpen && (
         <Modal

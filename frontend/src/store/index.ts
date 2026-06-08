@@ -1,5 +1,5 @@
 import { configureStore } from '@reduxjs/toolkit'
-import { userSlice, themeSlice, locationSlice } from './slices'
+import { userSlice, themeSlice, locationSlice, postsSlice } from './slices'
 import sideNavSlice, { openSideNav, closeSideNav, clearSideNavContent } from './sideNavSlice'
 import postPreviewSlice from './postPreviewSlice'
 import mobileSearchSlice from './slices/mobileSearchSlice'
@@ -9,6 +9,7 @@ export const store = configureStore({
     user: userSlice.reducer,
     theme: themeSlice.reducer,
     location: locationSlice.reducer,
+    posts: postsSlice,
     sideNav: sideNavSlice,
     postPreview: postPreviewSlice,
     mobileSearch: mobileSearchSlice,
@@ -24,3 +25,16 @@ export const { toggleTheme, setTheme } = themeSlice.actions;
 export const { setLocation, clearLocation } = locationSlice.actions;
 export { openSideNav, closeSideNav, clearSideNavContent };
 export { openPostPreview, closePostPreview } from './postPreviewSlice';
+export {
+  addPost,
+  setPosts,
+  updatePost,
+  deletePost,
+  deletePosts,
+  clearPosts,
+  mergePostData,
+  selectPostById,
+  selectAllPosts,
+  selectPostsByIds,
+  selectAllPostsNormalized,
+} from './slices/postsSlice';

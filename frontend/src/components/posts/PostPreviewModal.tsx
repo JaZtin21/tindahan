@@ -1,9 +1,10 @@
 import { useEffect, useState, useRef, memo, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { useMutation, useQuery, useLazyQuery } from '@apollo/client/react';
 import type { PostPreviewModalProps, Comment, Post } from '../../types/post';
 import type { RootState } from '../../store';
+import { mergePostData } from '../../store';
 import { PhotoGallery } from '../common/PhotoGallery';
 import {
   LIKE_POST_MUTATION,
@@ -14,24 +15,43 @@ import {
   POST_QUERY,
 } from '../../api/graphql/post/post-queries';
 import { Modal, DropdownMenu, DropdownItem } from '../common/Modal';
-import { useKeyboard } from '../../hooks/useKeyboard';
 import { useFollowUser, useUnfollowUser } from '../../hooks';
+
 
 function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: PostPreviewModalProps & { onEdit?: (post: Post) => void; onDelete?: (post: Post) => void }) {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const currentUser = useSelector((state: RootState) => state.user);
 
-  console.log('[PostPreviewModal] Render - isOpen:', isOpen, 'post:', post, 'post.author.profilePhoto:', post?.author?.profilePhoto)
+  const reduxCachedPost = useSelector((state: RootState) =>
+    post?.id ? (state.posts.byId[post.id] as Post | undefined) : null
+  );
 
+  // Use cached post first, fall back to prop
+  const [effectivePost, setEffectivePost] = useState(post);
+
+  const isStateFresh = effectivePost?.id === post?.id;
+  const basePost = isStateFresh ? effectivePost : (isOpen ? post : null);
+
+  // 2. MERGE DYNAMIC REDUX EDITS ON THE FLY (No useEffects, No Infinite Loops):
+  // This blends the local interactive states with the text fields from Redux.
+  // If you edit text or titles in the other modal, it updates here with zero frame delay.
+  const displayedPost = basePost
+    ? {
+      ...basePost,
+      title: reduxCachedPost?.id === basePost.id ? (reduxCachedPost.title || basePost.title) : basePost.title,
+      text: reduxCachedPost?.id === basePost.id ? (reduxCachedPost.text || basePost.text) : basePost.text,
+      photos: reduxCachedPost?.id === basePost.id ? (reduxCachedPost.photos || basePost.photos) : basePost.photos,
+    }
+    : null;
   // Keyboard handling for mobile
-  const { isOpen: isKeyboardOpen, height: keyboardHeight } = useKeyboard();
 
   // Track the current post ID to prevent race conditions
-  const currentPostIdRef = useRef<string | null>(post?.id || null);
+  const currentPostIdRef = useRef<string | null>(effectivePost?.id || null);
 
   // Like state
-  const [isLiked, setIsLiked] = useState(post?.isLiked || false);
-  const [likesCount, setLikesCount] = useState(post?.likes || 0);
+  const [isLiked, setIsLiked] = useState(effectivePost?.isLiked || false);
+  const [likesCount, setLikesCount] = useState(effectivePost?.likes || 0);
 
   // Follow state
   const [isFollowing, setIsFollowing] = useState(post?.author?.followers?.includes(currentUser?.id || '') || false);
@@ -42,7 +62,7 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
   const [hasMoreComments, setHasMoreComments] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
-  const [localCommentCount, setLocalCommentCount] = useState(post?.commentCount || 0);
+  const [localCommentCount, setLocalCommentCount] = useState(effectivePost?.commentCount || 0);
 
   // Track if like mutation is pending to prevent POST_QUERY from overriding
   const likePendingRef = useRef(false);
@@ -64,12 +84,6 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
   // Comment input ref for keyboard handling
   const commentInputRef = useRef<HTMLInputElement>(null);
 
-  // Scroll to input when keyboard opens
-  useEffect(() => {
-    if (isKeyboardOpen && commentInputRef.current) {
-      commentInputRef.current.scrollIntoView({ behavior: 'smooth', block: 'end' });
-    }
-  }, [isKeyboardOpen]);
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -83,33 +97,6 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showMenu]);
 
-  // Reset state when post changes or modal closes
-  useEffect(() => {
-    if (!isOpen || !post?.id) {
-      // Reset state when modal closes
-      setComments([]);
-      setCommentPage(1);
-      setHasMoreComments(false);
-      setCommentText('');
-      setIsSubmittingComment(false);
-      setLocalCommentCount(0);
-      currentPostIdRef.current = null;
-      return;
-    }
-
-    // If post ID changed, reset state for new post
-    if (currentPostIdRef.current !== post.id) {
-      currentPostIdRef.current = post.id;
-      setComments([]);
-      setCommentPage(1);
-      setHasMoreComments(false);
-      setCommentText('');
-      setIsSubmittingComment(false);
-      setLocalCommentCount(post?.commentCount || 0);
-      setIsLiked(post?.isLiked || false);
-      setLikesCount(post?.likes || 0);
-    }
-  }, [isOpen, post?.id]);
 
   // Fetch fresh post details when modal opens
   const { data: postData, loading: postLoading } = useQuery(POST_QUERY, {
@@ -118,17 +105,37 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
     fetchPolicy: 'no-cache',
   });
 
-  // Update likes from fresh post data (but not if mutation is pending)
+  // Update local state with fresh post data
   useEffect(() => {
-    if (postData?.post?.data && !likePendingRef.current && currentPostIdRef.current === post?.id) {
+    if (postData?.post?.data) {
+      console.log(postData.post.data, 'fresh post data from POST_QUERY')
+      setEffectivePost(postData.post.data);
+    }
+  }, [postData]);
+
+  // Update likes from fresh post data (but not if mutation is pending)
+  // Also update Redux cache with fresh data
+  useEffect(() => {
+    if (postData?.post?.data && !likePendingRef.current && post?.id === effectivePost?.id) {
       const freshPost = postData.post.data;
       console.log('[PostPreviewModal] Fresh post data received - freshPost.author.profilePhoto:', freshPost.author?.profilePhoto)
+
+      // Update local state
       setIsLiked(freshPost.isLiked || false);
       setLikesCount(freshPost.likes || 0);
       // Update follow status from fresh post data
       setIsFollowing(freshPost.author?.followers?.includes(currentUser?.id || '') || false);
+
+      // Update Redux cache with fresh post data
+      dispatch(mergePostData({
+        id: freshPost.id,
+        isLiked: freshPost.isLiked,
+        likes: freshPost.likes,
+        author: freshPost.author,
+        commentCount: freshPost.commentCount,
+      }));
     }
-  }, [postData, post?.id, currentUser?.id]);
+  }, [postData, effectivePost?.id, post?.id, currentUser?.id, dispatch]);
 
   // Fetch comments - use lazy query with proper dependencies
   const [fetchComments, { data: commentsData, loading: commentsLoading }] = useLazyQuery(COMMENTS_QUERY, {
@@ -142,6 +149,7 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
     }
   }, [isOpen, post?.id]);
 
+
   // Update comments when data changes - ONLY for current post
   useEffect(() => {
     if (commentsData?.comments?.data && currentPostIdRef.current === post?.id) {
@@ -152,19 +160,19 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
     }
   }, [commentsData, post?.id]);
 
-  const isCurrentUser = useMemo(() => post?.author?.id === currentUser?.id, [post?.author?.id, currentUser?.id]);
+  const isCurrentUser = useMemo(() => effectivePost?.author?.id === currentUser?.id, [effectivePost?.author?.id, currentUser?.id]);
 
   // Handle follow/unfollow
   const handleFollowToggle = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!post?.author?.id || !currentUser?.id) return;
+    if (!effectivePost?.author?.id || !currentUser?.id) return;
 
     try {
       if (isFollowing) {
-        await unfollow(post.author.id);
+        await unfollow(effectivePost.author.id);
         setIsFollowing(false);
       } else {
-        await follow(post.author.id);
+        await follow(effectivePost.author.id);
         setIsFollowing(true);
       }
     } catch (error) {
@@ -173,15 +181,15 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
   };
 
   const handleProfileClick = () => {
-    if (post?.author?.id && !isCurrentUser) {
-      navigate(`/profile/${post.author.id}`);
+    if (effectivePost?.author?.id && !isCurrentUser) {
+      navigate(`/profile/${effectivePost.author.id}`);
       onClose();
     }
   };
 
   // Handle like/unlike - optimistic update with proper state management
   const handleLikeToggle = async () => {
-    if (!post?.id || likePendingRef.current) return;
+    if (!effectivePost?.id || likePendingRef.current) return;
 
     const newIsLiked = !isLiked;
     const newLikesCount = newIsLiked ? likesCount + 1 : Math.max(0, likesCount - 1);
@@ -193,17 +201,30 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
     setIsLiked(newIsLiked);
     setLikesCount(newLikesCount);
 
+    // Update Redux cache optimistically
+    dispatch(mergePostData({
+      id: effectivePost.id,
+      isLiked: newIsLiked,
+      likes: newLikesCount,
+    }));
+
     try {
       if (newIsLiked) {
-        await likePost({ variables: { id: post.id } });
+        await likePost({ variables: { id: effectivePost.id } });
       } else {
-        await unlikePost({ variables: { id: post.id } });
+        await unlikePost({ variables: { id: effectivePost.id } });
       }
     } catch (error) {
       // Revert on error
       console.error('Error toggling like:', error);
       setIsLiked(!newIsLiked);
       setLikesCount(likesCount);
+      // Revert Redux update on error
+      dispatch(mergePostData({
+        id: effectivePost.id,
+        isLiked: !newIsLiked,
+        likes: likesCount,
+      }));
     } finally {
       // Clear pending flag after a delay to let any in-flight queries complete
       setTimeout(() => {
@@ -215,7 +236,7 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
   // Handle add comment - optimistic update
   const handleAddComment = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!post?.id || !commentText.trim()) return;
+    if (!effectivePost?.id || !commentText.trim()) return;
 
     const trimmedText = commentText.trim();
     const tempId = `temp-${Date.now()}`;
@@ -241,13 +262,19 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
 
     try {
       const { data } = await addComment({
-        variables: { postId: post.id, text: trimmedText }
+        variables: { postId: effectivePost.id, text: trimmedText }
       });
 
       if (data?.addComment?.success) {
         // Replace temp comment with real one from API
         const realComment = data.addComment.data;
         setComments(prev => prev.map(c => c.id === tempId ? realComment : c));
+
+        // Update Redux cache with new comment count
+        dispatch(mergePostData({
+          id: effectivePost.id,
+          commentCount: (effectivePost.commentCount || 0) + 1,
+        }));
       } else {
         // Remove on failure
         setComments(prev => prev.filter(c => c.id !== tempId));
@@ -329,6 +356,8 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
   const hasProfilePhoto = !!post?.author?.profilePhoto;
   const profilePhotoUrl = post?.author?.profilePhoto;
 
+  console.log(displayedPost, 'heyyy  displayed post');
+
   return (
     <Modal
       isOpen={isOpen}
@@ -364,8 +393,8 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
             <div className="flex-1 min-w-0">
               <h3
                 className={`font-semibold text-zinc-900 dark:text-zinc-100 transition-colors ${isCurrentUser
-                    ? ''
-                    : 'hover:text-emerald-600 cursor-pointer'
+                  ? ''
+                  : ' cursor-pointer'
                   }`}
                 onClick={isCurrentUser ? undefined : handleProfileClick}
               >
@@ -378,8 +407,8 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
             {!isCurrentUser && post.author?.id && (
               <button
                 className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${isFollowing
-                    ? 'bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-600'
-                    : 'bg-primary hover:bg-primary-700 text-white'
+                  ? 'bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-600'
+                  : 'bg-primary hover:bg-primary-700 text-white'
                   }`}
                 onClick={handleFollowToggle}
                 disabled={followLoading || unfollowLoading}
@@ -435,10 +464,10 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
               </div>
             )}
           </div>
-        ) : 'Loading...'
+        ) : 'Loading...1'
       }
     >
-      {!post || postLoading ? (
+      {!displayedPost ? (
         <div className="p-6 text-center text-zinc-500">Loading...</div>
       ) : (
         <>
@@ -446,23 +475,23 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
           {/* Post Content */}
           <div className="p-2">
             {/* Title */}
-            {post.title && (
+            {displayedPost.title && (
               <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-100 mb-3">
-                {post.title}
+                {displayedPost.title}
               </h2>
             )}
 
             {/* Text Content */}
-            {post.text && (
+            {displayedPost.text && (
               <p className="text-zinc-700 dark:text-zinc-300 leading-relaxed mb-4 whitespace-pre-wrap">
-                {post.text}
+                {displayedPost.text}
               </p>
             )}
 
             {/* Photos Gallery - Facebook Style with Lightbox */}
-            {post.photos && post.photos.length > 0 && (
+            {displayedPost.photos && displayedPost.photos.length > 0 && (
               <div className="mb-4">
-                <PhotoGallery photos={post.photos} size="large" />
+                <PhotoGallery photos={displayedPost.photos} size="large" />
               </div>
             )}
 
@@ -470,12 +499,12 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
             <div className="flex items-center gap-6 pt-4 pb-2 border-t border-zinc-100 dark:border-zinc-800">
               <button
                 onClick={handleLikeToggle}
-                className={`flex items-center gap-2 transition-colors ${isLiked ? 'text-pink-600 dark:text-pink-400' : 'text-zinc-600 dark:text-zinc-400 hover:text-pink-500'}`}
+                className={`flex items-center gap-2 transition-colors ${displayedPost.isLiked ? 'text-pink-600 dark:text-pink-400' : 'text-zinc-600 dark:text-zinc-400 hover:text-pink-500'}`}
               >
-                <svg className="w-5 h-5" fill={isLiked ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5" fill={displayedPost.isLiked ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                 </svg>
-                <span className="font-medium">{likesCount} likes</span>
+                <span className="font-medium">{displayedPost.likes} likes</span>
               </button>
               <div className="flex items-center gap-2 text-zinc-600 dark:text-zinc-400">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -492,44 +521,19 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
           >
 
             {/* Scrollable Comments List */}
-            <div
-              className="flex-1 overflow-y-auto p-0 py-2 space-y-3 transition-all duration-300"
-            >
-              {comments.length === 0 ? (
-                <p className="text-sm text-zinc-500 text-center py-4">No comments yet. Be the first to comment!</p>
-              ) : (
-                comments.map((comment) => (
-                  <div key={comment.id} className="flex items-start gap-3">
-                    {/* Comment Author Avatar - Clickable */}
-                    <button
-                      onClick={() => {
-                        if (comment.author?.id && comment.author.id !== currentUser?.id) {
-                          navigate(`/profile/${comment.author.id}`);
-                          onClose();
-                        }
-                      }}
-                      className={`flex-shrink-0 ${comment.author?.id === currentUser?.id ? '' : 'cursor-pointer hover:opacity-80'}`}
-                      disabled={comment.author?.id === currentUser?.id}
-                    >
-                      {comment.author?.profilePhoto ? (
-                        <img
-                          src={comment.author.profilePhoto}
-                          alt={comment.author.name}
-                          className="w-8 h-8 rounded-full object-cover"
-                          crossOrigin="anonymous"
-                          referrerPolicy="no-referrer"
-                        />
-                      ) : (
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-400 to-blue-500 flex items-center justify-center text-white text-sm font-semibold">
-                          {comment.author?.name?.charAt(0).toUpperCase() || '?'}
-                        </div>
-                      )}
-                    </button>
-
-                    {/* Comment Content */}
-                    <div className="flex-1 min-w-0">
-                      <div className="bg-zinc-100 dark:bg-zinc-800 rounded-2xl px-3 py-2">
-                        {/* Clickable Author Name */}
+            {commentsLoading ? (
+              <div className="p-4 text-center text-zinc-500">Loading comments...</div>
+            ) : (
+              <>
+                <div
+                  className="flex-1 overflow-y-auto p-0 py-2 space-y-3 transition-all duration-300"
+                >
+                  {comments.length === 0 ? (
+                    <p className="text-sm text-zinc-500 text-center py-4">No comments yet. Be the first to comment!</p>
+                  ) : (
+                    comments.map((comment) => (
+                      <div key={comment.id} className="flex items-start gap-3">
+                        {/* Comment Author Avatar - Clickable */}
                         <button
                           onClick={() => {
                             if (comment.author?.id && comment.author.id !== currentUser?.id) {
@@ -537,71 +541,102 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
                               onClose();
                             }
                           }}
-                          className={`text-sm font-semibold text-zinc-900 dark:text-zinc-100 block ${comment.author?.id === currentUser?.id ? '' : 'hover:text-emerald-600 cursor-pointer'
-                            }`}
+                          className={`flex-shrink-0 ${comment.author?.id === currentUser?.id ? '' : 'cursor-pointer hover:opacity-80'}`}
+                          disabled={comment.author?.id === currentUser?.id}
                         >
-                          {comment.author?.name || 'Unknown'}
+                          {comment.author?.profilePhoto ? (
+                            <img
+                              src={comment.author.profilePhoto}
+                              alt={comment.author.name}
+                              className="w-8 h-8 rounded-full object-cover"
+                              crossOrigin="anonymous"
+                              referrerPolicy="no-referrer"
+                            />
+                          ) : (
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-400 to-blue-500 flex items-center justify-center text-white text-sm font-semibold">
+                              {comment.author?.name?.charAt(0).toUpperCase() || '?'}
+                            </div>
+                          )}
                         </button>
-                        <p className="text-sm text-zinc-700 dark:text-zinc-300 break-words">
-                          {comment.text}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-3 mt-1 ml-2">
-                        <span className="text-xs text-zinc-500">
-                          {comment.createdAt
-                            ? new Date(comment.createdAt).toLocaleDateString('en-US', {
-                              month: 'short',
-                              day: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })
-                            : ''}
-                        </span>
-                        {(comment.author?.id === currentUser?.id || post?.author?.id === currentUser?.id) && (
-                          <button
-                            onClick={() => handleDeleteComment(comment.id)}
-                            className="text-xs text-zinc-500 hover:text-red-500 transition-colors"
-                          >
-                            Delete
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ))
-              )}
 
-              {/* Load More Comments */}
-              {hasMoreComments && (
-                <button
-                  onClick={handleLoadMoreComments}
-                  className="w-full py-2 text-sm text-emerald-600 dark:text-emerald-400 font-medium hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg transition-colors"
-                >
-                  Load more comments
-                </button>
-              )}
-            </div>
+                        {/* Comment Content */}
+                        <div className="flex-1 min-w-0">
+                          <div className="bg-zinc-100 dark:bg-zinc-800 rounded-2xl px-3 py-2">
+                            {/* Clickable Author Name */}
+                            <button
+                              onClick={() => {
+                                if (comment.author?.id && comment.author.id !== currentUser?.id) {
+                                  navigate(`/profile/${comment.author.id}`);
+                                  onClose();
+                                }
+                              }}
+                              className={`text-sm font-semibold text-zinc-900 dark:text-zinc-100 block ${comment.author?.id === currentUser?.id ? '' : 'hover:text-emerald-600 cursor-pointer'
+                                }`}
+                            >
+                              {comment.author?.name || 'Unknown'}
+                            </button>
+                            <p className="text-sm text-zinc-700 dark:text-zinc-300 break-words">
+                              {comment.text}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-3 mt-1 ml-2">
+                            <span className="text-xs text-zinc-500">
+                              {comment.createdAt
+                                ? new Date(comment.createdAt).toLocaleDateString('en-US', {
+                                  month: 'short',
+                                  day: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                })
+                                : ''}
+                            </span>
+                            {(comment.author?.id === currentUser?.id || post?.author?.id === currentUser?.id) && (
+                              <button
+                                onClick={() => handleDeleteComment(comment.id)}
+                                className="text-xs text-zinc-500 hover:text-red-500 transition-colors"
+                              >
+                                Delete
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
 
-            <div className="p-4 border-t border-zinc-100 dark:border-zinc-800 bg-white dark:bg-zinc-900 fixed md:sticky bottom-0 md:-bottom-6 left-0 right-0 ">
-              <form onSubmit={handleAddComment} className="flex gap-2">
-                <input
-                  ref={commentInputRef}
-                  type="text"
-                  value={commentText}
-                  onChange={(e) => setCommentText(e.target.value)}
-                  placeholder="Write a comment..."
-                  className="flex-1 px-4 py-2 bg-zinc-100 dark:bg-zinc-800 border-0 rounded-lg text-zinc-900 dark:text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-primary"
-                  disabled={isSubmittingComment}
-                />
-                <button
-                  type="submit"
-                  disabled={!commentText.trim() || isSubmittingComment}
-                  className="px-4 py-2 bg-primary hover:bg-primary-700 disabled:bg-zinc-400 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors"
-                >
-                  {isSubmittingComment ? '...' : 'Post'}
-                </button>
-              </form>
-            </div>
+                  {/* Load More Comments */}
+                  {hasMoreComments && (
+                    <button
+                      onClick={handleLoadMoreComments}
+                      className="w-full py-2 text-sm text-emerald-600 dark:text-emerald-400 font-medium hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg transition-colors"
+                    >
+                      Load more comments
+                    </button>
+                  )}
+                </div>
+
+                <div className="p-4 border-t border-zinc-100 dark:border-zinc-800 bg-white dark:bg-zinc-900 fixed md:sticky bottom-0 md:-bottom-6 left-0 right-0 ">
+                  <form onSubmit={handleAddComment} className="flex gap-2">
+                    <input
+                      ref={commentInputRef}
+                      type="text"
+                      value={commentText}
+                      onChange={(e) => setCommentText(e.target.value)}
+                      placeholder="Write a comment..."
+                      className="flex-1 px-4 py-2 bg-zinc-100 dark:bg-zinc-800 border-0 rounded-lg text-zinc-900 dark:text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-primary"
+                      disabled={isSubmittingComment}
+                    />
+                    <button
+                      type="submit"
+                      disabled={!commentText.trim() || isSubmittingComment}
+                      className="px-4 py-2 bg-primary hover:bg-primary-700 disabled:bg-zinc-400 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors"
+                    >
+                      {isSubmittingComment ? '...' : 'Post'}
+                    </button>
+                  </form>
+                </div>
+              </>
+            )}
           </div>
         </>
       )}

@@ -10,19 +10,22 @@ interface PostMapMarkerProps {
 }
 
 export function PostMapMarker({ post, onClick, isEdited }: PostMapMarkerProps) {
+
+
   const map = useMap();
   const markerRef = useRef<any>(null);
   const isRemovingRef = useRef(false);
   const postRef = useRef<string>('');
   const onClickRef = useRef(onClick);
-  
+
+  console.log(post, 'post on marker')
   // Keep callback ref updated
   onClickRef.current = onClick;
-  
+
   useEffect(() => {
     const init = async () => {
       const L = await import('leaflet');
-      
+
       // Check if marker already exists
       if (markerRef.current) {
         // If marker exists and this is same post ID, update content instead of recreating
@@ -47,10 +50,10 @@ export function PostMapMarker({ post, onClick, isEdited }: PostMapMarkerProps) {
           markerRef.current = null;
         }
       }
-      
+
       // Create new marker
       postRef.current = post.id;
-      
+
       // Create the conversation bubble icon using actual PostMarker styling with animation
       // Skip animation if this is an edited post (just updating content, not adding new)
       const className = isEdited ? 'post-bubble-marker' : 'post-bubble-marker animate-in';
@@ -61,32 +64,32 @@ export function PostMapMarker({ post, onClick, isEdited }: PostMapMarkerProps) {
         iconAnchor: [25, 22],
         popupAnchor: [0, -44]
       });
-      
+
       // Create marker with post location
       const marker = L.marker([post.location!.lat, post.location!.lng], { icon });
-      
+
       // Add click handler using ref
       marker.on('click', () => {
         onClickRef.current?.(post);
       });
-      
+
       // Add to map
       marker.addTo(map);
       markerRef.current = marker;
     };
-    
+
     init();
-    
+
     return () => {
       if (markerRef.current && !isRemovingRef.current) {
         isRemovingRef.current = true;
-        
+
         // Add animate-out class for pop-down animation
         const element = markerRef.current.getElement();
         if (element) {
           element.classList.remove('animate-in');
           element.classList.add('animate-out');
-          
+
           // Wait for animation to complete before removing
           setTimeout(() => {
             if (markerRef.current) {

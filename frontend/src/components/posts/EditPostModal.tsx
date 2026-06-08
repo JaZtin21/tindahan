@@ -4,6 +4,11 @@ import { UPDATE_POST_MUTATION } from '../../api/graphql/post/post-queries';
 import { Modal } from '../common/Modal';
 import type { Post } from '../../types/post';
 import { POST_TYPES } from '../../types/post';
+import { useDispatch } from 'react-redux';
+import { updatePost as updatePostAction, mergePostData } from '../../store/slices/postsSlice';
+
+import { useSelector } from "react-redux";
+import type { RootState } from '../../store';
 
 interface EditPostModalProps {
   isOpen: boolean;
@@ -36,20 +41,38 @@ function EditPostModalInner({ isOpen, onClose, post, onSuccess, onError }: EditP
   const [error, setError] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [updatePost, { loading }] = useMutation(UPDATE_POST_MUTATION);
+  const reduxCachedPost = useSelector((state: RootState) =>
+    post?.id ? (state.posts.byId[post.id] as Post | undefined) : null
+  );
 
-  // Update state when post changes or modal opens
+  // 2. Fall back to the prop if Redux isn't loaded yet
+  const activePost = reduxCachedPost || post;
+  console.log(reduxCachedPost, 'redux cached post in edit modal')
+  const entireState = useSelector((state: RootState) => state);
+  console.log('--- PREVIEW MODAL REDUX SNAPSHOT ---');
+  console.log('Target Post ID:', post?.id);
+  console.log('Is state.posts defined?:', !!entireState?.posts);
+  console.log('Entire Redux State Tree:', entireState);
+  console.log('------------------------------------');
+
+  const [updatePost, { loading }] = useMutation(UPDATE_POST_MUTATION);
+  const dispatch = useDispatch();
+
   useEffect(() => {
-    if (post && isOpen) {
-      setTitle(post.title || '');
-      setText(post.text || '');
-      setTypes(post.types || []);
-      setExistingPhotos(post.photos || []);
+    if (activePost && isOpen) {
+      console.log('[Edit Modal Sync] Setting form inputs with data:', activePost.title);
+
+      // Set your states using the live, updated activePost variable
+      setTitle(activePost.title || '');
+      setText(activePost.text || '');
+      setTypes(activePost.types || []);
+      setExistingPhotos(activePost.photos || []);
       setNewFiles([]);
       setNewPreviews([]);
       setError('');
     }
-  }, [post, isOpen]);
+    // 🚨 CRITICAL: Swap out 'post' for 'activePost' in the dependency array!
+  }, [activePost, isOpen]);
 
   // Combined previews for display
   const allPreviews = [...existingPhotos, ...newPreviews];
@@ -110,6 +133,10 @@ function EditPostModalInner({ isOpen, onClose, post, onSuccess, onError }: EditP
       // Get updated post data from mutation result
       const updatedPost = result.data?.updatePost?.data;
       onSuccess?.(updatedPost);
+      dispatch(mergePostData({
+        ...updatedPost,
+        id: updatedPost?.id
+      }));
       handleClose();
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to update post';
