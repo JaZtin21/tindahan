@@ -4,6 +4,10 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"mime"
+	"net/http"
+	"net/url"
+	"path"
 	"path/filepath"
 	"strings"
 	"time"
@@ -100,6 +104,60 @@ func (u *ImageUploader) UploadBase64(ctx context.Context, base64Data, filename s
 		Height:   result.Height,
 		Size:     result.Bytes,
 	}, nil
+}
+
+// UploadRemoteImage downloads an image from a URL and uploads it to Cloudinary.
+func (u *ImageUploader) UploadRemoteImage(ctx context.Context, imageURL string) (*UploadResult, error) {
+	resp, err := http.Get(imageURL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to download remote image: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("failed to download remote image: status %s", resp.Status)
+	}
+
+	filename := u.filenameFromURL(imageURL, resp.Header.Get("Content-Type"))
+	return u.UploadImage(ctx, resp.Body, filename)
+}
+
+func (u *ImageUploader) filenameFromURL(imageURL, contentType string) string {
+	filename := "remote_image"
+	if parsed, err := url.Parse(imageURL); err == nil {
+		name := path.Base(parsed.Path)
+		if name != "" && strings.Contains(name, ".") {
+			filename = name
+		}
+	}
+
+	if filepath.Ext(filename) == "" {
+		ext := extensionFromContentType(contentType)
+		if ext == "" {
+			ext = ".jpg"
+		}
+		filename += ext
+	}
+
+	return filename
+}
+
+func extensionFromContentType(contentType string) string {
+	if contentType == "" {
+		return ""
+	}
+
+	mediaType, _, err := mime.ParseMediaType(contentType)
+	if err != nil {
+		return ""
+	}
+
+	exts, err := mime.ExtensionsByType(mediaType)
+	if err != nil || len(exts) == 0 {
+		return ""
+	}
+
+	return exts[0]
 }
 
 // DeleteImage deletes an image from Cloudinary by its public ID

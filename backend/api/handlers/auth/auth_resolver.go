@@ -10,7 +10,9 @@ import (
 	"strings"
 	"time"
 
+	"tindahan-backend/bootstrap"
 	"tindahan-backend/domain"
+	"tindahan-backend/internal/imageutil"
 	"tindahan-backend/internal/tokenutil"
 	"tindahan-backend/repository"
 
@@ -377,6 +379,32 @@ func verifyGoogleIDToken(idToken string) (*GoogleUserInfo, error) {
 	return &userInfo, nil
 }
 
+func (r *AuthResolver) uploadGoogleProfilePhoto(ctx context.Context, userID, imageURL string) (string, error) {
+	if imageURL == "" {
+		return "", errors.New("no image URL provided")
+	}
+
+	env := bootstrap.LoadEnv()
+	if env.CloudinaryCloudName == "" || env.CloudinaryAPIKey == "" || env.CloudinaryAPISecret == "" {
+		return "", errors.New("cloudinary configuration missing")
+	}
+
+	uploader, err := imageutil.NewImageUploader(env.CloudinaryCloudName, env.CloudinaryAPIKey, env.CloudinaryAPISecret, env.CloudinaryFolder)
+	if err != nil {
+		return "", err
+	}
+
+	profileFolder := env.CloudinaryFolder + "/" + userID + "/profile"
+	userUploader := uploader.WithFolder(profileFolder)
+
+	result, err := userUploader.UploadRemoteImage(ctx, imageURL)
+	if err != nil {
+		return "", err
+	}
+
+	return result.URL, nil
+}
+
 // findOrCreateGoogleUser finds existing user by email or creates new one from Google data
 func (r *AuthResolver) findOrCreateGoogleUser(ctx context.Context, googleInfo *GoogleUserInfo, role string) (*domain.User, error) {
 	// Try to find existing user
@@ -414,14 +442,27 @@ func (r *AuthResolver) findOrCreateGoogleUser(ctx context.Context, googleInfo *G
 		role = "CUSTOMER"
 	}
 
+	userID := primitive.NewObjectID()
+
+	// Attempt to store a local Cloudinary copy of the Google profile image
+	profilePhotoURL := googleInfo.Picture
+	if googleInfo.Picture != "" {
+		uploadedURL, err := r.uploadGoogleProfilePhoto(ctx, userID.Hex(), googleInfo.Picture)
+		if err != nil {
+			log.Printf("⚠️ GOOGLE LOGIN: Failed to upload profile image to Cloudinary: %v", err)
+		} else {
+			profilePhotoURL = uploadedURL
+		}
+	}
+
 	now := time.Now()
 	user := &domain.User{
-		ID:           primitive.NewObjectID(),
+		ID:           userID,
 		FirstName:    firstName,
 		LastName:     lastName,
 		Email:        googleInfo.Email,
 		Password:     "",                 // No password for Google users
-		ProfilePhoto: googleInfo.Picture, // Store Google profile picture
+		ProfilePhoto: profilePhotoURL,
 		Role:         role,
 		IsActive:     true,
 		CreatedAt:    now,
