@@ -8,6 +8,7 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [isLocating, setIsLocating] = useState(false);
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -79,32 +80,38 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
   const handleGetCurrentLocation = (e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent event from reaching form behind
 
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          const newLocation = { lat: latitude, lng: longitude };
-          setSelectedLocation(newLocation);
-
-          // Center map on new location with MAX zoom like MapPage
-          if (mapInstanceRef.current) {
-            mapInstanceRef.current.setView([latitude, longitude], 20); // MAX zoom
-            handleMapClick(latitude, longitude);
-          }
-        },
-        (error) => {
-          console.error('Error getting location:', error);
-          alert('Unable to get your location. Please select manually.');
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 0
-        }
-      );
-    } else {
+    if (!navigator.geolocation) {
       alert('Geolocation is not supported by your browser.');
+      return;
     }
+
+    setIsLocating(true);
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        const newLocation = { lat: latitude, lng: longitude };
+        setSelectedLocation(newLocation);
+
+        // Center map on new location with MAX zoom like MapPage
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.setView([latitude, longitude], 20); // MAX zoom
+          handleMapClick(latitude, longitude);
+        }
+
+        setIsLocating(false);
+      },
+      (error) => {
+        console.error('Error getting location:', error);
+        alert('Unable to get your location. Please select manually.');
+        setIsLocating(false);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
+      }
+    );
   };
 
   const handleConfirmLocation = (e: React.MouseEvent) => {
@@ -393,10 +400,21 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
 
               <button
                 onClick={handleGetCurrentLocation}
-                className="w-full px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-700 transition-colors"
+                disabled={isLocating}
+                className="w-full px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-700 transition-colors disabled:bg-zinc-400 disabled:cursor-not-allowed"
                 type="button"
               >
-                📍 Use My Location
+                {isLocating ? (
+                  <span className="inline-flex items-center gap-2">
+                    <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" className="opacity-25" />
+                      <path d="M22 12a10 10 0 00-10-10" stroke="currentColor" strokeWidth="4" className="opacity-75" />
+                    </svg>
+                    Getting location...
+                  </span>
+                ) : (
+                  '📍 Use My Location'
+                )}
               </button>
 
               <div className="pt-4 border-t border-zinc-200 dark:border-zinc-700">
