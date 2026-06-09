@@ -1,10 +1,10 @@
 import { useEffect, useState, useRef, memo, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
-import { useMutation, useQuery, useLazyQuery } from '@apollo/client/react';
+import { useMutation, useLazyQuery } from '@apollo/client/react';
 import type { PostPreviewModalProps, Comment, Post } from '../../types/post';
 import type { RootState } from '../../store';
-import { mergePostData } from '../../store';
+import { mergePostData, updatePost } from '../../store';
 import { PhotoGallery } from '../common/PhotoGallery';
 import {
   LIKE_POST_MUTATION,
@@ -16,6 +16,7 @@ import {
 } from '../../api/graphql/post/post-queries';
 import { Modal, DropdownMenu, DropdownItem } from '../common/Modal';
 import { useFollowUser, useUnfollowUser } from '../../hooks';
+import { Loader2 } from 'lucide-react';
 
 
 function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: PostPreviewModalProps & { onEdit?: (post: Post) => void; onDelete?: (post: Post) => void }) {
@@ -36,33 +37,32 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
   // 2. MERGE DYNAMIC REDUX EDITS ON THE FLY (No useEffects, No Infinite Loops):
   // This blends the local interactive states with the text fields from Redux.
   // If you edit text or titles in the other modal, it updates here with zero frame delay.
-  const displayedPost = basePost
-    ? {
+
+
+  const displayedPost = useMemo(() => {
+    if (!basePost) return null;
+    return {
       ...basePost,
       title: reduxCachedPost?.id === basePost.id ? (reduxCachedPost.title || basePost.title) : basePost.title,
       text: reduxCachedPost?.id === basePost.id ? (reduxCachedPost.text || basePost.text) : basePost.text,
       photos: reduxCachedPost?.id === basePost.id ? (reduxCachedPost.photos || basePost.photos) : basePost.photos,
-    }
-    : null;
+      isLiked: reduxCachedPost?.id === basePost.id ? (reduxCachedPost.isLiked ?? basePost.isLiked) : basePost.isLiked,
+      likes: reduxCachedPost?.id === basePost.id ? (reduxCachedPost.likes ?? basePost.likes) : basePost.likes,
+      author: reduxCachedPost?.id === basePost.id ? (reduxCachedPost.author || basePost.author) : basePost.author,
+    };
+  }, [basePost, reduxCachedPost]);
   // Keyboard handling for mobile
-
-  // Track the current post ID to prevent race conditions
-  const currentPostIdRef = useRef<string | null>(effectivePost?.id || null);
-
-  // Like state
-  const [isLiked, setIsLiked] = useState(effectivePost?.isLiked || false);
-  const [likesCount, setLikesCount] = useState(effectivePost?.likes || 0);
-
-  // Follow state
-  const [isFollowing, setIsFollowing] = useState(post?.author?.followers?.includes(currentUser?.id || '') || false);
 
   // Comments state
   const [comments, setComments] = useState<Comment[]>([]);
+  const [commentIsLoading, setCommentIsLoading] = useState(true);
+
   const [commentPage, setCommentPage] = useState(1);
   const [hasMoreComments, setHasMoreComments] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
   const [localCommentCount, setLocalCommentCount] = useState(effectivePost?.commentCount || 0);
+  const [isLoadingMoreComments, setIsLoadingMoreComments] = useState(false);
 
   // Track if like mutation is pending to prevent POST_QUERY from overriding
   const likePendingRef = useRef(false);
@@ -72,6 +72,7 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
   const [unlikePost] = useMutation(UNLIKE_POST_MUTATION);
   const [addComment] = useMutation(ADD_COMMENT_MUTATION);
   const [deleteComment] = useMutation(DELETE_COMMENT_MUTATION);
+
 
   // Follow/unfollow hooks
   const { follow, loading: followLoading } = useFollowUser();
@@ -84,6 +85,60 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
   // Comment input ref for keyboard handling
   const commentInputRef = useRef<HTMLInputElement>(null);
 
+  // Fetch comments - use lazy query with proper dependencies
+  const [fetchComments, { data: commentsData }] = useLazyQuery(COMMENTS_QUERY, {
+    fetchPolicy: 'no-cache',
+  });
+  const [fetchPostDetailsQuery, { data: postfetchData }] = useLazyQuery(POST_QUERY, {
+    fetchPolicy: 'no-cache',
+  });
+
+  const fetchPostDetails = async (postId: string | undefined) => {
+    setCommentIsLoading(true);
+    try {
+
+      const [postDetailsData, commentsData] = await Promise.all([fetchPostDetailsQuery({ variables: { id: postId } }), fetchComments({ variables: { postId, page: 1, limit: 5 } })]);
+
+
+      const postDetails = postDetailsData.data?.post?.data;
+      const comments = commentsData.data?.comments?.data || [];
+
+      if (postDetails) {
+        setEffectivePost(postDetails);
+
+        // Update Redux cache with fresh post details
+        dispatch(updatePost({
+          id: postDetails.id,
+          ...postDetails,
+        }));
+      }
+
+      if (comments) {
+        setComments(comments);
+        setHasMoreComments(commentsData.data?.comments?.hasMore || false);
+        setLocalCommentCount(commentsData.data?.comments?.total || 0);
+      }
+    } catch (error) {
+      console.error('Error fetching comments:', error);
+      setCommentIsLoading(false);
+    } finally {
+      setCommentIsLoading(false);
+    }
+  }
+
+
+  // Load comments when modal opens with a post
+  useEffect(() => {
+    if (isOpen) {
+      fetchPostDetails(post?.id);
+    } else {
+      setComments([]);
+      setCommentIsLoading(true);
+      setCommentPage(1);
+      setHasMoreComments(false);
+      setLocalCommentCount(0);
+    }
+  }, [isOpen]);
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -97,68 +152,10 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showMenu]);
 
-
-  // Fetch fresh post details when modal opens
-  const { data: postData, loading: postLoading } = useQuery(POST_QUERY, {
-    variables: { id: post?.id },
-    skip: !isOpen || !post?.id,
-    fetchPolicy: 'no-cache',
-  });
-
-  // Update local state with fresh post data
-  useEffect(() => {
-    if (postData?.post?.data) {
-      console.log(postData.post.data, 'fresh post data from POST_QUERY')
-      setEffectivePost(postData.post.data);
-    }
-  }, [postData]);
-
   // Update likes from fresh post data (but not if mutation is pending)
   // Also update Redux cache with fresh data
-  useEffect(() => {
-    if (postData?.post?.data && !likePendingRef.current && post?.id === effectivePost?.id) {
-      const freshPost = postData.post.data;
-      console.log('[PostPreviewModal] Fresh post data received - freshPost.author.profilePhoto:', freshPost.author?.profilePhoto)
-
-      // Update local state
-      setIsLiked(freshPost.isLiked || false);
-      setLikesCount(freshPost.likes || 0);
-      // Update follow status from fresh post data
-      setIsFollowing(freshPost.author?.followers?.includes(currentUser?.id || '') || false);
-
-      // Update Redux cache with fresh post data
-      dispatch(mergePostData({
-        id: freshPost.id,
-        isLiked: freshPost.isLiked,
-        likes: freshPost.likes,
-        author: freshPost.author,
-        commentCount: freshPost.commentCount,
-      }));
-    }
-  }, [postData, effectivePost?.id, post?.id, currentUser?.id, dispatch]);
-
-  // Fetch comments - use lazy query with proper dependencies
-  const [fetchComments, { data: commentsData, loading: commentsLoading }] = useLazyQuery(COMMENTS_QUERY, {
-    fetchPolicy: 'no-cache',
-  });
-
-  // Load comments when modal opens with a post
-  useEffect(() => {
-    if (isOpen && post?.id && currentPostIdRef.current === post.id) {
-      fetchComments({ variables: { postId: post.id, page: 1, limit: 5 } });
-    }
-  }, [isOpen, post?.id]);
 
 
-  // Update comments when data changes - ONLY for current post
-  useEffect(() => {
-    if (commentsData?.comments?.data && currentPostIdRef.current === post?.id) {
-      console.log('[PostPreviewModal] Comments data received - comments:', commentsData.comments.data)
-      setComments(commentsData.comments.data);
-      setHasMoreComments(commentsData.comments.hasMore);
-      setLocalCommentCount(commentsData.comments.total || commentsData.comments.data.length);
-    }
-  }, [commentsData, post?.id]);
 
   const isCurrentUser = useMemo(() => effectivePost?.author?.id === currentUser?.id, [effectivePost?.author?.id, currentUser?.id]);
 
@@ -168,12 +165,11 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
     if (!effectivePost?.author?.id || !currentUser?.id) return;
 
     try {
-      if (isFollowing) {
+      if (displayedPost?.author?.followers?.includes(currentUser.id)) {
         await unfollow(effectivePost.author.id);
-        setIsFollowing(false);
+
       } else {
         await follow(effectivePost.author.id);
-        setIsFollowing(true);
       }
     } catch (error) {
       console.error('Error toggling follow:', error);
@@ -189,41 +185,32 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
 
   // Handle like/unlike - optimistic update with proper state management
   const handleLikeToggle = async () => {
-    if (!effectivePost?.id || likePendingRef.current) return;
-
-    const newIsLiked = !isLiked;
-    const newLikesCount = newIsLiked ? likesCount + 1 : Math.max(0, likesCount - 1);
+    const newIsLiked = !displayedPost?.isLiked;
+    const likeCountChange = newIsLiked ? 1 : -1;
 
     // Mark mutation as pending to prevent POST_QUERY from overriding
     likePendingRef.current = true;
 
-    // Optimistic update
-    setIsLiked(newIsLiked);
-    setLikesCount(newLikesCount);
-
     // Update Redux cache optimistically
     dispatch(mergePostData({
-      id: effectivePost.id,
+      id: post!.id,
       isLiked: newIsLiked,
-      likes: newLikesCount,
+      likes: (displayedPost?.likes || 0) + likeCountChange,
     }));
 
     try {
       if (newIsLiked) {
-        await likePost({ variables: { id: effectivePost.id } });
+        await likePost({ variables: { id: post!.id } });
       } else {
-        await unlikePost({ variables: { id: effectivePost.id } });
+        await unlikePost({ variables: { id: post!.id } });
       }
     } catch (error) {
       // Revert on error
-      console.error('Error toggling like:', error);
-      setIsLiked(!newIsLiked);
-      setLikesCount(likesCount);
       // Revert Redux update on error
       dispatch(mergePostData({
-        id: effectivePost.id,
+        id: post!.id,
         isLiked: !newIsLiked,
-        likes: likesCount,
+        likes: (displayedPost?.likes || 0) - likeCountChange,
       }));
     } finally {
       // Clear pending flag after a delay to let any in-flight queries complete
@@ -318,6 +305,8 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
   const handleLoadMoreComments = async () => {
     if (!post?.id || !hasMoreComments) return;
 
+    setIsLoadingMoreComments(true);
+
     const nextPage = commentPage + 1;
     try {
       const { data } = await loadMoreComments({
@@ -336,9 +325,11 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
         setComments(prev => [...prev, ...newComments]);
         setHasMoreComments(data.comments.hasMore);
         setCommentPage(nextPage);
+        setIsLoadingMoreComments(false);
       }
     } catch (error) {
       console.error('Error loading more comments:', error);
+      setIsLoadingMoreComments(false);
     }
   };
 
@@ -356,7 +347,7 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
   const hasProfilePhoto = !!post?.author?.profilePhoto;
   const profilePhotoUrl = post?.author?.profilePhoto;
 
-  console.log(displayedPost, 'heyyy  displayed post');
+  console.log(currentUser, 'current user');
 
   return (
     <Modal
@@ -404,20 +395,8 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
                 <p className="text-xs text-zinc-400 mt-0.5">{formattedDate}</p>
               )}
             </div>
-            {!isCurrentUser && post.author?.id && (
-              <button
-                className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${isFollowing
-                  ? 'bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-600'
-                  : 'bg-primary hover:bg-primary-700 text-white'
-                  }`}
-                onClick={handleFollowToggle}
-                disabled={followLoading || unfollowLoading}
-              >
-                {isFollowing ? 'Following' : 'Follow'}
-              </button>
-            )}
             {/* Action buttons */}
-            {isCurrentUser && (
+            {displayedPost?.author?.id === currentUser?.id ? (
               <div className="relative" ref={menuRef}>
                 <button
                   onClick={(e) => {
@@ -462,7 +441,13 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
                   </DropdownItem>
                 </DropdownMenu>
               </div>
-            )}
+            ) : (<button
+              className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${displayedPost?.author?.followers?.includes(currentUser?.id || '') ? 'bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-600' : 'bg-primary hover:bg-primary-700 text-white'}`}
+              onClick={handleFollowToggle}
+              disabled={followLoading || unfollowLoading}
+            >
+              {displayedPost?.author?.followers?.includes(currentUser?.id || '') ? 'Following' : 'Follow'}
+            </button>)}
           </div>
         ) : 'Loading...1'
       }
@@ -521,7 +506,7 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
           >
 
             {/* Scrollable Comments List */}
-            {commentsLoading ? (
+            {commentIsLoading ? (
               <div className="p-4 text-center text-zinc-500">Loading comments...</div>
             ) : (
               <>
@@ -544,17 +529,17 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
                           className={`flex-shrink-0 ${comment.author?.id === currentUser?.id ? '' : 'cursor-pointer hover:opacity-80'}`}
                           disabled={comment.author?.id === currentUser?.id}
                         >
-                          {comment.author?.profilePhoto ? (
+                          {comment.author?.profilePhoto || comment.author?.profilePhoto ? (
                             <img
-                              src={comment.author.profilePhoto}
-                              alt={comment.author.name}
+                              src={comment.author?.id === currentUser?.id && currentUser?.profilePhoto ? currentUser.profilePhoto : (comment.author?.profilePhoto || currentUser?.profilePhoto || '')}
+                              alt={comment.author?.name || 'You'}
                               className="w-8 h-8 rounded-full object-cover"
                               crossOrigin="anonymous"
                               referrerPolicy="no-referrer"
                             />
                           ) : (
-                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-400 to-blue-500 flex items-center justify-center text-white text-sm font-semibold">
-                              {comment.author?.name?.charAt(0).toUpperCase() || '?'}
+                            <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white text-sm font-semibold">
+                              {(comment.author?.id === currentUser?.id ? currentUser?.name : comment.author?.name)?.charAt(0).toUpperCase() || '?'}
                             </div>
                           )}
                         </button>
@@ -606,12 +591,16 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
 
                   {/* Load More Comments */}
                   {hasMoreComments && (
-                    <button
-                      onClick={handleLoadMoreComments}
-                      className="w-full py-2 text-sm text-emerald-600 dark:text-emerald-400 font-medium hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg transition-colors"
-                    >
-                      Load more comments
-                    </button>
+
+                    isLoadingMoreComments ? (
+                      <Loader2 className="w-4 h-4 animate-spin mx-auto text-primary" />
+                    ) : (
+                      <button
+                        onClick={handleLoadMoreComments}
+                        className="w-full py-2 text-sm text-primary dark:text-primary font-medium hover:bg-primary/70 dark:hover:bgprimary/70 rounded-lg transition-colors"
+                      >
+                        Load more comments
+                      </button>)
                   )}
                 </div>
 

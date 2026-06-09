@@ -19,8 +19,8 @@ const GRAPHQL_ENDPOINT = import.meta.env.VITE_GRAPHQL_ENDPOINT || 'http://localh
 
 // Create a basic Apollo client for auth operations (without auth link)
 const authClient = new ApolloClient({
-  link: createUploadLink({ uri: GRAPHQL_ENDPOINT, credentials: 'include' }),
-  cache: new InMemoryCache(),
+    link: createUploadLink({ uri: GRAPHQL_ENDPOINT, credentials: 'include' }),
+    cache: new InMemoryCache(),
 });
 
 // Define user info type
@@ -71,7 +71,7 @@ const ApolloProviderWithAuth = ({ children }: any) => {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [userInfo, setUserInfoState] = useState<UserInfo | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-    
+
     const jwtRef = useRef<string>('');
     const isRefreshingRef = useRef(false);
     const hasCheckedAuthRef = useRef(false);
@@ -80,7 +80,7 @@ const ApolloProviderWithAuth = ({ children }: any) => {
         resolve: (value: string) => void;
         reject: (error: any) => void;
     }>>([]);
-    
+
     const processQueue = (error: any, token: string | null) => {
         failedQueueRef.current.forEach(promise => {
             if (error) {
@@ -95,7 +95,7 @@ const ApolloProviderWithAuth = ({ children }: any) => {
     useEffect(() => {
         jwtRef.current = jwt;
     }, [jwt]);
-    
+
     const setUserJwt = (token: string) => {
         setJwt(token);
         jwtRef.current = token;
@@ -106,15 +106,10 @@ const ApolloProviderWithAuth = ({ children }: any) => {
         setUserInfoState(info);
         if (info) {
             // Sync with Redux store
-            dispatch(setUser({
-                id: info.id,
-                role: info.role,
-                displayName: info.name,
-                email: info.email,
-            }));
+            dispatch(setUser(info));
         } else {
             // Clear Redux store
-            dispatch(setUser({ id: null, role: null, displayName: null, email: null }));
+            dispatch(setUser({ id: null, role: null, name: null, email: null }));
         }
     };
 
@@ -133,6 +128,7 @@ const ApolloProviderWithAuth = ({ children }: any) => {
                 }
             });
             if (data?.me?.data) {
+                dispatch(setUser(data.me.data));
                 setUserInfo(data.me.data);
             }
         } catch (error) {
@@ -156,7 +152,7 @@ const ApolloProviderWithAuth = ({ children }: any) => {
                 console.error('[ApolloProvider] Backend logout failed:', error);
                 // Continue with local logout even if backend fails
             }
-            
+
             setIsAuthenticated(false);
             setJwt('');
             jwtRef.current = '';
@@ -345,7 +341,7 @@ const ApolloProviderWithAuth = ({ children }: any) => {
 
             if (shouldRetry) {
                 const hasRetried = operation.getContext().hasRetried || false;
-                
+
                 if (hasRetried) {
                     console.warn('Already retried this operation, not retrying again.');
                     return;
@@ -358,7 +354,7 @@ const ApolloProviderWithAuth = ({ children }: any) => {
                                 const newToken = await new Promise<string>((resolve, reject) => {
                                     failedQueueRef.current.push({ resolve, reject });
                                 });
-                                
+
                                 operation.setContext({
                                     headers: {
                                         ...operation.getContext().headers,
@@ -366,20 +362,20 @@ const ApolloProviderWithAuth = ({ children }: any) => {
                                     },
                                     hasRetried: true
                                 });
-                                
+
                                 const subscriber = forward(operation).subscribe({
                                     next: observer.next.bind(observer),
                                     error: observer.error.bind(observer),
                                     complete: observer.complete.bind(observer),
                                 });
-                                
+
                                 return () => subscriber.unsubscribe();
                             } catch (error) {
                                 observer.error(error);
                                 return;
                             }
                         }
-                        
+
                         isRefreshingRef.current = true;
 
                         try {
@@ -403,7 +399,7 @@ const ApolloProviderWithAuth = ({ children }: any) => {
                             console.log('[ApolloProvider] New access token set in memory (length:', newJwt.length + ')');
 
                             processQueue(null, newJwt);
-                            
+
                             operation.setContext({
                                 headers: {
                                     ...operation.getContext().headers,
@@ -428,7 +424,7 @@ const ApolloProviderWithAuth = ({ children }: any) => {
                             isRefreshingRef.current = false;
                         }
                     };
-                    
+
                     handleRefresh();
                 });
             }
@@ -472,12 +468,12 @@ const ApolloProviderWithAuth = ({ children }: any) => {
                                     existing.forEach((post: any) => {
                                         if (post?.id) postMap.set(post.id, post);
                                     });
-                                    
+
                                     // Add incoming posts (will overwrite if same ID = update)
                                     incoming.forEach((post: any) => {
                                         if (post?.id) postMap.set(post.id, post);
                                     });
-                                    
+
                                     // Return merged array
                                     return Array.from(postMap.values());
                                 },

@@ -9,6 +9,7 @@ import { updatePost as updatePostAction, mergePostData } from '../../store/slice
 
 import { useSelector } from "react-redux";
 import type { RootState } from '../../store';
+import { Loader2 } from 'lucide-react';
 
 interface EditPostModalProps {
   isOpen: boolean;
@@ -47,21 +48,12 @@ function EditPostModalInner({ isOpen, onClose, post, onSuccess, onError }: EditP
 
   // 2. Fall back to the prop if Redux isn't loaded yet
   const activePost = reduxCachedPost || post;
-  console.log(reduxCachedPost, 'redux cached post in edit modal')
-  const entireState = useSelector((state: RootState) => state);
-  console.log('--- PREVIEW MODAL REDUX SNAPSHOT ---');
-  console.log('Target Post ID:', post?.id);
-  console.log('Is state.posts defined?:', !!entireState?.posts);
-  console.log('Entire Redux State Tree:', entireState);
-  console.log('------------------------------------');
 
   const [updatePost, { loading }] = useMutation(UPDATE_POST_MUTATION);
   const dispatch = useDispatch();
 
   useEffect(() => {
     if (activePost && isOpen) {
-      console.log('[Edit Modal Sync] Setting form inputs with data:', activePost.title);
-
       // Set your states using the live, updated activePost variable
       setTitle(activePost.title || '');
       setText(activePost.text || '');
@@ -278,11 +270,8 @@ function EditPostModalInner({ isOpen, onClose, post, onSuccess, onError }: EditP
             />
             {loading ? (
               <>
-                <svg className="w-5 h-5 animate-spin text-emerald-600" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                </svg>
-                <span className="text-emerald-600 font-medium">Updating...</span>
+                <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                <span className="text-primary font-medium">Updating...</span>
               </>
             ) : (
               <>
