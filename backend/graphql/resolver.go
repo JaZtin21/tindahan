@@ -633,9 +633,11 @@ func (r *mutationResolver) UpdateItem(ctx context.Context, id string, input Upda
 		updates.Stock = input.Stock
 	}
 	if input.CoverPhoto != nil {
+		updates.CoverPhoto = input.CoverPhoto
 		updates.ImageURL = input.CoverPhoto
 	}
 	if newCoverPhotoURL != "" {
+		updates.CoverPhoto = &newCoverPhotoURL
 		updates.ImageURL = &newCoverPhotoURL
 	}
 

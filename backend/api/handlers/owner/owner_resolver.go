@@ -723,7 +723,7 @@ func (r *OwnerResolver) UpdateItem(ctx context.Context, itemId, ownerId string, 
 	}
 
 	// Delete previous cover photo if replaced
-	if updates.ImageURL != nil && oldCoverPhoto != "" && *updates.ImageURL != oldCoverPhoto {
+	if updates.CoverPhoto != nil && oldCoverPhoto != "" && *updates.CoverPhoto != oldCoverPhoto {
 		env := bootstrap.LoadEnv()
 		if env.CloudinaryCloudName != "" && env.CloudinaryAPIKey != "" && env.CloudinaryAPISecret != "" {
 			uploader, err := imageutil.NewImageUploader(

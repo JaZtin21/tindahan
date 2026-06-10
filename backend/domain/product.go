@@ -70,6 +70,7 @@ type UpdateProductRequest struct {
 	Category    *string  `json:"category"`
 	Price       *float64 `json:"price"`
 	ImageURL    *string  `json:"image_url"`
+	CoverPhoto  *string  `json:"cover_photo"`
 	Stock       *int     `json:"stock"`
 	IsActive    *bool    `json:"is_active"`
 }

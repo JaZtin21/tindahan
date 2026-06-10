@@ -68,6 +68,9 @@ func (r *productRepository) UpdateProduct(ctx context.Context, productID primiti
 	if updates.ImageURL != nil {
 		updateDoc["image_url"] = *updates.ImageURL
 	}
+	if updates.CoverPhoto != nil {
+		updateDoc["cover_photo"] = *updates.CoverPhoto
+	}
 	if updates.Stock != nil {
 		updateDoc["stock"] = *updates.Stock
 	}
