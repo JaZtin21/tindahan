@@ -6,7 +6,7 @@ import { useSubscription, useMutation, useQuery } from '@apollo/client/react';
 import { CachedTileLayer, MapMarkers as MapMarkersComponent, getMapMarkerStyles } from '../../components/map';
 import { LIVE_POSTS_SUBSCRIPTION } from '../../api/graphql/subscriptions/live-posts';
 import { DELETE_POST_MUTATION, SEARCH_POSTS_BY_TITLE_QUERY } from '../../api/graphql/post/post-queries';
-import { SHOPS_BY_PRODUCT_QUERY } from '../../api/graphql/shop/shop-queries';
+import { SHOPS_BY_PRODUCT_QUERY, SHOPS_NEAR_ME_QUERY } from '../../api/graphql/shop/shop-queries';
 import { useCreatePost } from '../../api/graphql/post/usePost';
 import { useAuth } from '../../api/graphql/apolloProviderWithAuth';
 import type { Post } from '../../types/post';
@@ -141,6 +141,11 @@ export function OptimizedMapsPage() {
   const [productSearchStores, setProductSearchStores] = useState<any[]>([]);
   const [productNameForSearch, setProductNameForSearch] = useState<string | null>(null);
   const [selectedStore, setSelectedStore] = useState<any | null>(null);
+  
+  // Shops near me state
+  const [showShopsNearMe, setShowShopsNearMe] = useState(false);
+  const [shopsNearMe, setShopsNearMe] = useState<any[]>([]);
+  const [isLoadingShopsNearMe, setIsLoadingShopsNearMe] = useState(false);
 
   // Post search states
   const [postSearchResults, setPostSearchResults] = useState<any[]>([]);
@@ -245,6 +250,12 @@ export function OptimizedMapsPage() {
     skip: true
   });
 
+  // Query to get shops near me (public API)
+  const { refetch: refetchShopsNearMe } = useQuery(SHOPS_NEAR_ME_QUERY, {
+    variables: { lat: 0, lng: 0 },
+    skip: true
+  });
+
   // Create post handler using factory function
   const { handleCreatePost } = createPostHandlers({ createPost, showSuccess, showError });
 
@@ -297,6 +308,102 @@ export function OptimizedMapsPage() {
       phone: store.phone,
       storeId: store.id
     }));
+  };
+
+  // Handle shop near me toggle
+  const handleToggleShopsNearMe = async () => {
+    if (showShopsNearMe) {
+      // Turn off - clear markers
+      setShowShopsNearMe(false);
+      setShopsNearMe([]);
+      return;
+    }
+
+    // Turn on - get location and fetch shops
+    if (!navigator.geolocation) {
+      showError('Location Error', 'Geolocation is not supported by your browser.');
+      return;
+    }
+
+    setIsLoadingShopsNearMe(true);
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        
+        // Set user location and show marker
+        setUserLocation({ lat: latitude, lng: longitude });
+        setShowLocationMarker(true);
+        
+        // Center map on user's location
+        if (mapRef.current) {
+          mapRef.current.flyTo([latitude, longitude], 18, {
+            duration: 1.5
+          });
+        }
+
+        // Fetch shops near me
+        try {
+          const result = await refetchShopsNearMe({ lat: latitude, lng: longitude }) as { data?: { shopsNearMe?: { success: boolean; data: any[] } } };
+          
+          if (result.data?.shopsNearMe?.success) {
+            const shops = result.data.shopsNearMe.data.map((shop: any) => ({
+              id: shop.id,
+              lat: shop.coordinates?.lat || 0,
+              lng: shop.coordinates?.lng || 0,
+              name: shop.name,
+              description: shop.description,
+              phone: shop.contactDetails?.phone,
+              hours: shop.businessHours ? `${shop.businessHours.openTime} - ${shop.businessHours.closeTime}` : undefined,
+              coverPhoto: shop.coverPhoto,
+              businessType: shop.businessType,
+              location: shop.contactDetails?.address || shop.location,
+            })).filter((s: any) => s.lat && s.lng);
+
+            setShopsNearMe(shops);
+            setShowShopsNearMe(true);
+            showSuccess('Shops Near Me', `Found ${shops.length} shops within 200m of your location`);
+          } else {
+            showError('Search Failed', 'Failed to find shops near you.');
+          }
+        } catch (error) {
+          console.error('Error fetching shops near me:', error);
+          showError('Error', 'An error occurred while fetching shops near you.');
+        } finally {
+          setIsLoadingShopsNearMe(false);
+        }
+      },
+      (error) => {
+        console.error('Error getting location:', error);
+        setIsLoadingShopsNearMe(false);
+        
+        let errorMessage = 'Unable to get your current location.';
+        switch(error.code) {
+          case error.PERMISSION_DENIED:
+            errorMessage = 'Location access denied. Please enable location permissions.';
+            break;
+          case error.POSITION_UNAVAILABLE:
+            errorMessage = 'Location information is unavailable.';
+            break;
+          case error.TIMEOUT:
+            errorMessage = 'Location request timed out.';
+            break;
+        }
+        
+        showError('Location Error', errorMessage);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 300000
+      }
+    );
+  };
+
+  // Handle shop near me marker click
+  const handleShopNearMeClick = (store: any) => {
+    console.log('[Shop Near Me] Store clicked:', store);
+    handleStoreMarkerClick(store);
   };
 
   // Handle location selection from search (from geocoding - pin marker)
@@ -654,6 +761,9 @@ export function OptimizedMapsPage() {
           postSearchResults={postSearchResults}
           userLocation={userLocation}
           showUserLocationMarker={showLocationMarker}
+          showShopsNearMe={showShopsNearMe}
+          shopsNearMe={shopsNearMe}
+          onShopNearMeClick={handleShopNearMeClick}
         />
       </MapContainer>
 
@@ -674,6 +784,28 @@ export function OptimizedMapsPage() {
           ) : (
             <MdMyLocation className="w-6 h-6" />
           )}
+        </button>
+        
+        {/* Shop Near Me Toggle Button */}
+        <button
+          onClick={handleToggleShopsNearMe}
+          disabled={isLoadingShopsNearMe}
+          className={`flex items-center gap-2 px-4 py-3 rounded-full shadow-xl transition-colors ${
+            showShopsNearMe 
+              ? 'bg-green-600 hover:bg-green-700 text-white' 
+              : 'bg-white hover:bg-gray-100 text-gray-700'
+          }`}
+          title={showShopsNearMe ? 'Hide shops near me' : 'Show shops near me'}
+        >
+          {isLoadingShopsNearMe ? (
+            <div className="w-5 h-5 border-2 border-gray-700 border-t-transparent rounded-full animate-spin"></div>
+          ) : (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          )}
+          <span className="font-medium">Shop Near Me</span>
         </button>
 
         {/* Add Post Button - Only show if authenticated */}

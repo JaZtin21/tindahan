@@ -183,4 +183,7 @@ export interface MapMarkersProps {
   postSearchResults: any[];
   userLocation: { lat: number; lng: number } | null;
   showUserLocationMarker: boolean;
+  showShopsNearMe: boolean;
+  shopsNearMe: StoreLocationData[];
+  onShopNearMeClick: (store: StoreLocationData) => void;
 }

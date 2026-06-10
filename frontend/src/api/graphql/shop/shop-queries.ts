@@ -153,6 +153,40 @@ export const SHOPS_BY_PRODUCT_QUERY = gql`
   }
 `;
 
+// Get shops near a location (public API, 200m radius hardcoded in backend)
+export const SHOPS_NEAR_ME_QUERY = gql`
+  query ShopsNearMe($lat: Float!, $lng: Float!) {
+    shopsNearMe(lat: $lat, lng: $lng) {
+      success
+      message
+      data {
+        id
+        name
+        description
+        location
+        coordinates {
+          lat
+          lng
+        }
+        coverPhoto
+        businessType
+        status
+        businessHours {
+          openTime
+          closeTime
+          days
+        }
+        contactDetails {
+          phone
+          email
+          address
+        }
+        rating
+      }
+    }
+  }
+`;
+
 // Note: The 'shops' query was removed from backend. Use myShops (owner only) or search alternatives
 // This query now uses myShops for authenticated users
 export const SHOPS_QUERY = gql`

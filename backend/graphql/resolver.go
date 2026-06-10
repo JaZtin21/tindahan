@@ -2921,6 +2921,84 @@ func (r *queryResolver) ShopsByProduct(ctx context.Context, productName string) 
 	}, nil
 }
 
+// ShopsNearMe is the resolver for the shopsNearMe field.
+func (r *queryResolver) ShopsNearMe(ctx context.Context, lat float64, lng float64) (*ShopsPayload, error) {
+	// Call the shop resolver's ShopsNearMe method
+	result, err := r.shopResolver.ShopsNearMe(ctx, lat, lng)
+	if err != nil {
+		return &ShopsPayload{
+			Success: false,
+			Message: err.Error(),
+			Data:    []*Shop{},
+		}, nil
+	}
+
+	// Convert the result to GraphQL format
+	success, _ := result["success"].(bool)
+	message, _ := result["message"].(string)
+	dataRaw, _ := result["data"].([]map[string]interface{})
+
+	var shops []*Shop
+	for _, shopData := range dataRaw {
+		shop := &Shop{
+			ID:           shopData["id"].(string),
+			Name:         shopData["name"].(string),
+			Location:     shopData["location"].(string),
+			Status:       ShopStatus(shopData["status"].(string)),
+			CoverPhoto:   shopData["coverPhoto"].(string),
+			BusinessType: BusinessType(shopData["businessType"].(string)),
+		}
+
+		// Add description if present
+		if desc, ok := shopData["description"].(string); ok && desc != "" {
+			shop.Description = &desc
+		}
+
+		// Add coordinates if present
+		if coords, ok := shopData["coordinates"].(map[string]interface{}); ok {
+			latVal, _ := coords["lat"].(float64)
+			lngVal, _ := coords["lng"].(float64)
+			if latVal != 0 && lngVal != 0 {
+				shop.Coordinates = &Coordinates{
+					Lat: latVal,
+					Lng: lngVal,
+				}
+			}
+		}
+
+		// Add business hours if present
+		if bh, ok := shopData["businessHours"].(map[string]interface{}); ok {
+			shop.BusinessHours = &BusinessHours{
+				OpenTime:  bh["openTime"].(string),
+				CloseTime: bh["closeTime"].(string),
+				Days:      bh["days"].([]string),
+			}
+		}
+
+		// Add contact details if present
+		if cd, ok := shopData["contactDetails"].(map[string]interface{}); ok {
+			shop.ContactDetails = &ContactDetails{
+				Phone:   cd["phone"].(string),
+				Email:   cd["email"].(string),
+				Address: cd["address"].(string),
+			}
+		}
+
+		// Add rating if present
+		if rating, ok := shopData["rating"].(float64); ok && rating != 0 {
+			shop.Rating = &rating
+		}
+
+		shops = append(shops, shop)
+	}
+
+	return &ShopsPayload{
+		Success: success,
+		Message: message,
+		Data:    shops,
+	}, nil
+}
+
 // User is the resolver for the user field.
 func (r *queryResolver) User(ctx context.Context, id string) (*User, error) {
 	userID, err := primitive.ObjectIDFromHex(id)

@@ -5,6 +5,7 @@ extend type Query {
   myShops(page: Int, limit: Int): ShopsPayload
   searchShops(query: String!, page: Int, limit: Int): ShopsPayload
   shopsByProduct(productName: String!): ShopsPayload
+  shopsNearMe(lat: Float!, lng: Float!): ShopsPayload
 }
 
 extend type Mutation {

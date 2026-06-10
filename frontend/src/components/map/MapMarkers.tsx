@@ -10,6 +10,7 @@ import { LocationPinMarker } from './LocationPinMarker';
 import { ProductStoreMarkers } from './ProductStoreMarkers';
 import { UserLocationMarker } from './UserLocationMarker';
 import { PostSearchMarker } from './PostSearchMarker';
+import { ShopNearMeMarker } from './ShopNearMeMarker';
 
 export function MapMarkers({
   livePosts,
@@ -26,7 +27,10 @@ export function MapMarkers({
   showPostMarkers,
   postSearchResults,
   userLocation,
-  showUserLocationMarker
+  showUserLocationMarker,
+  showShopsNearMe,
+  shopsNearMe,
+  onShopNearMeClick
 }: MapMarkersProps) {
   const map = useMap();
   const [zoom, setZoom] = useState(map.getZoom());
@@ -82,6 +86,19 @@ export function MapMarkers({
       {/* Product Store Markers */}
       {showProductStoreMarkers && productSearchStores.length > 0 && (
         <ProductStoreMarkers stores={productSearchStores} onStoreClick={onStoreMarkerClick} />
+      )}
+      
+      {/* Shops Near Me Markers */}
+      {showShopsNearMe && shopsNearMe.length > 0 && (
+        <>
+          {shopsNearMe.map((shop) => (
+            <ShopNearMeMarker
+              key={shop.id}
+              store={shop}
+              onClick={onShopNearMeClick}
+            />
+          ))}
+        </>
       )}
       
       {/* Post Search Markers - show markers with user profile pictures */}
