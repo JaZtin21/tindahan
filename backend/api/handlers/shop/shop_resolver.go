@@ -162,8 +162,8 @@ func (r *ShopResolver) Shops(ctx context.Context, page, limit int) (map[string]i
 // ShopsNearMe resolves the shopsNearMe query - public API, no auth required
 // Returns shops within 200m radius of the given location
 func (r *ShopResolver) ShopsNearMe(ctx context.Context, lat, lng float64) (map[string]interface{}, error) {
-	// Hardcoded 200m radius (0.2km)
-	radius := 0.2
+	// Hardcoded 5000m radius (5km)
+	radius := 5
 
 	// Use SearchStores with location parameters
 	searchReq := &domain.StoreSearchRequest{
