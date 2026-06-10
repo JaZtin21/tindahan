@@ -37,6 +37,14 @@ func (r *storeRepository) CreateStore(ctx context.Context, store *domain.Store) 
 	store.IsActive = true
 	store.Rating = 0.0
 
+	// Create GeoJSON location point for geospatial queries
+	if store.Latitude != 0 && store.Longitude != 0 {
+		store.Location = &domain.GeoJSONPoint{
+			Type:        "Point",
+			Coordinates: []float64{store.Longitude, store.Latitude}, // GeoJSON uses [longitude, latitude]
+		}
+	}
+
 	_, err := r.collection.InsertOne(ctx, store)
 	return err
 }
@@ -70,6 +78,27 @@ func (r *storeRepository) UpdateStore(ctx context.Context, storeID primitive.Obj
 	}
 	if updates.Longitude != nil {
 		updateDoc["longitude"] = *updates.Longitude
+	}
+	// Update GeoJSON location if latitude or longitude changed
+	if updates.Latitude != nil || updates.Longitude != nil {
+		// Get existing store to get the other coordinate if only one is being updated
+		existingStore, err := r.GetStoreByID(ctx, storeID)
+		if err == nil {
+			lat := existingStore.Latitude
+			lng := existingStore.Longitude
+			if updates.Latitude != nil {
+				lat = *updates.Latitude
+			}
+			if updates.Longitude != nil {
+				lng = *updates.Longitude
+			}
+			if lat != 0 && lng != 0 {
+				updateDoc["location"] = &domain.GeoJSONPoint{
+					Type:        "Point",
+					Coordinates: []float64{lng, lat}, // GeoJSON uses [longitude, latitude]
+				}
+			}
+		}
 	}
 	if updates.Category != nil {
 		updateDoc["category"] = *updates.Category

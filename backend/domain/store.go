@@ -51,6 +51,7 @@ type Store struct {
 	City        string             `bson:"city" json:"city" validate:"required"`
 	Latitude    float64            `bson:"latitude" json:"latitude" validate:"required,min=-90,max=90"`
 	Longitude   float64            `bson:"longitude" json:"longitude" validate:"required,min=-180,max=180"`
+	Location    *GeoJSONPoint      `bson:"location,omitempty" json:"location,omitempty"` // GeoJSON location for geospatial queries
 	OwnerID     primitive.ObjectID `bson:"owner_id" json:"owner_id"`
 	Category    string             `bson:"category" json:"category"`
 	Rating      float64            `bson:"rating" json:"rating"`
@@ -68,6 +69,12 @@ type Store struct {
 	Verification   Verification    `bson:"verification,omitempty" json:"verification,omitempty"`
 	ContactDetails ContactDetails  `bson:"contact_details,omitempty" json:"contact_details,omitempty"`
 	Status         string          `bson:"status,omitempty" json:"status,omitempty"`
+}
+
+// GeoJSONPoint represents a GeoJSON Point for geospatial queries
+type GeoJSONPoint struct {
+	Type        string    `bson:"type" json:"type"`
+	Coordinates []float64 `bson:"coordinates" json:"coordinates"`
 }
 
 type StoreResponse struct {
