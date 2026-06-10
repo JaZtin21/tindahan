@@ -1,6 +1,7 @@
 package route
 
 import (
+	"log"
 	"net/http"
 	"time"
 
@@ -89,6 +90,8 @@ func (h *UploadHandler) UploadProfilePhoto(c *gin.Context) {
 		return
 	}
 
+	oldUser, _ := h.userRepo.GetUserByID(c.Request.Context(), userObjectID)
+
 	err = h.userRepo.UpdateUserPhotos(c.Request.Context(), userObjectID, &result.URL, nil)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -96,6 +99,12 @@ func (h *UploadHandler) UploadProfilePhoto(c *gin.Context) {
 			"error":   "Failed to update user: " + err.Error(),
 		})
 		return
+	}
+
+	if oldUser != nil && oldUser.ProfilePhoto != "" {
+		if err := userUploader.DeleteImageByURL(c.Request.Context(), oldUser.ProfilePhoto); err != nil {
+			log.Printf("failed to delete old profile photo: %v", err)
+		}
 	}
 
 	user, err := h.userRepo.GetUserByID(c.Request.Context(), userObjectID)
@@ -165,6 +174,8 @@ func (h *UploadHandler) UploadCoverPhoto(c *gin.Context) {
 		return
 	}
 
+	oldUser, _ := h.userRepo.GetUserByID(c.Request.Context(), userObjectID)
+
 	err = h.userRepo.UpdateUserPhotos(c.Request.Context(), userObjectID, nil, &result.URL)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -172,6 +183,12 @@ func (h *UploadHandler) UploadCoverPhoto(c *gin.Context) {
 			"error":   "Failed to update user: " + err.Error(),
 		})
 		return
+	}
+
+	if oldUser != nil && oldUser.CoverPhoto != "" {
+		if err := userUploader.DeleteImageByURL(c.Request.Context(), oldUser.CoverPhoto); err != nil {
+			log.Printf("failed to delete old cover photo: %v", err)
+		}
 	}
 
 	user, err := h.userRepo.GetUserByID(c.Request.Context(), userObjectID)

@@ -5,7 +5,9 @@ import (
 	"log"
 	"time"
 
+	"tindahan-backend/bootstrap"
 	"tindahan-backend/domain"
+	"tindahan-backend/internal/imageutil"
 	"tindahan-backend/repository"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -24,6 +26,10 @@ func NewReviewResolver(db *mongo.Database) *ReviewResolver {
 		userRepo:   repository.NewUserRepository(db),
 		storeRepo:  repository.NewStoreRepository(db),
 	}
+}
+
+func (r *ReviewResolver) GetReviewByID(ctx context.Context, reviewID primitive.ObjectID) (*domain.Review, error) {
+	return r.reviewRepo.GetReviewByID(ctx, reviewID)
 }
 
 // ReviewsByStore resolves the reviewsByStore query
@@ -299,6 +305,7 @@ func (r *ReviewResolver) UpdateReview(ctx context.Context, userID string, review
 		text := input["text"].(string)
 		updates.Text = &text
 	}
+	var deletedPhotos []string
 	if input["photos"] != nil {
 		var photos []string
 		switch v := input["photos"].(type) {
@@ -313,6 +320,7 @@ func (r *ReviewResolver) UpdateReview(ctx context.Context, userID string, review
 			}
 		}
 		updates.Photos = photos
+		deletedPhotos = diffPhotoURLs(existingReview.Photos, photos)
 	}
 
 	if err := r.reviewRepo.UpdateReview(ctx, reviewObjectID, updates); err != nil {
@@ -320,6 +328,23 @@ func (r *ReviewResolver) UpdateReview(ctx context.Context, userID string, review
 			"success": false,
 			"message": "Failed to update review: " + err.Error(),
 		}, err
+	}
+
+	if len(deletedPhotos) > 0 {
+		env := bootstrap.LoadEnv()
+		if env.CloudinaryCloudName != "" && env.CloudinaryAPIKey != "" && env.CloudinaryAPISecret != "" {
+			uploader, err := imageutil.NewImageUploader(
+				env.CloudinaryCloudName,
+				env.CloudinaryAPIKey,
+				env.CloudinaryAPISecret,
+				env.CloudinaryFolder,
+			)
+			if err == nil {
+				for _, photoURL := range deletedPhotos {
+					_ = uploader.DeleteImageByURL(ctx, photoURL)
+				}
+			}
+		}
 	}
 
 	// Fetch updated review
@@ -330,6 +355,21 @@ func (r *ReviewResolver) UpdateReview(ctx context.Context, userID string, review
 		"message": "Review updated successfully",
 		"data":    r.reviewToMap(ctx, updatedReview),
 	}, nil
+}
+
+func diffPhotoURLs(existing, keep []string) []string {
+	keepSet := make(map[string]struct{}, len(keep))
+	for _, url := range keep {
+		keepSet[url] = struct{}{}
+	}
+
+	var removed []string
+	for _, url := range existing {
+		if _, ok := keepSet[url]; !ok {
+			removed = append(removed, url)
+		}
+	}
+	return removed
 }
 
 // DeleteReview resolves the deleteReview mutation

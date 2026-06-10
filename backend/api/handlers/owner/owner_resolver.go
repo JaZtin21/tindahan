@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"time"
 
+	"tindahan-backend/bootstrap"
 	"tindahan-backend/domain"
+	"tindahan-backend/internal/imageutil"
 	"tindahan-backend/repository"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -246,6 +248,8 @@ func (r *OwnerResolver) UpdateShop(ctx context.Context, shopId, ownerId string, 
 		}, nil
 	}
 
+	oldCoverPhoto := store.CoverPhoto
+
 	// Build update request with all fields
 	updates := &domain.UpdateStoreRequest{}
 
@@ -288,6 +292,22 @@ func (r *OwnerResolver) UpdateShop(ctx context.Context, shopId, ownerId string, 
 			"success": false,
 			"message": "Failed to update shop: " + err.Error(),
 		}, err
+	}
+
+	// Delete previous cover photo if replaced
+	if input.CoverPhoto != "" && oldCoverPhoto != "" && oldCoverPhoto != input.CoverPhoto {
+		env := bootstrap.LoadEnv()
+		if env.CloudinaryCloudName != "" && env.CloudinaryAPIKey != "" && env.CloudinaryAPISecret != "" {
+			uploader, err := imageutil.NewImageUploader(
+				env.CloudinaryCloudName,
+				env.CloudinaryAPIKey,
+				env.CloudinaryAPISecret,
+				env.CloudinaryFolder,
+			)
+			if err == nil {
+				_ = uploader.DeleteImageByURL(ctx, oldCoverPhoto)
+			}
+		}
 	}
 
 	// Fetch updated store
@@ -692,12 +712,30 @@ func (r *OwnerResolver) UpdateItem(ctx context.Context, itemId, ownerId string, 
 		}, nil
 	}
 
+	oldCoverPhoto := product.CoverPhoto
+
 	// Update in database using the provided updates
 	if err := r.productRepo.UpdateProduct(ctx, objectID, updates); err != nil {
 		return map[string]interface{}{
 			"success": false,
 			"message": "Failed to update item: " + err.Error(),
 		}, err
+	}
+
+	// Delete previous cover photo if replaced
+	if updates.ImageURL != nil && oldCoverPhoto != "" && *updates.ImageURL != oldCoverPhoto {
+		env := bootstrap.LoadEnv()
+		if env.CloudinaryCloudName != "" && env.CloudinaryAPIKey != "" && env.CloudinaryAPISecret != "" {
+			uploader, err := imageutil.NewImageUploader(
+				env.CloudinaryCloudName,
+				env.CloudinaryAPIKey,
+				env.CloudinaryAPISecret,
+				env.CloudinaryFolder,
+			)
+			if err == nil {
+				_ = uploader.DeleteImageByURL(ctx, oldCoverPhoto)
+			}
+		}
 	}
 
 	// Fetch updated product

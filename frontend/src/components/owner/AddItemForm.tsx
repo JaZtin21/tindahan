@@ -200,7 +200,7 @@ export function AddItemForm({ onAddItem, item, onCancel }: AddItemFormProps) {
 
         {/* Cover Photo Upload */}
         <div className="border border-zinc-200 dark:border-zinc-700 rounded-lg p-4">
-          <label className="block text-sm font-medium mb-4">Cover Photo</label>
+          <label className="block text-sm font-medium mb-4">Item Photo</label>
 
           {/* Photo preview */}
           {coverPhotoPreview ? (

@@ -255,7 +255,16 @@ func (r *PostResolver) UpdatePost(ctx context.Context, postID, authorID string, 
 	}
 
 	// Upload new photos to Cloudinary if provided
-	allPhotos := photos
+	allPhotos := make([]string, len(existingPost.Photos))
+	copy(allPhotos, existingPost.Photos)
+	if photos != nil {
+		allPhotos = append([]string{}, photos...)
+	}
+	var deletedPhotos []string
+	if photos != nil {
+		deletedPhotos = diffPhotoURLs(existingPost.Photos, allPhotos)
+	}
+	var userUploader *imageutil.ImageUploader
 	if len(newPhotos) > 0 {
 		env := bootstrap.LoadEnv()
 		uploader, err := imageutil.NewImageUploader(
@@ -273,7 +282,7 @@ func (r *PostResolver) UpdatePost(ctx context.Context, postID, authorID string, 
 
 		// Upload to user-specific posts folder
 		uploadFolder := env.CloudinaryFolder + "/" + authorID + "/posts"
-		userUploader := uploader.WithFolder(uploadFolder)
+		userUploader = uploader.WithFolder(uploadFolder)
 
 		for _, upload := range newPhotos {
 			if upload != nil && upload.File != nil {
@@ -282,6 +291,19 @@ func (r *PostResolver) UpdatePost(ctx context.Context, postID, authorID string, 
 					continue // Skip this file on error
 				}
 				allPhotos = append(allPhotos, result.URL)
+			}
+		}
+	} else if len(deletedPhotos) > 0 {
+		env := bootstrap.LoadEnv()
+		if env.CloudinaryCloudName != "" && env.CloudinaryAPIKey != "" && env.CloudinaryAPISecret != "" {
+			uploader, err := imageutil.NewImageUploader(
+				env.CloudinaryCloudName,
+				env.CloudinaryAPIKey,
+				env.CloudinaryAPISecret,
+				env.CloudinaryFolder,
+			)
+			if err == nil {
+				userUploader = uploader.WithFolder(env.CloudinaryFolder + "/" + authorID + "/posts")
 			}
 		}
 	}
@@ -312,9 +334,33 @@ func (r *PostResolver) UpdatePost(ctx context.Context, postID, authorID string, 
 		}, err
 	}
 
+	if len(deletedPhotos) > 0 && userUploader != nil {
+		for _, photoURL := range deletedPhotos {
+			if err := userUploader.DeleteImageByURL(ctx, photoURL); err != nil {
+				// best-effort cleanup only
+				continue
+			}
+		}
+	}
+
 	// Fetch updated post
 	updatedPost, _ := r.postRepo.GetPostByID(ctx, postObjectID)
 	return r.formatPostResponse(ctx, updatedPost, authorID), nil
+}
+
+func diffPhotoURLs(existing, keep []string) []string {
+	keepSet := make(map[string]struct{}, len(keep))
+	for _, url := range keep {
+		keepSet[url] = struct{}{}
+	}
+
+	var removed []string
+	for _, url := range existing {
+		if _, ok := keepSet[url]; !ok {
+			removed = append(removed, url)
+		}
+	}
+	return removed
 }
 
 // DeletePost deletes a post

@@ -5,6 +5,7 @@ package graphql
 import (
 	"context"
 	"fmt"
+	"log"
 	"sync"
 	"time"
 	"tindahan-backend/api/handlers/auth"
@@ -1471,12 +1472,20 @@ func (r *mutationResolver) UploadProfilePhoto(ctx context.Context, file graphql.
 		}, nil
 	}
 
+	oldUser, _ := userRepo.GetUserByID(ctx, userObjectID)
+
 	err = userRepo.UpdateUserPhotos(ctx, userObjectID, &result.URL, nil)
 	if err != nil {
 		return &UserPayload{
 			Success: false,
 			Message: "Failed to update user: " + err.Error(),
 		}, nil
+	}
+
+	if oldUser != nil && oldUser.ProfilePhoto != "" {
+		if err := userUploader.DeleteImageByURL(ctx, oldUser.ProfilePhoto); err != nil {
+			log.Printf("failed to delete old profile photo: %v", err)
+		}
 	}
 
 	user, err := userRepo.GetUserByID(ctx, userObjectID)
@@ -1557,12 +1566,20 @@ func (r *mutationResolver) UploadCoverPhoto(ctx context.Context, file graphql.Up
 		}, nil
 	}
 
+	oldUser, _ := userRepo.GetUserByID(ctx, userObjectID)
+
 	err = userRepo.UpdateUserPhotos(ctx, userObjectID, nil, &result.URL)
 	if err != nil {
 		return &UserPayload{
 			Success: false,
 			Message: "Failed to update user: " + err.Error(),
 		}, nil
+	}
+
+	if oldUser != nil && oldUser.CoverPhoto != "" {
+		if err := userUploader.DeleteImageByURL(ctx, oldUser.CoverPhoto); err != nil {
+			log.Printf("failed to delete old cover photo: %v", err)
+		}
 	}
 
 	user, err := userRepo.GetUserByID(ctx, userObjectID)
@@ -4170,9 +4187,18 @@ func (r *mutationResolver) UpdateReview(ctx context.Context, id string, input Up
 	// Handle photos - combine existing URLs with new uploads
 	var photoURLs []string
 
-	// Add existing photo URLs
+	// Add existing photo URLs if provided
 	if input.Photos != nil {
 		photoURLs = append(photoURLs, input.Photos...)
+	} else if input.NewPhotos != nil && len(input.NewPhotos) > 0 {
+		// If user is only adding new photos, preserve existing review photos
+		reviewObjectID, err := primitive.ObjectIDFromHex(id)
+		if err == nil {
+			existingReview, err := r.reviewResolver.GetReviewByID(ctx, reviewObjectID)
+			if err == nil {
+				photoURLs = append(photoURLs, existingReview.Photos...)
+			}
+		}
 	}
 
 	// Upload new photos

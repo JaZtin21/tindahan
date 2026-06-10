@@ -171,6 +171,54 @@ func (u *ImageUploader) DeleteImage(ctx context.Context, publicID string) error 
 	return nil
 }
 
+// DeleteImageByURL deletes an image from Cloudinary using the full secured URL.
+func (u *ImageUploader) DeleteImageByURL(ctx context.Context, imageURL string) error {
+	if imageURL == "" {
+		return nil
+	}
+
+	publicID := ExtractPublicIDFromURL(imageURL)
+	if publicID == "" {
+		return fmt.Errorf("unable to determine public ID from URL: %s", imageURL)
+	}
+
+	return u.DeleteImage(ctx, publicID)
+}
+
+// ExtractPublicIDFromURL extracts the Cloudinary public ID from a stored image URL.
+func ExtractPublicIDFromURL(imageURL string) string {
+	if imageURL == "" {
+		return ""
+	}
+
+	parsed, err := url.Parse(imageURL)
+	if err != nil {
+		return ""
+	}
+
+	pathStr := parsed.Path
+	if idx := strings.Index(pathStr, "/upload/"); idx >= 0 {
+		pathStr = pathStr[idx+len("/upload/"):]
+	}
+	pathStr = strings.Trim(pathStr, "/")
+	if pathStr == "" {
+		return ""
+	}
+
+	segments := strings.Split(pathStr, "/")
+	if len(segments) > 0 && strings.HasPrefix(segments[0], "v") {
+		segments = segments[1:]
+	}
+	if len(segments) == 0 {
+		return ""
+	}
+
+	lastSegment := segments[len(segments)-1]
+	segments[len(segments)-1] = strings.TrimSuffix(lastSegment, filepath.Ext(lastSegment))
+
+	return strings.Join(segments, "/")
+}
+
 // GetOptimizedURL returns an optimized URL for an existing image
 func (u *ImageUploader) GetOptimizedURL(publicID string, width, height int) (string, error) {
 	img, err := u.cloudinary.Image(publicID)
