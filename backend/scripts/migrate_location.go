@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"log"
-	"os"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -11,23 +10,26 @@ import (
 )
 
 func main() {
-	// Get MongoDB connection string from environment
-	mongoURI := os.Getenv("MONGODB_URI")
-	if mongoURI == "" {
-		mongoURI = "mongodb://localhost:27017"
-	}
+	// STRICT HARDCODED LOCAL VALUES ONLY
+	mongoURI := "mongodb://admin:password@127.0.0.1:27017/tindahan_db?authSource=admin&replicaSet=rs0&directConnection=true"
+	dbName := "tindahan_db"
 
-	dbName := os.Getenv("DB_NAME")
-	if dbName == "" {
-		dbName = "tindahan_db"
-	}
+	log.Printf("Running migration strictly on LOCAL database: %s", dbName)
 
-	// Connect to MongoDB
-	client, err := mongo.Connect(context.Background(), options.Client().ApplyURI(mongoURI))
+	// Force driver to ignore any replica set discovery redirects
+	clientOpts := options.Client().ApplyURI(mongoURI).SetDirect(true)
+
+	client, err := mongo.Connect(context.Background(), clientOpts)
 	if err != nil {
 		log.Fatalf("Failed to connect to MongoDB: %v", err)
 	}
 	defer client.Disconnect(context.Background())
+
+	// Force connection test immediately
+	err = client.Ping(context.Background(), nil)
+	if err != nil {
+		log.Fatalf("Database check failed. Is your local Docker container running? Error: %v", err)
+	}
 
 	db := client.Database(dbName)
 	storesCollection := db.Collection("stores")
@@ -80,7 +82,7 @@ func main() {
 
 		location := bson.M{
 			"type":        "Point",
-			"coordinates": []float64{lng, lat}, // GeoJSON uses [longitude, latitude]
+			"coordinates": []float64{lng, lat},
 		}
 
 		_, err := storesCollection.UpdateOne(
@@ -95,5 +97,5 @@ func main() {
 		}
 	}
 
-	log.Println("Migration completed")
+	log.Println("Migration completed successfully!")
 }

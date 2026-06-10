@@ -171,8 +171,10 @@ func (r *storeRepository) SearchStores(ctx context.Context, req *domain.StoreSea
 		filter["city"] = req.City
 	}
 
+	isLocationSearch := req.Lat != 0 && req.Lng != 0 && req.Radius > 0
+
 	// Location-based search
-	if req.Lat != 0 && req.Lng != 0 && req.Radius > 0 {
+	if isLocationSearch {
 		filter["location"] = bson.M{
 			"$nearSphere": bson.M{
 				"$geometry": bson.M{
@@ -194,11 +196,16 @@ func (r *storeRepository) SearchStores(ctx context.Context, req *domain.StoreSea
 
 	skip := (req.Page - 1) * req.Limit
 
-	cursor, err := r.collection.Find(
-		ctx,
-		filter,
-		options.Find().SetSkip(int64(skip)).SetLimit(int64(req.Limit)).SetSort(bson.M{"rating": -1}),
-	)
+	// Configure Find Options
+	findOpts := options.Find().SetSkip(int64(skip)).SetLimit(int64(req.Limit))
+
+	// FIX 1: Only sort by rating if NOT doing a location search.
+	// If doing a location search, let MongoDB sort strictly by closest proximity.
+	if !isLocationSearch {
+		findOpts.SetSort(bson.M{"rating": -1})
+	}
+
+	cursor, err := r.collection.Find(ctx, filter, findOpts)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -213,7 +220,28 @@ func (r *storeRepository) SearchStores(ctx context.Context, req *domain.StoreSea
 		stores = append(stores, &store)
 	}
 
-	total, err := r.collection.CountDocuments(ctx, filter)
+	// FIX 2: Create a separate filter for CountDocuments that uses $geoWithin instead of $nearSphere
+	countFilter := bson.M{"is_active": true}
+	for k, v := range filter {
+		if k != "location" {
+			countFilter[k] = v
+		}
+	}
+
+	if isLocationSearch {
+		// Convert max distance from meters to radians for centerSphere (Earth radius ~6378.1 km)
+		radiusInRadians := req.Radius / 6378.1
+		countFilter["location"] = bson.M{
+			"$geoWithin": bson.M{
+				"$centerSphere": []interface{}{
+					[]float64{req.Lng, req.Lat},
+					radiusInRadians,
+				},
+			},
+		}
+	}
+
+	total, err := r.collection.CountDocuments(ctx, countFilter)
 	if err != nil {
 		return nil, 0, err
 	}
