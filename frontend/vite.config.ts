@@ -22,21 +22,21 @@ export default defineConfig({
         start_url: '/',
         icons: [
           {
-            src: '/icon-192.svg',
+            src: 'icon-192.svg', // Removed leading slash
             sizes: '192x192',
             type: 'image/svg+xml',
             purpose: 'any'
           },
           {
-            src: '/icon-512.svg',
+            src: 'icon-512.svg', // Removed leading slash
             sizes: '512x512',
             type: 'image/svg+xml',
             purpose: 'maskable'
           },
           {
-            src: '/icon-180.svg',
+            src: 'icon-180.svg', // Removed leading slash
             sizes: '180x180',
-            type: 'image/svg+xml' // Purpose removed to solve console errors
+            type: 'image/svg+xml'
           }
         ]
       }
