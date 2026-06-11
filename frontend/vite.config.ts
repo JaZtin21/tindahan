@@ -9,7 +9,10 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['icon-192.svg', 'icon-512.svg ', 'icon-180.svg'],
+      injectRegister: 'auto', // Explicitly force the framework to register the worker at root
+      scope: '/',             // Enforce absolute root scope
+      base: '/',              // Enforce asset base root matching layout
+      includeAssets: ['icon-192.svg', 'icon-512.svg', 'icon-180.svg'],
       manifest: {
         name: 'Tindahan',
         short_name: 'Tindahan',
@@ -18,24 +21,24 @@ export default defineConfig({
         background_color: '#ffffff',
         display: 'standalone',
         orientation: 'portrait',
-        scope: '/',
-        start_url: '/',
+        scope: '/',          // Must explicitly match the parent scope string above
+        start_url: '/',      // Absolute fallback path matching the server endpoint
         icons: [
           {
             src: 'icon-192.svg',
-            sizes: '380x380',     // Match the physical 380x380 vector dimensions
+            sizes: 'any',
             type: 'image/svg+xml',
             purpose: 'any'
           },
           {
             src: 'icon-512.svg',
-            sizes: '380x380',     // Match the physical 380x380 vector dimensions
+            sizes: 'any',
             type: 'image/svg+xml',
             purpose: 'maskable'
           },
           {
             src: 'icon-180.svg',
-            sizes: '380x380',     // Match the physical 380x380 vector dimensions
+            sizes: '180x180',
             type: 'image/svg+xml'
           }
         ]
