@@ -22,20 +22,20 @@ export default defineConfig({
         start_url: '/',
         icons: [
           {
-            src: 'icon-192.svg', // Removed leading slash
-            sizes: '192x192',
+            src: 'icon-192.svg',
+            sizes: 'any', // Change from '192x192' to 'any'
             type: 'image/svg+xml',
             purpose: 'any'
           },
           {
-            src: 'icon-512.svg', // Removed leading slash
-            sizes: '512x512',
+            src: 'icon-512.svg',
+            sizes: 'any', // Change from '512x512' to 'any'
             type: 'image/svg+xml',
             purpose: 'maskable'
           },
           {
-            src: 'icon-180.svg', // Removed leading slash
-            sizes: '180x180',
+            src: 'icon-180.svg',
+            sizes: '180x180', // Keep this as-is for Apple touch icon fallbacks
             type: 'image/svg+xml'
           }
         ]
