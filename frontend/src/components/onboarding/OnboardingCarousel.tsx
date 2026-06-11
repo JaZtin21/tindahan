@@ -51,44 +51,63 @@ export function OnboardingCarousel() {
     <div className="fixed inset-0 bg-black flex flex-col">
       {/* Image Container */}
       <div className="relative flex-1 overflow-hidden">
+
         {/* Slide 1 */}
-     {currentSlide === 0 && (
-          <div key={`slide1-${currentSlide}`} className="absolute inset-0 animate-fade-in">
-            <img
-              src="/slide3.png"
-              alt=""
-              className="w-full h-full md:object-cover fill scale-x-[2.54] scale-y-100 md:scale-100 origin-[179px] md:origin-center"
-            />
-            <div className="absolute inset-0 bg-black/40" />
-          </div>
-        )}
+        <div
+          style={{
+            opacity: currentSlide === 0 ? 1 : 0,
+            transition: 'opacity 700ms ease-in-out',
+            pointerEvents: currentSlide === 0 ? 'auto' : 'none',
+            zIndex: currentSlide === 0 ? 10 : 0
+          }}
+          className="absolute inset-0"
+        >
+          <img
+            src="/slide3.png"
+            alt=""
+            className="w-full h-full md:object-cover fill scale-x-[2.54] scale-y-100 md:scale-100 origin-[179px] md:origin-center"
+          />
+          <div className="absolute inset-0 bg-black/40" />
+        </div>
 
         {/* Slide 2 */}
-     {currentSlide === 1 && (
-          <div key={`slide2-${currentSlide}`} className="absolute inset-0 animate-fade-in">
-            <img
-              src="/slide1.png"
-              alt="Request Products"
-              className="w-full h-full md:object-cover fill scale-x-[2.54] scale-y-100 md:scale-100 origin-[260px] md:origin-center"
-            />
-            <div className="absolute inset-0 bg-black/40" />
-          </div>
-        )}
+        <div
+          style={{
+            opacity: currentSlide === 1 ? 1 : 0,
+            transition: 'opacity 700ms ease-in-out',
+            pointerEvents: currentSlide === 1 ? 'auto' : 'none',
+            zIndex: currentSlide === 1 ? 10 : 0
+          }}
+          className="absolute inset-0"
+        >
+          <img
+            src="/slide1.png"
+            alt="Request Products"
+            className="w-full h-full md:object-cover fill scale-x-[2.54] scale-y-100 md:scale-100 origin-[260px] md:origin-center"
+          />
+          <div className="absolute inset-0 bg-black/40" />
+        </div>
 
         {/* Slide 3 */}
-           {currentSlide === 2 && (
-          <div key={`slide3-${currentSlide}`} className="absolute inset-0 animate-fade-in">
-            <img
-              src="/slide2.png"
-              alt="Start Exploring"
-              className="w-full h-full md:object-cover fill scale-x-[2.54] scale-y-100 md:scale-100"
-            />
-            <div className="absolute inset-0 bg-black/40" />
-          </div>
-        )}
+        <div
+          style={{
+            opacity: currentSlide === 2 ? 1 : 0,
+            transition: 'opacity 700ms ease-in-out',
+            pointerEvents: currentSlide === 2 ? 'auto' : 'none',
+            zIndex: currentSlide === 2 ? 10 : 0
+          }}
+          className="absolute inset-0"
+        >
+          <img
+            src="/slide2.png"
+            alt="Start Exploring"
+            className="w-full h-full md:object-cover fill scale-x-[2.54] scale-y-100 md:scale-100"
+          />
+          <div className="absolute inset-0 bg-black/40" />
+        </div>
 
         {/* Text Content */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center px-8 text-center text-white">
+        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center px-8 text-center text-white">
           <h1 className="text-4xl md:text-6xl font-bold mb-4 drop-shadow-lg">
             {slides[currentSlide].title}
           </h1>
@@ -119,20 +138,21 @@ export function OnboardingCarousel() {
       </div>
 
       {/* Dot Controls */}
-      <div className="absolute bottom-8 left-0 right-0 flex justify-center gap-3">
+      <div className="absolute bottom-8 left-0 right-0 z-30 flex justify-center gap-3">
         {slides.map((_, index) => (
           <button
             key={index}
             onClick={() => goToSlide(index)}
-            className={`w-3 h-3 rounded-full transition-all ${
-              index === currentSlide
-                ? 'bg-white scale-125'
-                : 'bg-white/50 hover:bg-white/70'
-            }`}
+            className={`w-3 h-3 rounded-full transition-all ${index === currentSlide
+              ? 'bg-white scale-125'
+              : 'bg-white/50 hover:bg-white/70'
+              }`}
             aria-label={`Go to slide ${index + 1}`}
           />
         ))}
       </div>
     </div>
+
+
   )
 }

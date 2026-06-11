@@ -4,15 +4,15 @@ import { OnboardingCarousel } from '../components/onboarding/OnboardingCarousel'
 
 export function HomePage() {
   const navigate = useNavigate()
-  const onboardingCompleted = localStorage.getItem('onboardingCompleted') 
+  const onboardingCompleted = localStorage.getItem('onboardingCompleted')
 
 
-  if(onboardingCompleted){
+  if (onboardingCompleted === 'true') {
     window.location.href = "/map";
-  }else{
-     return <OnboardingCarousel />
+  } else {
+    return <OnboardingCarousel />
   }
 
- 
+
 }
 

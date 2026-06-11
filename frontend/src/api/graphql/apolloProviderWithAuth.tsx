@@ -147,6 +147,8 @@ const ApolloProviderWithAuth = ({ children }: any) => {
                 await authClient.mutate({
                     mutation: LOGOUT_MUTATION,
                 });
+                //how to set local storage item from here?
+                localStorage.setItem('onboardingCompleted', 'false');
                 console.log('[ApolloProvider] Backend logout successful');
             } catch (error) {
                 console.error('[ApolloProvider] Backend logout failed:', error);
