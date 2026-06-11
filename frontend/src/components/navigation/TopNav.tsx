@@ -84,6 +84,26 @@ export function TopNav() {
   const [imgError, setImgError] = useState(false)
   const safePhoto = getSafeProfilePhoto()
 
+  window.deferredPWAInstallPrompt = null;
+
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    window.deferredPWAInstallPrompt = e;
+  });
+
+  const handlePWAInstall = async () => {
+    const promptEvent = window.deferredPWAInstallPrompt;
+    if (!promptEvent) return;
+
+    setIsDropdownOpen(false);
+    promptEvent.prompt();
+
+    const { outcome } = await promptEvent.userChoice;
+    if (outcome === 'accepted') {
+      window.deferredPWAInstallPrompt = null;
+    }
+  };
+
   return (
     <header className="border-b border-zinc-200 dark:border-zinc-800 fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-[5px]  [-webkit-backdrop-filter:blur(5px)] dark:bg-zinc-900">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
@@ -185,6 +205,15 @@ export function TopNav() {
                           className="w-full text-left px-4 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
                         >
                           Shops
+                        </button>
+                      )}
+                      {/* The Install Button */}
+                      {window.deferredPWAInstallPrompt && (
+                        <button
+                          onClick={handlePWAInstall}
+                          className="w-full text-left px-4 py-2 text-sm font-medium text-blue-600 dark:text-blue-400 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
+                        >
+                          Install App
                         </button>
                       )}
                       <button

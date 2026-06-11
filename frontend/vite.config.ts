@@ -25,19 +25,18 @@ export default defineConfig({
             src: '/icon-192.svg',
             sizes: '192x192',
             type: 'image/svg+xml',
-            purpose: 'any maskable'
+            purpose: 'any'
           },
           {
             src: '/icon-512.svg',
             sizes: '512x512',
             type: 'image/svg+xml',
-            purpose: 'any maskable'
+            purpose: 'maskable'
           },
           {
             src: '/icon-180.svg',
             sizes: '180x180',
-            type: 'image/svg+xml',
-            purpose: 'apple-touch-icon'
+            type: 'image/svg+xml' // Purpose removed to solve console errors
           }
         ]
       }
@@ -50,4 +49,3 @@ export default defineConfig({
     allowedHosts: true
   },
 })
-
