@@ -9,39 +9,36 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
-      injectRegister: 'auto', // Explicitly force the framework to register the worker at root
-      scope: '/',             // Enforce absolute root scope
-      base: '/',              // Enforce asset base root matching layout
-      includeAssets: ['icon-192.svg', 'icon-512.svg', 'icon-180.svg'],
+      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'maskable-icon.png'],
       manifest: {
-        name: 'Tindahan',
-        short_name: 'Tindahan',
-        description: 'A local marketplace for finding shops and products in your area',
-        theme_color: '#efb666',
+        name: 'My Awesome React App',
+        short_name: 'ReactPWA',
+        description: 'My Progressive Web App running on Vite and React',
+        theme_color: '#ffffff',
         background_color: '#ffffff',
         display: 'standalone',
-        orientation: 'portrait',
-        scope: '/',          // Must explicitly match the parent scope string above
-        start_url: '/',      // Absolute fallback path matching the server endpoint
+        start_url: '/',
         icons: [
           {
-            src: 'icon-192.svg',
-            sizes: 'any',
-            type: 'image/svg+xml',
-            purpose: 'any'
+            src: 'pwa-192x192.png',
+            sizes: '192x192',
+            type: 'image/png'
           },
           {
-            src: 'icon-512.svg',
-            sizes: 'any',
-            type: 'image/svg+xml',
-            purpose: 'maskable'
+            src: 'pwa-512x512.png',
+            sizes: '512x512',
+            type: 'image/png'
           },
           {
-            src: 'icon-180.svg',
-            sizes: '180x180',
-            type: 'image/svg+xml'
+            src: 'pwa-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any maskable'
           }
         ]
+      },
+      workbox: {
+        globPatterns: ['**/*.{js,css,html,ico,png,svg}']
       }
     })
   ],

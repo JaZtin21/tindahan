@@ -8,6 +8,10 @@ import ApolloProviderWithAuth from './api/graphql/apolloProviderWithAuth'
 import { store } from './store'
 import { ThemeProvider } from './theme'
 import { AppNavigator } from './routes/AppNavigator'
+import { registerSW } from 'virtual:pwa-register'
+
+// Add this line to automatically register the Vite PWA service worker
+registerSW({ immediate: true })
 
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || ''
 

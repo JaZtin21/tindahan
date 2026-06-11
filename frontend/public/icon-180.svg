@@ -1,6 +1,0 @@
-<svg xmlns="http://w3.org" viewBox="0 0 380 380" width="380" height="380">
-  <!-- Background square to verify maskable/safe areas -->
-  <rect width="380" height="380" fill="#efb666" rx="40"/>
-  <!-- Central placeholder icon shape (Letter T for Tindahan) -->
-  <text x="50%" y="65%" font-family="sans-serif" font-size="180" font-weight="bold" fill="#ffffff" text-anchor="middle">T</text>
-</svg>
