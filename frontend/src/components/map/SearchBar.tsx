@@ -195,7 +195,7 @@ export function SearchBar({ onSearch, onStoreSelect, onProductSelect, onPostSele
           onChange={(e) => handleInputChange(e.target.value)}
           onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
           placeholder={placeholder}
-          className="w-full px-3 py-2 md:py-3 md:px-4 pl-12 md:text-lg text-md   rounded-full bg-white/80 backdrop-blur-[5px] [-webkit-backdrop-filter:blur(5px)] dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent shadow-sm transition-colors"
+          className="w-full px-3 pl-11 py-2 md:py-3 md:px-4 md:pl-11 md:text-lg text-md   rounded-full bg-white/80 backdrop-blur-[5px] [-webkit-backdrop-filter:blur(5px)] dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent shadow-sm transition-colors"
         />
         <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-zinc-400">
           {isLoading ? (
