@@ -84,31 +84,49 @@ export function TopNav() {
   const [imgError, setImgError] = useState(false)
   const safePhoto = getSafeProfilePhoto()
 
-  window.deferredPWAInstallPrompt = null;
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [isInstallable, setIsInstallable] = useState(false);
 
-  window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();
-    window.deferredPWAInstallPrompt = e;
-  });
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e) => {
+      // Prevent the mini-infobar from appearing automatically on mobile
+      e.preventDefault();
+      // Stash the event so it can be triggered later.
+      setDeferredPrompt(e);
+      // Update UI notify the user they can install the PWA
+      setIsInstallable(true);
+    };
 
-  const handlePWAInstall = async () => {
-    const promptEvent = window.deferredPWAInstallPrompt;
-    if (!promptEvent) return;
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
 
-    setIsDropdownOpen(false);
-    promptEvent.prompt();
+    // Clean up event listener
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
 
-    const { outcome } = await promptEvent.userChoice;
-    if (outcome === 'accepted') {
-      window.deferredPWAInstallPrompt = null;
-    }
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) return;
+
+    setIsDropdownOpen(false); // Close menu dropdown wrapper if open
+
+    // Show the browser install prompt
+    deferredPrompt.prompt();
+
+    // Wait for the user to respond to the prompt
+    const { outcome } = await deferredPrompt.userChoice;
+    console.log(`User response to the install prompt: ${outcome}`);
+
+    // We've used the prompt, and can't use it again, clear it
+    setDeferredPrompt(null);
+    setIsInstallable(false);
   };
 
   return (
     <header className="border-b border-zinc-200 dark:border-zinc-800 fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-[5px]  [-webkit-backdrop-filter:blur(5px)] dark:bg-zinc-900">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4">
         <Link to="/map" className="font-semibold tracking-tight flex flex-row gap-2 items-center text-zinc-600 dark:text-zinc-300">
-          <img src='/icon-180.svg' className='h-8 w-8 ' />
+          <img src='/pwa-192x192.png' className='h-8 w-8 ' />
           Tindahan
         </Link>
         <nav className="flex items-center gap-4 text-sm text-zinc-600 dark:text-zinc-300">
@@ -208,14 +226,6 @@ export function TopNav() {
                         </button>
                       )}
                       {/* The Install Button */}
-                      {window.deferredPWAInstallPrompt && (
-                        <button
-                          onClick={handlePWAInstall}
-                          className="w-full text-left px-4 py-2 text-sm font-medium text-blue-600 dark:text-blue-400 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
-                        >
-                          Install App
-                        </button>
-                      )}
                       <button
                         onClick={() => {
                           dispatch(toggleTheme())
@@ -224,6 +234,16 @@ export function TopNav() {
                       >
                         {isDarkMode ? 'Light Mode' : 'Dark Mode'}
                       </button>
+
+                      {/* Dynamic Custom Install Button */}
+                      {isInstallable && (
+                        <button
+                          onClick={handleInstallClick}
+                          className="w-full text-left px-4 py-2 text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
+                        >
+                          ✨ Install App
+                        </button>
+                      )}
                       <button
                         onClick={handleLogout}
                         className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors"
