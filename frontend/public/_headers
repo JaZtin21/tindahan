@@ -4,9 +4,16 @@
   Cache-Control: no-store, no-cache, must-revalidate, max-age=0
 /manifest.webmanifest
   Cache-Control: no-store, no-cache, must-revalidate, max-age=0
-/*.png
-  Content-Type: image/png
-  Cache-Control: public, max-age=0, must-revalidate
-/*.svg
+  Access-Control-Allow-Origin: *
+/icon-192.svg
   Content-Type: image/svg+xml
-  Cache-Control: public, max-age=0, must-revalidate
+  Access-Control-Allow-Origin: *
+  Cache-Control: no-store, no-cache, must-revalidate, max-age=0
+/icon-512.svg
+  Content-Type: image/svg+xml
+  Access-Control-Allow-Origin: *
+  Cache-Control: no-store, no-cache, must-revalidate, max-age=0
+/icon-180.svg
+  Content-Type: image/svg+xml
+  Access-Control-Allow-Origin: *
+  Cache-Control: no-store, no-cache, must-revalidate, max-age=0
