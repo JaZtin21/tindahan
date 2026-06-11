@@ -15,6 +15,9 @@
   --color-primary-800: #1e40af;
   --color-primary-900: #1e3a8a;
 
+  --color-secondary: #4cd7a8;
+  --color-secondary-50: #009f74;
+
   /* Custom surface colors */
   --color-surface: #f8fafc;
   --color-surface-dark: #1f2937;
@@ -37,6 +40,7 @@
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
@@ -46,6 +50,7 @@
   from {
     opacity: 1;
   }
+
   to {
     opacity: 0;
   }
@@ -64,7 +69,8 @@ html {
   color-scheme: light;
 }
 
-html, body {
+html,
+body {
   height: 100%;
 }
 

@@ -195,7 +195,7 @@ export function SearchBar({ onSearch, onStoreSelect, onProductSelect, onPostSele
           onChange={(e) => handleInputChange(e.target.value)}
           onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
           placeholder={placeholder}
-          className="w-full px-4 py-3 pl-12 text-lg   rounded-full bg-white/80 backdrop-blur-[5px] dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent shadow-sm transition-colors"
+          className="w-full px-3 py-2 md:py-3 md:px-4 pl-12 md:text-lg text-md   rounded-full bg-white/80 backdrop-blur-[5px] [-webkit-backdrop-filter:blur(5px)] dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent shadow-sm transition-colors"
         />
         <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-zinc-400">
           {isLoading ? (
@@ -210,7 +210,7 @@ export function SearchBar({ onSearch, onStoreSelect, onProductSelect, onPostSele
       {showClearMarkersButton && onClearAllMarkers && (
         <button
           onClick={cleanMarkers}
-          className="px-4 py-3 bg-primary hover:bg-primary-700 text-white rounded-full shadow-sm transition-colors flex items-center gap-2"
+          className="px-3 py-2 md:py-3 md:px-4 bg-primary hover:bg-primary-700 text-white rounded-full shadow-sm transition-colors flex items-center gap-2"
           title="Clear all markers"
         >
           <FiX size={20} />

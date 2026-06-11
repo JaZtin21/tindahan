@@ -25,7 +25,7 @@ export function BottomSheet({
   const [isDragging, setIsDragging] = useState(false);
   const [translateY, setTranslateY] = useState(100);
   const contentRef = useRef<HTMLDivElement>(null);
-  
+
   console.log('he')
   // Drag state stored in refs to avoid re-renders during drag
   const dragState = useRef({
@@ -39,26 +39,26 @@ export function BottomSheet({
   const animateToSnap = useCallback((targetTranslateY: number, shouldClose = false) => {
     setIsAnimating(true);
     setTranslateY(targetTranslateY);
-    
+
     if (shouldClose) {
       onClose();
     }
-    
+
     setTimeout(() => setIsAnimating(false), 300);
   }, [onClose]);
 
   // Handle open/close animation
-useEffect(() => {
-  if (isOpen) {
-    setIsAnimating(true);
-    setTranslateY(100); // Starts offscreen at the bottom
-    
-    // Fix: Animate to 0 instead of 5
-    const timer = setTimeout(() => setTranslateY(0), 10); 
-    setTimeout(() => setIsAnimating(false), 310);
-    return () => clearTimeout(timer);
-  }
-}, [isOpen]);
+  useEffect(() => {
+    if (isOpen) {
+      setIsAnimating(true);
+      setTranslateY(100); // Starts offscreen at the bottom
+
+      // Fix: Animate to 0 instead of 5
+      const timer = setTimeout(() => setTranslateY(0), 10);
+      setTimeout(() => setIsAnimating(false), 310);
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen]);
 
   // Handle body scroll lock
   useEffect(() => {
@@ -89,7 +89,7 @@ useEffect(() => {
     const now = Date.now();
     const dt = now - dragState.current.lastTime;
     const dy = clientY - dragState.current.lastY;
-    
+
     if (dt > 0) dragState.current.velocity = dy / dt;
     dragState.current.lastY = clientY;
     dragState.current.lastTime = now;
@@ -107,7 +107,7 @@ useEffect(() => {
     // Close if dragged past 50% or fast swipe down
     const threshold = 50; // halfway between 5% (open) and 100% (closed)
     const shouldClose = translateY > threshold || dragState.current.velocity > 0.8;
-    
+
     animateToSnap(shouldClose ? 100 : 5, shouldClose);
   };
 
@@ -122,24 +122,23 @@ useEffect(() => {
   return (
     <div className="fixed inset-0 z-[60]" style={{ pointerEvents: isOpen ? 'auto' : 'none' }}>
       <div
-        className={`absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${
-          isOpen && translateY < 100 ? 'opacity-100' : 'opacity-0'
-        }`}
+        className={`absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${isOpen && translateY < 100 ? 'opacity-100' : 'opacity-0'
+          }`}
         onClick={handleBackdropClick}
       />
 
       <div
         className="absolute left-0 right-0 bottom-0 bg-white dark:bg-zinc-900 rounded-t-2xl shadow-2xl flex flex-col"
         style={{
-          maxHeight: '95vh',
-          height: '95vh',
+          maxHeight: '90vh',
+          height: '90vh',
           transform: `translateY(${translateY}%)`,
           transition: isDragging ? 'none' : 'transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)',
           touchAction: 'none',
         }}
       >
         {/* Drag Handle - Only this area should be draggable */}
-        <div 
+        <div
           className="w-full flex justify-center pt-2 pb-1 cursor-grab active:cursor-grabbing shrink-0"
           onMouseDown={(e) => handleDragStart(e.clientY)}
           onMouseMove={(e) => handleDragMove(e.clientY)}
@@ -175,7 +174,7 @@ useEffect(() => {
           </div>
         )}
 
-        <div 
+        <div
           ref={contentRef}
           className="overflow-y-auto p-4 pb-20 flex-1"
         >

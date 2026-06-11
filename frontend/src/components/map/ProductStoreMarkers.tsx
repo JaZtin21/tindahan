@@ -50,7 +50,7 @@ export function ProductStoreMarkers({ stores, onStoreClick }: ProductStoreMarker
         // Create shop icon using emoji - same style as shop marker
         const icon = L.divIcon({
           html: `
-            <div style="position: relative; width: 28px; height: 28px; background: white; border-radius: 50%; border: 2px solid #efb666; display: flex; align-items: center; justify-content: center; font-size: 16px; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.3); transition: transform 0.2s; will-change: transform;">
+            <div style="position: relative; width: 28px; height: 28px; background: white; border-radius: 50%; border: 2px solid #009f74; display: flex; align-items: center; justify-content: center; font-size: 16px; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.3); transition: transform 0.2s; will-change: transform;">
               🏪
             </div>
           `,

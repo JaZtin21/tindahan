@@ -416,7 +416,7 @@ function SideNavContent({
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto h-[calc(100vh-64px)] md:h-[calc(100vh-64px)]">
+      <div className="flex-1 overflow-y-auto">
         {selectedLocation ? (
           <div className="flex flex-col min-h-full">
             <div className="aspect-video bg-zinc-200 dark:bg-zinc-800 overflow-hidden flex-shrink-0">

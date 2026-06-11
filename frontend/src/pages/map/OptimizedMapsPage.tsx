@@ -141,7 +141,7 @@ export function OptimizedMapsPage() {
   const [productSearchStores, setProductSearchStores] = useState<any[]>([]);
   const [productNameForSearch, setProductNameForSearch] = useState<string | null>(null);
   const [selectedStore, setSelectedStore] = useState<any | null>(null);
-  
+
   // Shops near me state
   const [showShopsNearMe, setShowShopsNearMe] = useState(false);
   const [shopsNearMe, setShopsNearMe] = useState<any[]>([]);
@@ -330,11 +330,11 @@ export function OptimizedMapsPage() {
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         const { latitude, longitude } = position.coords;
-        
+
         // Set user location and show marker
         setUserLocation({ lat: latitude, lng: longitude });
         setShowLocationMarker(true);
-        
+
         // Center map on user's location
         if (mapRef.current) {
           mapRef.current.flyTo([latitude, longitude], 18, {
@@ -345,7 +345,7 @@ export function OptimizedMapsPage() {
         // Fetch shops near me
         try {
           const result = await refetchShopsNearMe({ lat: latitude, lng: longitude }) as { data?: { shopsNearMe?: { success: boolean; data: any[] } } };
-          
+
           if (result.data?.shopsNearMe?.success) {
             const shops = result.data.shopsNearMe.data.map((shop: any) => ({
               id: shop.id,
@@ -376,9 +376,9 @@ export function OptimizedMapsPage() {
       (error) => {
         console.error('Error getting location:', error);
         setIsLoadingShopsNearMe(false);
-        
+
         let errorMessage = 'Unable to get your current location.';
-        switch(error.code) {
+        switch (error.code) {
           case error.PERMISSION_DENIED:
             errorMessage = 'Location access denied. Please enable location permissions.';
             break;
@@ -389,7 +389,7 @@ export function OptimizedMapsPage() {
             errorMessage = 'Location request timed out.';
             break;
         }
-        
+
         showError('Location Error', errorMessage);
       },
       {
@@ -773,46 +773,45 @@ export function OptimizedMapsPage() {
         <button
           onClick={handleGetCurrentLocation}
           disabled={isGettingLocation}
-          className={`w-12 h-12 rounded-full shadow-xl transition-all flex items-center justify-center ${isGettingLocation
-            ? 'bg-primary text-white animate-pulse'
-            : 'bg-white hover:bg-gray-100 text-gray-700'
+          className={`w-10 h-10 md:w-12 md:h-12 rounded-full shadow-md transition-all flex items-center justify-center ${isGettingLocation
+            ? 'bg-primary/80 backdrop-blur-[5px] [-webkit-backdrop-filter:blur(5px)] text-white animate-pulse'
+            : 'bg-white/80 backdrop-blur-[5px] [-webkit-backdrop-filter:blur(5px)] hover:bg-gray-100 text-gray-700'
             }`}
           title={isGettingLocation ? 'Getting location...' : 'Get my current location'}
         >
           {isGettingLocation ? (
             <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
           ) : (
-            <MdMyLocation className="w-6 h-6" />
+            <MdMyLocation className="w-6 h-6 text-primary-700" />
           )}
         </button>
-        
+
         {/* Shop Near Me Toggle Button */}
         <button
           onClick={handleToggleShopsNearMe}
           disabled={isLoadingShopsNearMe}
-          className={`flex items-center gap-2 px-4 py-3 rounded-full shadow-xl transition-colors ${
-            showShopsNearMe 
-              ? 'bg-green-600 hover:bg-green-700 text-white' 
-              : 'bg-white hover:bg-gray-100 text-gray-700'
-          }`}
+          className={`flex items-center gap-2 px-3 py-2 md:px-4 text-sm md:text-base  md:py-3 rounded-full shadow-md transition-colors ${showShopsNearMe
+            ? 'bg-secondary/80 backdrop-blur-[5px] [-webkit-backdrop-filter:blur(5px)] hover:bg-secondary-50 text-white'
+            : 'bg-secondary/80 backdrop-blur-[5px] [-webkit-backdrop-filter:blur(5px)] hover:bg-secondary-50 text-white'
+            }`}
           title={showShopsNearMe ? 'Hide shops near me' : 'Show shops near me'}
         >
           {isLoadingShopsNearMe ? (
-            <div className="w-5 h-5 border-2 border-gray-700 border-t-transparent rounded-full animate-spin"></div>
+            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
           ) : (
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5" fill="none" stroke="white" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
           )}
-          <span className="font-medium">Shop Near Me</span>
+          <span className="font-medium">{showShopsNearMe ? 'Hide Shops' : 'Shop Near Me'}</span>
         </button>
 
         {/* Add Post Button - Only show if authenticated */}
         {isAuthenticated && (
           <button
             onClick={() => setIsCreatePostModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-3 bg-primary hover:bg-primary-700 text-white rounded-full shadow-xl transition-colors"
+            className="flex items-center gap-2 px-3 py-2 md:px-4 text-sm md:text-base md:py-3 bg-primary/80 backdrop-blur-[5px] [-webkit-backdrop-filter:blur(5px)] hover:bg-primary-700 text-white rounded-full shadow-md transition-colors"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />

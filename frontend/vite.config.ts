@@ -14,7 +14,7 @@ export default defineConfig({
         name: 'Tindahan',
         short_name: 'Tindahan',
         description: 'A local marketplace for finding shops and products in your area',
-        theme_color: '#10b981',
+        theme_color: '#efb666',
         background_color: '#ffffff',
         display: 'standalone',
         orientation: 'portrait',
@@ -47,7 +47,7 @@ export default defineConfig({
     headers: {
       'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
     },
-    allowedHosts: true 
+    allowedHosts: true
   },
 })
 
