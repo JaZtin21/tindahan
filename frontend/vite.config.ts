@@ -11,9 +11,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png'],
       manifest: {
-        name: 'My Awesome React App',
-        short_name: 'ReactPWA',
-        description: 'My Progressive Web App running on Vite and React',
+        name: 'Tindahan',
+        short_name: 'Tindahan',
+        description: 'Tindahan app to find local shops and products in your area',
         theme_color: '#ffffff',
         background_color: '#ffffff',
         display: 'standalone',
@@ -49,7 +49,7 @@ export default defineConfig({
           },
           {
             src: 'screenshot-mobile.png',
-            sizes: '750x1334',
+            sizes: '648x1334',
             type: 'image/png',
             form_factor: 'narrow', // leaving blank or setting 'narrow' targets mobile UI
             label: 'Mobile App View'
