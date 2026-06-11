@@ -9,7 +9,7 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['icon-192.png', 'icon-512.png', 'icon-180.svg'],
+      includeAssets: ['icon-192.svg', 'icon-512.svg ', 'icon-180.svg'],
       manifest: {
         name: 'Tindahan',
         short_name: 'Tindahan',
@@ -22,20 +22,20 @@ export default defineConfig({
         start_url: '/',
         icons: [
           {
-            src: 'icon-192.png',  // Point to PNG
-            sizes: '192x192',     // Restore pixel size
-            type: 'image/png',    // Change to image/png
+            src: 'icon-192.svg',
+            sizes: '380x380',     // Match the physical 380x380 vector dimensions
+            type: 'image/svg+xml',
             purpose: 'any'
           },
           {
-            src: 'icon-512.png',  // Point to PNG
-            sizes: '512x512',     // Restore pixel size
-            type: 'image/png',    // Change to image/png
+            src: 'icon-512.svg',
+            sizes: '380x380',     // Match the physical 380x380 vector dimensions
+            type: 'image/svg+xml',
             purpose: 'maskable'
           },
           {
-            src: 'icon-180.svg',  // Keep this fallback file for iOS apple-touch-icon links
-            sizes: '180x180',
+            src: 'icon-180.svg',
+            sizes: '380x380',     // Match the physical 380x380 vector dimensions
             type: 'image/svg+xml'
           }
         ]
