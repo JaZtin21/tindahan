@@ -458,10 +458,10 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
         <>
 
           {/* Post Content */}
-          <div className="p-2">
+          <div className="">
             {/* Title */}
             {displayedPost.title && (
-              <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-100 mb-3">
+              <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-100 mb-1">
                 {displayedPost.title}
               </h2>
             )}
@@ -475,13 +475,23 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
 
             {/* Photos Gallery - Facebook Style with Lightbox */}
             {displayedPost.photos && displayedPost.photos.length > 0 && (
-              <div className="mb-4">
+              <div className="mb-1">
                 <PhotoGallery photos={displayedPost.photos} size="large" />
               </div>
             )}
 
+            <a
+              href={`https://www.google.com/maps/search/?api=1&query=${displayedPost.location?.lat},${displayedPost.location?.lng}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-primary dark:text-primary hover:underline transition-colors"
+            >
+
+              Get directions on Google Maps
+            </a>
+
             {/* Stats */}
-            <div className="flex items-center gap-6 pt-4 pb-2 border-t border-zinc-100 dark:border-zinc-800">
+            <div className="flex items-center gap-6 pt-3 mt-4 pb-3 border-t border-zinc-100 dark:border-zinc-800">
               <button
                 onClick={handleLikeToggle}
                 className={`flex items-center gap-2 transition-colors ${displayedPost.isLiked ? 'text-pink-600 dark:text-pink-400' : 'text-zinc-600 dark:text-zinc-400 hover:text-pink-500'}`}
@@ -502,7 +512,7 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
 
           {/* Comments Section - Fixed height with sticky input */}
           <div
-            className="border-t mx-2 py-2 border-zinc-100 dark:border-zinc-800 flex flex-col transition-all duration-300 relative"
+            className="border-t py-2 border-zinc-100 dark:border-zinc-800 flex flex-col transition-all duration-300 relative"
           >
 
             {/* Scrollable Comments List */}

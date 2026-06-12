@@ -224,6 +224,8 @@ export function SideNav({ isOpen, onClose, selectedLocation }: SideNavProps) {
   const isStore = selectedLocation?.type === 'store';
   const hasStoreId = !!selectedLocation?.storeId;
 
+  console.log('selectedLocation', selectedLocation);
+
   return (
     <>
       {/* Desktop SideNav */}
@@ -416,7 +418,7 @@ function SideNavContent({
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto md:h-[calc(100vh-64px)]">
         {selectedLocation ? (
           <div className="flex flex-col min-h-full">
             <div className="aspect-video bg-zinc-200 dark:bg-zinc-800 overflow-hidden flex-shrink-0">
@@ -444,7 +446,22 @@ function SideNavContent({
               {activeTab === 'about' && (
                 <>
                   {selectedLocation.description && <div><h4 className="font-semibold text-zinc-900 dark:text-zinc-100 mb-2">Description</h4><p className="text-zinc-600 dark:text-zinc-400">{selectedLocation.description}</p></div>}
-                  {selectedLocation.address && <div><h4 className="font-semibold text-zinc-900 dark:text-zinc-100 mb-2">Address</h4><p className="text-zinc-600 dark:text-zinc-400">{selectedLocation.address}</p></div>}
+                  {selectedLocation.address && <div>
+                    <h4 className="font-semibold text-zinc-900 dark:text-zinc-100 mb-2">Address</h4>
+                    <a href={`https://www.google.com/maps/search/?api=1&query=${selectedLocation.lat},${selectedLocation.lng}`}
+                      target="_blank"
+                      rel="noopener noreferrer" className="text-zinc-600 dark:text-zinc-400">{selectedLocation.address}</a> <br />
+                    <a
+                      href={`https://www.google.com/maps/search/?api=1&query=${selectedLocation.lat},${selectedLocation.lng}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-primary mt-4 dark:text-primary hover:underline transition-colors"
+                    >
+
+                      Click to get directions on Google Maps
+                    </a>
+                  </div>}
+
                   <div className="space-y-3">
                     {selectedLocation.phone && <div className="flex items-center gap-3"><div className="w-8 h-8 bg-blue-100 dark:bg-blue-900 rounded-full flex items-center justify-center text-sm">📞</div><div><p className="font-medium text-zinc-900 dark:text-zinc-100">Phone</p><p className="text-zinc-600 dark:text-zinc-400">{selectedLocation.phone}</p></div></div>}
                     {selectedLocation.email && <div className="flex items-center gap-3"><div className="w-8 h-8 bg-purple-100 dark:bg-purple-900 rounded-full flex items-center justify-center text-sm">📧</div><div><p className="font-medium text-zinc-900 dark:text-zinc-100">Email</p><p className="text-zinc-600 dark:text-zinc-400">{selectedLocation.email}</p></div></div>}

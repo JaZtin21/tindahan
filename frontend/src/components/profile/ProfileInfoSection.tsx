@@ -180,10 +180,15 @@ export function ProfileInfoSection({
             </span>
             <span className="text-xs text-zinc-600 dark:text-zinc-500">Following</span>
           </button>
-          <div className="text-center">
+          {
+            /*
+                      <div className="text-center">
             <span className="block font-bold text-zinc-900 dark:text-white">{profile?.shops?.length || 0}</span>
             <span className="text-xs text-zinc-600 dark:text-zinc-500">Shops</span>
           </div>
+            */
+          }
+
         </div>
       </div>
 
