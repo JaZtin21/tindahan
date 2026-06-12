@@ -21,8 +21,13 @@ import { SearchBar } from '../../components/map/SearchBar';
 import { hideMobileSearch } from '../../store/slices/mobileSearchSlice';
 import type { RootState } from '../../store';
 
+
+
+const MAPTILE_KEY = import.meta.env.VITE_MAPTILE_KEY || '';
+
 export function OptimizedMapsPage() {
   const dispatch = useDispatch();
+
   const mapRef = useRef<any>(null);
   // ... rest of the code remains the same ...
   const { isAuthenticated } = useAuth();
@@ -740,9 +745,9 @@ export function OptimizedMapsPage() {
       >
         {/* Custom cached tile layer - CartoDB Voyager (clean styling, free) */}
         <CachedTileLayer
-          url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png"
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-          maxZoom={19}
+          url={`https://api.maptiler.com/maps/voyager/{z}/{x}/{y}.png?key=${MAPTILE_KEY}`}
+          attribution='&copy; <a href="https://maptiler.com" target="_blank">MapTiler</a>'
+          maxZoom={22}
         />
         {/* All markers - isolated in MapMarkers component to prevent page re-renders */}
         <MapMarkersComponent
