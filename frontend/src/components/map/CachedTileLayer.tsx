@@ -32,7 +32,7 @@ function CachedTileLayerComponent({ url, attribution, maxZoom = 19 }: CachedTile
       tileLayerRef.current = tileLayer;
       const container = tileLayer.getContainer();
       if (container) {
-        container.style.filter = 'brightness(1.015) contrast(0.97) saturate(1.04)';
+        container.style.filter = 'brightness(1.015) contrast(0.965) saturate(1.028)';
 
       }
     };
