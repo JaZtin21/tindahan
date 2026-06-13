@@ -10,14 +10,14 @@ interface CachedTileLayerProps {
 
 function CachedTileLayerComponent({ url, attribution, maxZoom = 19 }: CachedTileLayerProps) {
   console.log('[CachedTileLayer] Component render');
-  
+
   const tileLayerRef = useRef<LeafletTileLayer | null>(null);
   const map = useMap();
 
   useEffect(() => {
     const init = async () => {
       const L = await import('leaflet');
-      
+
       // Create tile layer with high keepBuffer for caching
       const tileLayer = L.tileLayer(url, {
         attribution,
@@ -30,8 +30,13 @@ function CachedTileLayerComponent({ url, attribution, maxZoom = 19 }: CachedTile
 
       tileLayer.addTo(map);
       tileLayerRef.current = tileLayer;
+      const container = tileLayer.getContainer();
+      if (container) {
+        container.style.filter = 'brightness(1.015) contrast(0.97) saturate(1.04)';
+
+      }
     };
-    
+
     init();
 
     return () => {
@@ -50,7 +55,7 @@ export const CachedTileLayer = React.memo(CachedTileLayerComponent);
 
 // Stub exports for compatibility
 export const tileCache = {
-  init: async () => {},
+  init: async () => { },
   getStats: async () => ({ size: 0, maxSize: 1000, usage: 0 }),
-  clearAll: async () => {}
+  clearAll: async () => { }
 };
