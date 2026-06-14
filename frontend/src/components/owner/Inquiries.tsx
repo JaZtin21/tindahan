@@ -1,17 +1,13 @@
 import { useState } from 'react';
 import { useQuery, useMutation } from '@apollo/client/react';
-import { INQUIRIES_FOR_SHOP_QUERY, REPLY_TO_INQUIRY_MUTATION, UPDATE_INQUIRY_STATUS_MUTATION } from '../../api/graphql/inquiry/inquiry-queries';
+import { INQUIRIES_FOR_SHOP_QUERY, UPDATE_INQUIRY_STATUS_MUTATION } from '../../api/graphql/inquiry/inquiry-queries';
 import { InquiryConversationModal } from '../inquiry/InquiryConversationModal';
-import { useAuth } from '../../api/graphql/apolloProviderWithAuth';
 import type { InquiriesProps } from '../../types/owner';
 
 export function Inquiries({ shop }: InquiriesProps) {
   const [page, setPage] = useState(1);
-  const [replyText, setReplyText] = useState<{ [key: string]: string }>({});
-  const [isSubmitting, setIsSubmitting] = useState<{ [key: string]: boolean }>({});
-  const [selectedInquiry, setSelectedInquiry] = useState<any>(null);
+  const [selectedInquiryId, setSelectedInquiryId] = useState<string | null>(null);
   const [isConversationModalOpen, setIsConversationModalOpen] = useState(false);
-  const { userInfo } = useAuth();
 
   const { data, loading, error, refetch } = useQuery<{
     inquiriesForShop: {
@@ -55,23 +51,6 @@ export function Inquiries({ shop }: InquiriesProps) {
     fetchPolicy: 'cache-and-network'
   });
 
-  const [replyToInquiry] = useMutation<{
-    replyToInquiry: {
-      success: boolean;
-      message: string;
-      data?: {
-        id: string;
-        author?: {
-          id: string;
-          name: string;
-          profilePhoto?: string;
-        };
-        message: string;
-        createdAt: string;
-      };
-    };
-  }>(REPLY_TO_INQUIRY_MUTATION);
-  
   const [updateInquiryStatus] = useMutation<{
     updateInquiryStatus: {
       success: boolean;
@@ -86,31 +65,6 @@ export function Inquiries({ shop }: InquiriesProps) {
 
   const inquiries = data?.inquiriesForShop?.data || [];
   const total = data?.inquiriesForShop?.total || 0;
-
-  const handleReply = async (inquiryId: string) => {
-    if (!replyText[inquiryId]?.trim()) return;
-    
-    setIsSubmitting({ ...isSubmitting, [inquiryId]: true });
-    try {
-      const result = await replyToInquiry({
-        variables: {
-          input: {
-            inquiryId,
-            message: replyText[inquiryId].trim()
-          }
-        }
-      });
-      
-      if (result.data?.replyToInquiry?.success) {
-        setReplyText({ ...replyText, [inquiryId]: '' });
-        refetch();
-      }
-    } catch (error) {
-      console.error('Error replying to inquiry:', error);
-    } finally {
-      setIsSubmitting({ ...isSubmitting, [inquiryId]: false });
-    }
-  };
 
   const handleUpdateStatus = async (inquiryId: string, newStatus: 'PENDING' | 'RESPONDED' | 'RESOLVED' | 'CLOSED') => {
     try {
@@ -228,7 +182,7 @@ export function Inquiries({ shop }: InquiriesProps) {
                       </p>
                       <button
                         onClick={() => {
-                          setSelectedInquiry(inquiry);
+                          setSelectedInquiryId(inquiry.id);
                           setIsConversationModalOpen(true);
                         }}
                         className="px-4 py-2 bg-primary hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors"
@@ -238,42 +192,25 @@ export function Inquiries({ shop }: InquiriesProps) {
                     </div>
                   )}
                   
-                  {/* Reply Form */}
-                  <div className="mt-4">
-                    <textarea
-                      value={replyText[inquiry.id] || ''}
-                      onChange={(e) => setReplyText({ ...replyText, [inquiry.id]: e.target.value })}
-                      placeholder="Type your reply..."
-                      rows={3}
-                      className="w-full px-3 py-2 text-sm rounded-lg border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none"
-                    />
-                    <div className="flex gap-2 mt-2">
+                  {/* Status Buttons */}
+                  <div className="mt-4 flex gap-2">
+                    {inquiry.status !== 'RESOLVED' && inquiry.status !== 'CLOSED' && (
                       <button
-                        onClick={() => handleReply(inquiry.id)}
-                        disabled={!replyText[inquiry.id]?.trim() || isSubmitting[inquiry.id]}
-                        className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 disabled:bg-zinc-400 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition-colors"
+                        onClick={() => handleUpdateStatus(inquiry.id, 'RESOLVED')}
+                        className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors"
                       >
-                        {isSubmitting[inquiry.id] ? 'Sending...' : 'Send Reply'}
+                        Mark as Resolved
                       </button>
-                      
-                      {inquiry.status !== 'RESOLVED' && inquiry.status !== 'CLOSED' && (
-                        <button
-                          onClick={() => handleUpdateStatus(inquiry.id, 'RESOLVED')}
-                          className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-lg transition-colors"
-                        >
-                          Mark as Resolved
-                        </button>
-                      )}
-                      
-                      {inquiry.status !== 'CLOSED' && (
-                        <button
-                          onClick={() => handleUpdateStatus(inquiry.id, 'CLOSED')}
-                          className="px-4 py-2 bg-zinc-600 hover:bg-zinc-700 text-white text-sm font-medium rounded-lg transition-colors"
-                        >
-                          Close Inquiry
-                        </button>
-                      )}
-                    </div>
+                    )}
+                    
+                    {inquiry.status !== 'CLOSED' && (
+                      <button
+                        onClick={() => handleUpdateStatus(inquiry.id, 'CLOSED')}
+                        className="px-4 py-2 bg-zinc-600 hover:bg-zinc-700 text-white text-sm font-medium rounded-lg transition-colors"
+                      >
+                        Close Inquiry
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -306,24 +243,14 @@ export function Inquiries({ shop }: InquiriesProps) {
       )}
 
       {/* Inquiry Conversation Modal */}
-      {selectedInquiry && (
+      {selectedInquiryId && (
         <InquiryConversationModal
           isOpen={isConversationModalOpen}
           onClose={() => {
             setIsConversationModalOpen(false);
-            setSelectedInquiry(null);
+            setSelectedInquiryId(null);
           }}
-          inquiry={{
-            id: selectedInquiry.id,
-            item: selectedInquiry.item,
-            message: selectedInquiry.message,
-            status: selectedInquiry.status,
-            user: selectedInquiry.user,
-            replies: selectedInquiry.replies || [],
-            createdAt: selectedInquiry.createdAt
-          }}
-          currentUserId={userInfo?.id}
-          onRefetch={() => refetch()}
+          inquiryId={selectedInquiryId}
         />
       )}
     </div>

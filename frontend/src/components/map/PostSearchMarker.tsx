@@ -28,7 +28,7 @@ export function PostSearchMarker({ post, onClick }: PostSearchMarkerProps) {
           background-image: url('${post.authorProfilePhoto || 'https://via.placeholder.com/40'}');
           background-size: cover;
           background-position: center;
-          border: 3px solid #009f74;
+          border: 3px solid #63c6a6;
           box-shadow: 0 2px 8px rgba(0,0,0,0.3);
           z-index: 2;
         "></div>
@@ -37,7 +37,7 @@ export function PostSearchMarker({ post, onClick }: PostSearchMarkerProps) {
           bottom: 0;
           width: 20px;
           height: 20px;
-          background: #009f74;
+          background: #63c6a6;
           border-radius: 50% 50% 50% 0;
           transform: rotate(-45deg);
           border: 3px solid white;

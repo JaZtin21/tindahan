@@ -1,42 +1,82 @@
 import { useState, useRef, useEffect } from 'react';
-import { useMutation } from '@apollo/client/react';
-import { REPLY_TO_INQUIRY_MUTATION } from '../../api/graphql/inquiry/inquiry-queries';
+import { useMutation, useQuery } from '@apollo/client/react';
+import { REPLY_TO_INQUIRY_MUTATION, INQUIRY_QUERY } from '../../api/graphql/inquiry/inquiry-queries';
 import { Modal } from '../common/Modal';
+import { useAuth } from '../../api/graphql/apolloProviderWithAuth';
 
 interface InquiryConversationModalProps {
   isOpen: boolean;
   onClose: () => void;
-  inquiry: {
-    id: string;
-    item: string;
-    message: string;
-    status: string;
-    user?: {
-      id: string;
-      name: string;
-      profilePhoto?: string;
-    };
-    replies: Array<{
-      id: string;
-      author?: {
-        id: string;
-        name: string;
-        profilePhoto?: string;
-      };
-      message: string;
-      createdAt: string;
-    }>;
-    createdAt: string;
-  };
-  currentUserId?: string;
-  onRefetch?: () => void;
+  inquiryId: string;
 }
 
-export function InquiryConversationModal({ isOpen, onClose, inquiry, currentUserId, onRefetch }: InquiryConversationModalProps) {
+export function InquiryConversationModal({ isOpen, onClose, inquiryId }: InquiryConversationModalProps) {
   const [replyMessage, setReplyMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [imgErrors, setImgErrors] = useState<Set<string>>(new Set());
+  const [localReplies, setLocalReplies] = useState<Array<{
+    id: string;
+    author?: {
+      id: string;
+      name: string;
+      profilePhoto?: string;
+    };
+    message: string;
+    createdAt: string;
+  }>>([]);
+  const { userInfo } = useAuth();
+
+  const { data } = useQuery<{
+    inquiry: {
+      success: boolean;
+      message: string;
+      data?: {
+        id: string;
+        user?: {
+          id: string;
+          name: string;
+          profilePhoto?: string;
+        };
+        shop?: {
+          id: string;
+          name: string;
+        };
+        item: string;
+        message: string;
+        status: string;
+        replies: Array<{
+          id: string;
+          author?: {
+            id: string;
+            name: string;
+            profilePhoto?: string;
+          };
+          message: string;
+          createdAt: string;
+        }>;
+        createdAt: string;
+      };
+    };
+  }>(INQUIRY_QUERY, {
+    variables: { id: inquiryId },
+    skip: !isOpen || !inquiryId,
+    fetchPolicy: 'cache-and-network'
+  });
+
+  const inquiry = data?.inquiry.data;
+
+  // Reset local replies when modal opens with new data
+  useEffect(() => {
+    if (inquiry) {
+      setLocalReplies(inquiry.replies || []);
+    }
+  }, [inquiry?.id, inquiry?.replies]);
+
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [localReplies, isOpen]);
 
   const [replyToInquiry] = useMutation<{
     replyToInquiry: {
@@ -44,19 +84,19 @@ export function InquiryConversationModal({ isOpen, onClose, inquiry, currentUser
       message: string;
       data?: {
         id: string;
+        author?: {
+          id: string;
+          name: string;
+          profilePhoto?: string;
+        };
         message: string;
         createdAt: string;
       };
     };
   }>(REPLY_TO_INQUIRY_MUTATION);
 
-  // Auto-scroll to bottom when messages change
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [inquiry.replies, isOpen]);
-
   const handleSubmitReply = async () => {
-    if (!replyMessage.trim()) return;
+    if (!replyMessage.trim() || !inquiry) return;
 
     setIsSubmitting(true);
     try {
@@ -70,11 +110,19 @@ export function InquiryConversationModal({ isOpen, onClose, inquiry, currentUser
       });
 
       if (result.data?.replyToInquiry?.success) {
+        const newReply = {
+          id: result.data.replyToInquiry.data?.id || Date.now().toString(),
+          message: replyMessage.trim(),
+          createdAt: result.data.replyToInquiry.data?.createdAt || new Date().toISOString(),
+          author: userInfo ? {
+            id: userInfo.id,
+            name: userInfo.name || 'You',
+            profilePhoto: userInfo.profilePhoto
+          } : undefined
+        };
+        
+        setLocalReplies(prev => [...prev, newReply]);
         setReplyMessage('');
-        // Refetch inquiry data to update the conversation
-        if (onRefetch) {
-          onRefetch();
-        }
       }
     } catch (error) {
       console.error('Error sending reply:', error);
@@ -117,6 +165,16 @@ export function InquiryConversationModal({ isOpen, onClose, inquiry, currentUser
     );
   };
 
+  if (!inquiry) {
+    return (
+      <Modal isOpen={isOpen} onClose={onClose} title="Conversation" maxWidth="lg">
+        <div className="flex items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500"></div>
+        </div>
+      </Modal>
+    );
+  }
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Conversation" maxWidth="lg">
       <div className="flex flex-col">
@@ -131,28 +189,49 @@ export function InquiryConversationModal({ isOpen, onClose, inquiry, currentUser
         {/* Messages */}
         <div className="max-h-[60vh] overflow-y-auto p-4 space-y-4">
           {/* Initial inquiry message */}
-          <div className="flex flex-col space-y-1 items-start">
+          <div
+            className={`flex flex-col space-y-1 ${
+              inquiry.user?.id === userInfo?.id ? 'items-end' : 'items-start'
+            }`}
+          >
             <div className="flex items-center space-x-2">
-              <ProfilePhoto user={inquiry.user} />
-              <span className="text-xs text-zinc-500 dark:text-zinc-400">
-                {new Date(inquiry.createdAt).toLocaleString()}
-              </span>
+              {inquiry.user?.id === userInfo?.id ? (
+                <>
+                  <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                    {new Date(inquiry.createdAt).toLocaleString()}
+                  </span>
+                  <ProfilePhoto user={inquiry.user} />
+                </>
+              ) : (
+                <>
+                  <ProfilePhoto user={inquiry.user} />
+                  <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                    {new Date(inquiry.createdAt).toLocaleString()}
+                  </span>
+                </>
+              )}
             </div>
-            <div className="bg-zinc-100 dark:bg-zinc-800 rounded-lg p-3 max-w-[80%]">
-              <p className="text-sm text-zinc-900 dark:text-zinc-100">{inquiry.message}</p>
+            <div
+              className={`rounded-lg p-3 max-w-[80%] ${
+                inquiry.user?.id === userInfo?.id
+                  ? 'bg-primary text-white'
+                  : 'bg-zinc-100 dark:bg-zinc-800'
+              }`}
+            >
+              <p className="text-sm">{inquiry.message}</p>
             </div>
           </div>
 
           {/* Replies */}
-          {inquiry.replies.map((reply) => (
+          {localReplies.map((reply) => (
             <div
               key={reply.id}
               className={`flex flex-col space-y-1 ${
-                reply.author?.id === currentUserId ? 'items-end' : 'items-start'
+                reply.author?.id === userInfo?.id ? 'items-end' : 'items-start'
               }`}
             >
               <div className="flex items-center space-x-2">
-                {reply.author?.id === currentUserId ? (
+                {reply.author?.id === userInfo?.id ? (
                   <>
                     <span className="text-xs text-zinc-500 dark:text-zinc-400">
                       {new Date(reply.createdAt).toLocaleString()}
@@ -170,7 +249,7 @@ export function InquiryConversationModal({ isOpen, onClose, inquiry, currentUser
               </div>
               <div
                 className={`rounded-lg p-3 max-w-[80%] ${
-                  reply.author?.id === currentUserId
+                  reply.author?.id === userInfo?.id
                     ? 'bg-primary text-white'
                     : 'bg-zinc-100 dark:bg-zinc-800'
                 }`}

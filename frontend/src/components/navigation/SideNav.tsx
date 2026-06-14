@@ -331,10 +331,10 @@ export function SideNav({ isOpen, onClose, selectedLocation }: SideNavProps) {
       {existingInquiry && (
         <InquiryConversationModal
           isOpen={isConversationModalOpen}
-          onClose={() => setIsConversationModalOpen(false)}
-          inquiry={existingInquiry}
-          currentUserId={userInfo?.id}
-          onRefetch={refetchUserInquiry}
+          onClose={() => {
+            setIsConversationModalOpen(false);
+          }}
+          inquiryId={existingInquiry.id}
         />
       )}
 

@@ -41,7 +41,7 @@ export function StoreMarker({ store, onClick }: StoreMarkerProps) {
       // Create shop icon using emoji - SMALLER with background
       const icon = L.divIcon({
         html: `
-          <div style="position: relative; width: 32px; height: 32px; background: white; border-radius: 50%; border: 2px solid  #009f74; display: flex; align-items: center; justify-content: center; font-size: 18px; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.3); transition: transform 0.2s; will-change: transform;">
+          <div style="position: relative; width: 32px; height: 32px; background: white; border-radius: 50%; border: 2px solid  #63c6a6; display: flex; align-items: center; justify-content: center; font-size: 18px; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.3); transition: transform 0.2s; will-change: transform;">
             🏪
           </div>
         `,
