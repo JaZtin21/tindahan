@@ -13,7 +13,7 @@ function convertOwnerShopToShop(ownerShop: OwnerShop): Shop {
     location: ownerShop.location,
     coordinates: ownerShop.coordinates,
     coverPhoto: ownerShop.coverPhoto,
-    otherPhotos: ownerShop.otherPhotos,
+    otherPhotos: [],
     businessHours: ownerShop.businessHours,
     businessType: ownerShop.businessType,
     paymentMethods: ownerShop.paymentMethods,
@@ -189,7 +189,7 @@ export function useShopManagement({
   );
 
   const updateShop = useCallback(
-    async (shop: Shop, existingCoverPhoto?: string, newCoverFile?: File, newOtherPhotoFiles?: File[]): Promise<{ success: boolean; message?: string }> => {
+    async (shop: Shop, existingCoverPhoto?: string, newCoverFile?: File, newOtherPhotoFiles?: File[]): Promise<{ success: boolean; message?: string; data?: Shop }> => {
       try {
         const result = await updateShopMut({
           variables: {
@@ -198,12 +198,14 @@ export function useShopManagement({
           },
         });
 
-        const response = (result.data as { updateShop?: { success: boolean; message?: string } })?.updateShop;
+        const response = (result.data as { updateShop?: { success: boolean; message?: string; data?: any } })?.updateShop;
 
         if (response?.success) {
           await refetchShops();
           onSuccess?.('Shop Updated!', 'Your shop has been updated successfully.');
-          return { success: true };
+          // Convert the returned data to Shop type
+          const updatedShop = response.data ? convertOwnerShopToShop(response.data) : undefined;
+          return { success: true, data: updatedShop };
         } else {
           onError?.('Update Failed', response?.message || 'Could not update shop. Please try again.');
           return { success: false, message: response?.message };

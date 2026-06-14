@@ -117,7 +117,7 @@ export interface UseShopManagementReturn {
   shopsLoading: boolean;
   shopsError: Error | undefined;
   createShop: (shop: ShopType, existingCoverPhoto?: string, newCoverFile?: File, otherPhotoFiles?: File[]) => Promise<{ success: boolean; message?: string }>;
-  updateShop: (shop: ShopType, existingCoverPhoto?: string, newCoverFile?: File, newOtherPhotoFiles?: File[]) => Promise<{ success: boolean; message?: string }>;
+  updateShop: (shop: ShopType, existingCoverPhoto?: string, newCoverFile?: File, newOtherPhotoFiles?: File[]) => Promise<{ success: boolean; message?: string; data?: ShopType }>;
   deleteShop: (shopId: string) => Promise<{ success: boolean; message?: string }>;
   createLoading: boolean;
   updateLoading: boolean;

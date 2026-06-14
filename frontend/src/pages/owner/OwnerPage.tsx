@@ -131,7 +131,10 @@ export function OwnerPage() {
     if (selectedShop) {
       // For edit: pass existing URL and new file (like EditPostModal)
       const result = await updateShop(shopData, existingCoverPhoto, newCoverFile);
-      if (result.success) {
+      if (result.success && result.data) {
+        setSelectedShop(result.data);
+      } else if (result.success) {
+        // Fallback if data not returned
         setSelectedShop(shopData);
       }
     } else {
