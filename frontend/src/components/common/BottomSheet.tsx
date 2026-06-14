@@ -96,7 +96,7 @@ export function BottomSheet({
 
     const deltaY = clientY - dragState.current.startY;
     // Only allow dragging down (increasing translateY), cap at 5% min (95% open) and 100% max (closed)
-    const newTranslateY = Math.max(5, Math.min(100, dragState.current.startTranslateY + (deltaY / window.innerHeight) * 100));
+    const newTranslateY = Math.max(0, Math.min(100, dragState.current.startTranslateY + (deltaY / window.innerHeight) * 100));
     setTranslateY(newTranslateY);
   };
 
@@ -108,7 +108,7 @@ export function BottomSheet({
     const threshold = 50; // halfway between 5% (open) and 100% (closed)
     const shouldClose = translateY > threshold || dragState.current.velocity > 0.8;
 
-    animateToSnap(shouldClose ? 100 : 5, shouldClose);
+    animateToSnap(shouldClose ? 100 : 0, shouldClose);
   };
 
   // Don't render on desktop or when closed and not animating

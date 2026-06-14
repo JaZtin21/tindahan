@@ -37,9 +37,9 @@ export function Modal({
 }: ModalProps) {
   const isMobile = useIsMobile(768);
   const shouldUseBottomSheet = mobileBottomSheet && isMobile;
-  
+
   // Internal state to track if modal should be visible (handles close animation)
-  const [isVisible, setIsVisible] = useState(isOpen);
+  const [isVisible, setIsVisible] = useState(false);
   const [isAnimatingOut, setIsAnimatingOut] = useState(false);
 
   // Handle open/close with animation
@@ -141,9 +141,8 @@ function DesktopModal({ isAnimatingOut, onClose, closeOnBackdropClick, title, su
 
   return (
     <div
-      className={`fixed inset-0 z-[60] flex items-center justify-center p-4 transition-all duration-200 ${
-        isAnimatingOut ? 'opacity-0 scale-95' : 'opacity-100 scale-100'
-      }`}
+      className={`fixed inset-0 z-[60] flex items-center justify-center p-4 transition-all duration-200 ${isAnimatingOut ? 'opacity-0 scale-95' : 'opacity-100 scale-100'
+        }`}
       onClick={closeOnBackdropClick ? onClose : undefined}
     >
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
