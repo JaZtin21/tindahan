@@ -79,18 +79,32 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
     }
 
     // Wait 300ms for the user to finish clicking before calling the API
-    debounceRef.current = setTimeout(() => {
-      fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`)
+     debounceRef.current = setTimeout(() => {
+      // 1. Grab your key from Vite's env bundle
+      const key = import.meta.env.VITE_MAPTILE_KEY || '';
+      if (!key) {
+        console.error('VITE_MAPTILE_KEY is missing from .env');
+        setAddress('Configuration error');
+        return;
+      }
+
+      // 2. MapTiler requires longitude first: [lng, lat]
+      const url = `https://api.maptiler.com/geocoding/${lng},${lat}.json?key=${key}&limit=1`;
+
+      fetch(url)
         .then(response => response.json())
         .then(data => {
-          // Guard: Ensure we extract the human-readable text name, never raw numbers
-          const formattedAddress = data.display_name || 'Unknown Location Name';
-          setAddress(formattedAddress);
-          console.log('Address resolved cleanly:', formattedAddress);
+          // 3. Extract place_name from the first item in the features array
+          if (data && data.features && data.features.length > 0) {
+            const formattedAddress = data.features[0].place_name;
+            setAddress(formattedAddress);
+            console.log('Address resolved cleanly via MapTiler:', formattedAddress);
+          } else {
+            setAddress('Unknown Location Name');
+          }
         })
         .catch((error) => {
-          console.error('Geocoding failure:', error);
-          // Fallback to a literal text message instead of coordinate strings
+          console.error('MapTiler Geocoding failure:', error);
           setAddress('Address name not found'); 
         });
     }, 500);
@@ -186,13 +200,23 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
     setIsSearching(true);
 
     // Debounce the API call
-    debounceRef.current = setTimeout(async () => {
+  debounceRef.current = setTimeout(async () => {
+      // 1. Grab your key from Vite's env bundle
+      const key = import.meta.env.VITE_MAPTILE_KEY || '';
+      if (!key) {
+        console.error('VITE_MAPTILE_KEY is missing from .env');
+        setIsSearching(false);
+        return;
+      }
+
       try {
-        const response = await fetch(
-          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5`
-        );
+        // 2. Call the secure MapTiler Forward Geocoding API
+        const url = `https://api.maptiler.com/geocoding/${encodeURIComponent(query)}.json?key=${key}&limit=5`;
+        const response = await fetch(url);
         const data = await response.json();
-        setSearchResults(data);
+        
+        // 3. MapTiler stores search results inside the "features" array
+        setSearchResults(data.features || []);
       } catch (error) {
         console.error('Search error:', error);
         setSearchResults([]);
@@ -211,16 +235,20 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
     };
   }, []);
 
-  const handleSearchResultClick = (result: any) => {
-    const lat = parseFloat(result.lat);
-    const lng = parseFloat(result.lon);
+   const handleSearchResultClick = (result: any) => {
+    // 1. FIXED: MapTiler packs coordinates inside a [longitude, latitude] array!
+    const [lng, lat] = result.center;
     const newLocation = { lat, lng };
+    
+    // 2. FIXED: MapTiler uses place_name instead of display_name
     setSelectedLocation(newLocation);
-    setAddress(result.display_name);
+    setAddress(result.place_name);
+    
+    // 3. Reset states cleanly
     setSearchResults([]);
     setSearchQuery('');
 
-    // Center map on selected location
+    // 4. Center map on selected location smoothly using the correct numbers
     if (mapInstanceRef.current) {
       mapInstanceRef.current.setView([lat, lng], 16);
       handleMapClick(lat, lng);
@@ -259,11 +287,16 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
       const map = L.map(mapRef.current).setView([selectedLocation.lat, selectedLocation.lng], 15);
       mapInstanceRef.current = map;
 
-      // Use CartoDB Voyager tile layer (more Google Maps-like)
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-        attribution: '© OpenStreetMap contributors © CARTO',
-        subdomains: 'abcd',
-        maxZoom: 20,
+     const key = import.meta.env.VITE_MAPTILE_KEY || '';
+      if (!key) {
+        console.error('VITE_MAPTILE_KEY is missing from .env');
+        return;
+      }
+
+      // 2. Inject the MapTiler tile layer cleanly into the map instance
+      L.tileLayer(`https://api.maptiler.com/maps/voyager/{z}/{x}/{y}.png?key=${key}`, {
+        attribution: '&copy; <a href="https://maptiler.com" target="_blank">MapTiler</a>',
+        maxZoom: 22, // Upgraded maxZoom to 22 matching your main maps page
       }).addTo(map);
 
       // Apply custom styling
@@ -433,7 +466,7 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
                         onClick={() => handleSearchResultClick(result)}
                         className="w-full px-3 py-2 text-left text-sm text-zinc-900 dark:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 border-b border-zinc-200 dark:border-zinc-700 last:border-b-0"
                       >
-                        {result.display_name}
+                         {result.place_name} 
                       </button>
                     ))}
                   </div>

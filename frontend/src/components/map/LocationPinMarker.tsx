@@ -36,9 +36,11 @@ export function LocationPinMarker({ location }: LocationPinMarkerProps) {
       // Create pin icon using emoji - MEDIUM with background
       const icon = L.divIcon({
         html: `
-          <div style="width: 36px; height: 36px; background: white; border-radius: 50% 50% 50% 0; border: 2px solid #EF4444; display: flex; align-items: center; justify-content: center; font-size: 20px; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.3); transform: rotate(-45deg); transition: transform 0.2s;">
-            <span style="transform: rotate(45deg);">📍</span>
-          </div>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="#EF4444" stroke="none" style="display: block;">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                <circle cx="12" cy="10" r="3" fill="white"/>
+              </svg>
+        
         `,
         className: 'location-pin-marker-icon',
         iconSize: [36, 36],
@@ -48,31 +50,7 @@ export function LocationPinMarker({ location }: LocationPinMarkerProps) {
       
       const marker = L.marker([location.lat, location.lng], { icon });
       
-      // Add hover effects
-      marker.on('mouseover', () => {
-        const element = marker.getElement();
-        if (element) {
-          element.style.transform = 'scale(1.1) rotate(-45deg)';
-        }
-      });
       
-      marker.on('mouseout', () => {
-        const element = marker.getElement();
-        if (element) {
-          element.style.transform = 'scale(1) rotate(-45deg)';
-        }
-      });
-      
-      // Add popup with location info
-      if (location.name || location.address) {
-        const popupContent = `
-          <div style="font-family: system-ui; font-size: 14px; padding: 8px;">
-            <div style="font-weight: 600; margin-bottom: 4px;">${location.name}</div>
-            ${location.address ? `<div style="color: #666; font-size: 12px;">${location.address}</div>` : ''}
-          </div>
-        `;
-        marker.bindPopup(popupContent);
-      }
       
       marker.addTo(map);
       markerRef.current = marker;
