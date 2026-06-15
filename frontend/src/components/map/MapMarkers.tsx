@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, memo } from 'react';
 import { useMap } from 'react-leaflet';
 import type { LatLngBounds } from 'leaflet';
 import type { MapMarkersProps } from '../../types/map';
@@ -12,7 +12,7 @@ import { UserLocationMarker } from './UserLocationMarker';
 import { PostSearchMarker } from './PostSearchMarker';
 import { ShopNearMeMarker } from './ShopNearMeMarker';
 
-export function MapMarkers({
+function MapMarkersComponent({
   livePosts,
   deletedPostIds,
   editedPostIds,
@@ -102,7 +102,7 @@ export function MapMarkers({
       )}
       
       {/* Post Search Markers - show markers with user profile pictures */}
-      {showPostMarkers && postSearchResults.length > 0 && (
+      {showPostMarkers && postSearchResults.length > 0 && ( 
         <>
           {postSearchResults.map((post) => (
             <PostSearchMarker
@@ -141,3 +141,5 @@ export function MapMarkers({
     </>
   );
 }
+
+export const MapMarkers = memo(MapMarkersComponent);

@@ -295,7 +295,7 @@ export function OptimizedMapsPage() {
   };
 
   // Handle store click from marker (for both single store and product stores)
-  const handleStoreMarkerClick = (store: any) => {
+  const handleStoreMarkerClick = useCallback((store: any) => {
     // Open sidebar with store info
     dispatch(openSideNav({
       name: store.name || store.title,
@@ -308,7 +308,7 @@ export function OptimizedMapsPage() {
       phone: store.phone,
       storeId: store.id
     }));
-  };
+  }, [dispatch]);
 
   // Handle shop near me toggle
   const handleToggleShopsNearMe = async () => {
@@ -401,9 +401,9 @@ export function OptimizedMapsPage() {
   };
 
   // Handle shop near me marker click
-  const handleShopNearMeClick = (store: any) => {
+  const handleShopNearMeClick = useCallback((store: any) => {
     handleStoreMarkerClick(store);
-  };
+  }, [handleStoreMarkerClick]);
 
   // Handle location selection from search (from geocoding - pin marker)
   const handleLocationSelect = (location: { lat: number; lng: number; name: string; details?: string }) => {
@@ -673,7 +673,7 @@ useEffect(() => {
   }, [livePostsData, dispatch]);
 
   // Handle post click
-  const handlePostClick = (post: Post) => {
+  const handlePostClick = useCallback((post: Post) => {
     const params = new URLSearchParams(window.location.search);
     params.set('post', post.id);
     // Use your router's navigate/push function here. Examples:
@@ -683,7 +683,7 @@ useEffect(() => {
     setSelectedPost(post);
     dispatch(openPostPreview(post.id));
 
-  };
+  }, [navigate, dispatch]);
 
   // Handle post preview modal close
   const handleClosePostPreview = () => {
