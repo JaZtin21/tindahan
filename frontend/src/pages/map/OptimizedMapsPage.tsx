@@ -56,54 +56,77 @@ export function OptimizedMapsPage() {
   }, [isMobile, isMobileSearchVisible, dispatch])
 
   // Handle getting current location
-  const handleGetCurrentLocation = () => {
-    if (!navigator.geolocation) {
-      showError('Location Error', 'Geolocation is not supported by your browser.');
-      return;
-    }
-    setIsGettingLocation(true);
+ const handleGetCurrentLocation = async () => {
+  if (!navigator.geolocation) {
+    showError('Location Error', 'Geolocation is not supported by your browser.');
+    return;
+  }
 
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const { latitude, longitude } = position.coords;
-        setUserLocation({ lat: latitude, lng: longitude });
-        setShowLocationMarker(true); // Show the marker
+  // 1. Reset states and begin execution
+  setIsGettingLocation(true);
 
-        // Center map on user's location with animation
-        if (mapRef.current) {
-          mapRef.current.flyTo([latitude, longitude], 18, {
-            duration: 1.5 // 1.5 seconds animation
-          });
-        }
-
+  // 2. Query the underlying permission state beforehand (Safe Check)
+  if (navigator.permissions && navigator.permissions.query) {
+    try {
+      const permissionStatus = await navigator.permissions.query({ name: 'geolocation' });
+      
+      if (permissionStatus.state === 'denied') {
         setIsGettingLocation(false);
-      },
-      (error) => {
-        console.error('Error getting location:', error);
-        setIsGettingLocation(false);
-
-        let errorMessage = 'Unable to get your current location.';
-        switch (error.code) {
-          case error.PERMISSION_DENIED:
-            errorMessage = 'Location access denied. Please enable location permissions.';
-            break;
-          case error.POSITION_UNAVAILABLE:
-            errorMessage = 'Location information is unavailable.';
-            break;
-          case error.TIMEOUT:
-            errorMessage = 'Location request timed out.';
-            break;
-        }
-
-        showError('Location Error', errorMessage);
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 300000 // 5 minutes
+        showError(
+          'Location Permission Blocked',
+          'Please tap the lock/settings icon in your browser address bar (or system app settings if installed) and switch Location to "Allow".'
+        );
+        return;
       }
-    );
-  };
+    } catch (e) {
+      console.warn('Permissions API query not fully supported, falling back to direct location check.', e);
+    }
+  }
+
+  // 3. Request current positioning parameters
+  navigator.geolocation.getCurrentPosition(
+    (position) => {
+      const { latitude, longitude } = position.coords;
+      setUserLocation({ lat: latitude, lng: longitude });
+      setShowLocationMarker(true);
+
+      if (mapRef.current) {
+        mapRef.current.flyTo([latitude, longitude], 18, {
+          duration: 1.5
+        });
+      }
+
+      setIsGettingLocation(false);
+    },
+    (error) => {
+      console.error('Error getting location:', error);
+      setIsGettingLocation(false);
+
+      let errorMessage = 'Unable to fetch location details.';
+      
+      switch (error.code) {
+        case error.PERMISSION_DENIED:
+          // Triggers if device GPS is switched off OR browser site-permissions are set to Blocked
+          errorMessage = 'Location access is turned off. Please ensure your device GPS is turned ON and your browser site permissions allow location access.';
+          break;
+        case error.POSITION_UNAVAILABLE:
+          errorMessage = 'Network location lookup failed. Please check your signal connectivity.';
+          break;
+        case error.TIMEOUT:
+          errorMessage = 'The location request timed out. Please try tapping the button again.';
+          break;
+      }
+
+      showError('Location Error', errorMessage);
+    },
+    {
+      enableHighAccuracy: true,
+      timeout: 8000,       // Reduced from 10s to 8s for snappier mobile responsiveness
+      maximumAge: 0        // FORCE 0 to guarantee fresh, non-cached coordination values
+    }
+  );
+};
+
 
 
   // Create Post Modal state
@@ -311,94 +334,112 @@ export function OptimizedMapsPage() {
   }, [dispatch]);
 
   // Handle shop near me toggle
-  const handleToggleShopsNearMe = async () => {
-    if (showShopsNearMe) {
-      // Turn off - clear markers
-      setShowShopsNearMe(false);
-      setShopsNearMe([]);
-      return;
-    }
+ const handleToggleShopsNearMe = async () => {
+  if (showShopsNearMe) {
+    // Turn off - clear markers cleanly
+    setShowShopsNearMe(false);
+    setShopsNearMe([]);
+    return;
+  }
 
-    // Turn on - get location and fetch shops
-    if (!navigator.geolocation) {
-      showError('Location Error', 'Geolocation is not supported by your browser.');
-      return;
-    }
+  // Turn on - verify platform support
+  if (!navigator.geolocation) {
+    showError('Location Error', 'Geolocation is not supported by your browser.');
+    return;
+  }
 
-    setIsLoadingShopsNearMe(true);
+  setIsLoadingShopsNearMe(true);
 
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const { latitude, longitude } = position.coords;
-
-        // Set user location and show marker
-        setUserLocation({ lat: latitude, lng: longitude });
-        setShowLocationMarker(true);
-
-        // Center map on user's location
-        if (mapRef.current) {
-          mapRef.current.flyTo([latitude, longitude], 18, {
-            duration: 1.5
-          });
-        }
-
-        // Fetch shops near me
-        try {
-          const result = await refetchShopsNearMe({ lat: latitude, lng: longitude }) as { data?: { shopsNearMe?: { success: boolean; data: any[] } } };
-
-          if (result.data?.shopsNearMe?.success) {
-            const shops = result.data.shopsNearMe.data.map((shop: any) => ({
-              id: shop.id,
-              lat: shop.coordinates?.lat || 0,
-              lng: shop.coordinates?.lng || 0,
-              name: shop.name,
-              description: shop.description,
-              phone: shop.contactDetails?.phone,
-              hours: shop.businessHours ? `${shop.businessHours.openTime} - ${shop.businessHours.closeTime}` : undefined,
-              coverPhoto: shop.coverPhoto,
-              businessType: shop.businessType,
-              location: shop.contactDetails?.address || shop.location,
-            })).filter((s: any) => s.lat && s.lng);
-
-            setShopsNearMe(shops);
-            setShowShopsNearMe(true);
-            showSuccess('Shops Near Me', `Found ${shops.length} shops within 200m of your location`);
-          } else {
-            showError('Search Failed', 'Failed to find shops near you.');
-          }
-        } catch (error) {
-          console.error('Error fetching shops near me:', error);
-          showError('Error', 'An error occurred while fetching shops near you.');
-        } finally {
-          setIsLoadingShopsNearMe(false);
-        }
-      },
-      (error) => {
-        console.error('Error getting location:', error);
+  // 1. Proactively inspect local permissions status before requesting coordinates
+  if (navigator.permissions && navigator.permissions.query) {
+    try {
+      const permissionStatus = await navigator.permissions.query({ name: 'geolocation' });
+      if (permissionStatus.state === 'denied') {
         setIsLoadingShopsNearMe(false);
-
-        let errorMessage = 'Unable to get your current location.';
-        switch (error.code) {
-          case error.PERMISSION_DENIED:
-            errorMessage = 'Location access denied. Please enable location permissions.';
-            break;
-          case error.POSITION_UNAVAILABLE:
-            errorMessage = 'Location information is unavailable.';
-            break;
-          case error.TIMEOUT:
-            errorMessage = 'Location request timed out.';
-            break;
-        }
-
-        showError('Location Error', errorMessage);
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 300000
+        showError(
+          'Location Permission Blocked',
+          'Please click the settings toggle in your URL address bar or PWA application info shell and set Location to "Allow".'
+        );
+        return;
       }
-    );
-  };
+    } catch (e) {
+      console.warn('Permissions query skipped.', e);
+    }
+  }
+
+  // 2. Query location securely with an absolute 0 maximumAge to prevent caching
+  navigator.geolocation.getCurrentPosition(
+    async (position) => {
+      const { latitude, longitude } = position.coords;
+
+      // Update core tracking layers
+      setUserLocation({ lat: latitude, lng: longitude });
+      setShowLocationMarker(true);
+
+      if (mapRef.current) {
+        mapRef.current.flyTo([latitude, longitude], 18, {
+          duration: 1.5
+        });
+      }
+
+      // 3. Process backend lookup queries asynchronously
+      try {
+        const result = await refetchShopsNearMe({ lat: latitude, lng: longitude }) as { data?: { shopsNearMe?: { success: boolean; data: any[] } } };
+
+        if (result.data?.shopsNearMe?.success) {
+          const shops = result.data.shopsNearMe.data.map((shop: any) => ({
+            id: shop.id,
+            lat: shop.coordinates?.lat || 0,
+            lng: shop.coordinates?.lng || 0,
+            name: shop.name,
+            description: shop.description,
+            phone: shop.contactDetails?.phone,
+            hours: shop.businessHours ? `${shop.businessHours.openTime} - ${shop.businessHours.closeTime}` : undefined,
+            coverPhoto: shop.coverPhoto,
+            businessType: shop.businessType,
+            location: shop.contactDetails?.address || shop.location,
+          })).filter((s: any) => s.lat && s.lng);
+
+          setShopsNearMe(shops);
+          setShowShopsNearMe(true);
+          showSuccess('Shops Near Me', `Found ${shops.length} shops within 200m of your location`);
+        } else {
+          showError('Search Failed', 'Failed to find shops near you.');
+        }
+      } catch (error) {
+        console.error('Error fetching shops near me:', error);
+        showError('Error', 'An error occurred while fetching shops near you.');
+      } finally {
+        setIsLoadingShopsNearMe(false);
+      }
+    },
+    (error) => {
+      console.error('Error getting location:', error);
+      setIsLoadingShopsNearMe(false);
+
+      let errorMessage = 'Unable to get your current location.';
+      switch (error.code) {
+        case error.PERMISSION_DENIED:
+          errorMessage = 'Location access is turned off. Please ensure your device GPS is turned ON and your browser site permissions allow location access.';
+          break;
+        case error.POSITION_UNAVAILABLE:
+          errorMessage = 'Network location lookup failed. Please check your signal connectivity.';
+          break;
+        case error.TIMEOUT:
+          errorMessage = 'The location request timed out. Please try tapping the button again.';
+          break;
+      }
+
+      showError('Location Error', errorMessage);
+    },
+    {
+      enableHighAccuracy: true,
+      timeout: 8000, // Reduced from 10s to 8s for faster failure handling
+      maximumAge: 0   // Force zero to guarantee current location accuracy
+    }
+  );
+};
+
 
   // Handle shop near me marker click
   const handleShopNearMeClick = useCallback((store: any) => {

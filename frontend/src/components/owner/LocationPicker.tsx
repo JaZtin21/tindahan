@@ -14,10 +14,13 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const L = (window as any).L;
 
+   // 1. Core function: Instantly moves the marker on the map UI
   const handleMapClick = (lat: number, lng: number) => {
     setSelectedLocation({ lat, lng });
+    
+    // Set a clean text state instead of putting numbers into your address box
+    setAddress('Retrieving address name...'); 
 
-    // Add marker to map
     if (mapInstanceRef.current) {
       const L = (window as any).L;
 
@@ -64,20 +67,37 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
         `);
     }
 
-    // Reverse geocoding to get address
-    fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`)
-      .then(response => response.json())
-      .then(data => {
-        const formattedAddress = data.display_name || `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
-        setAddress(formattedAddress);
-        console.log('Address resolved:', formattedAddress);
-      })
-      .catch(() => {
-        setAddress(`${lat.toFixed(4)}, ${lng.toFixed(4)}`);
-      });
+    // Fire the debounced address request
+    debouncedReverseGeocode(lat, lng);
   };
 
-  const handleGetCurrentLocation = (e: React.MouseEvent) => {
+  // 2. Debounced Fetch: Only assigns true string values or clean fallback labels
+  const debouncedReverseGeocode = (lat: number, lng: number) => {
+    // Wipe out the timer from any previous rapid clicks
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+
+    // Wait 300ms for the user to finish clicking before calling the API
+    debounceRef.current = setTimeout(() => {
+      fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`)
+        .then(response => response.json())
+        .then(data => {
+          // Guard: Ensure we extract the human-readable text name, never raw numbers
+          const formattedAddress = data.display_name || 'Unknown Location Name';
+          setAddress(formattedAddress);
+          console.log('Address resolved cleanly:', formattedAddress);
+        })
+        .catch((error) => {
+          console.error('Geocoding failure:', error);
+          // Fallback to a literal text message instead of coordinate strings
+          setAddress('Address name not found'); 
+        });
+    }, 500);
+  };
+
+
+  const handleGetCurrentLocation = async (e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent event from reaching form behind
 
     if (!navigator.geolocation) {
@@ -87,15 +107,29 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
 
     setIsLocating(true);
 
+    // 1. Check permissions first so mobile doesn't auto-fail silently
+    if (navigator.permissions && navigator.permissions.query) {
+      try {
+        const permissionStatus = await navigator.permissions.query({ name: 'geolocation' });
+        if (permissionStatus.state === 'denied') {
+          setIsLocating(false);
+          alert('Location access is blocked. Please open your browser settings or phone app permission settings and change Location to "Allow".');
+          return;
+        }
+      } catch (err) {
+        console.warn('Permissions query not supported, falling back.', err);
+      }
+    }
+
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const { latitude, longitude } = position.coords;
         const newLocation = { lat: latitude, lng: longitude };
         setSelectedLocation(newLocation);
 
-        // Center map on new location with MAX zoom like MapPage
+        // Center map on new location
         if (mapInstanceRef.current) {
-          mapInstanceRef.current.setView([latitude, longitude], 20); // MAX zoom
+          mapInstanceRef.current.setView([latitude, longitude], 18); // Stable high zoom
           handleMapClick(latitude, longitude);
         }
 
@@ -103,16 +137,31 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
       },
       (error) => {
         console.error('Error getting location:', error);
-        alert('Unable to get your location. Please select manually.');
         setIsLocating(false);
+
+        // 2. Give precise instructions depending on what went wrong
+        let errorMsg = 'Unable to get your location. Please select manually.';
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            errorMsg = 'Location access is turned off. Please ensure your phone\'s GPS/Location toggle is turned ON and this site has permission to access it.';
+            break;
+          case error.POSITION_UNAVAILABLE:
+            errorMsg = 'Network location lookup failed. Please check your signal connectivity.';
+            break;
+          case error.TIMEOUT:
+            errorMsg = 'The location request timed out. Please try tapping the button again.';
+            break;
+        }
+        alert(errorMsg);
       },
       {
         enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0
+        timeout: 8000, // Reduced from 10s to 8s for better mobile UX
+        maximumAge: 0  // Guarantees it pulls the absolute latest location
       }
     );
   };
+
 
   const handleConfirmLocation = (e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent event from reaching form behind
