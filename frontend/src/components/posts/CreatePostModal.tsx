@@ -38,7 +38,6 @@ function CreatePostModalInner({ isOpen, onClose, onSubmit, isSubmitting: externa
     });
   };
 
-  console.log('test')
 
   const handlePhotoSelect = (e: ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;

@@ -26,7 +26,6 @@ export function BottomSheet({
   const [translateY, setTranslateY] = useState(100);
   const contentRef = useRef<HTMLDivElement>(null);
 
-  console.log('he')
   // Drag state stored in refs to avoid re-renders during drag
   const dragState = useRef({
     startY: 0,

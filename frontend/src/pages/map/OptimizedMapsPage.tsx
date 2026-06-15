@@ -20,6 +20,7 @@ import { MdMyLocation } from 'react-icons/md';
 import { SearchBar } from '../../components/map/SearchBar';
 import { hideMobileSearch } from '../../store/slices/mobileSearchSlice';
 import type { RootState } from '../../store';
+import { useNavigate } from 'react-router-dom';
 
 
 
@@ -27,7 +28,7 @@ const MAPTILE_KEY = import.meta.env.VITE_MAPTILE_KEY || '';
 
 export function OptimizedMapsPage() {
   const dispatch = useDispatch();
-
+ const navigate = useNavigate();
   const mapRef = useRef<any>(null);
   // ... rest of the code remains the same ...
   const { isAuthenticated } = useAuth();
@@ -60,9 +61,6 @@ export function OptimizedMapsPage() {
       showError('Location Error', 'Geolocation is not supported by your browser.');
       return;
     }
-
-    console.log('fewq')
-
     setIsGettingLocation(true);
 
     navigator.geolocation.getCurrentPosition(
@@ -266,8 +264,7 @@ export function OptimizedMapsPage() {
 
   // Handle store selection from search (from API - shop marker)
   const handleStoreSelect = (store: { lat: number; lng: number; name: string; id?: string; description?: string; location?: string; coverPhoto?: string; businessType?: string; phone?: string; hours?: string }) => {
-    console.log('[Search] Selected store:', store);
-    // Clear post markers when selecting a store
+  // Clear post markers when selecting a store
     clearPostMarkers();
     // Only hide product store markers, keep location pin
     setShowProductStoreMarkers(false);
@@ -299,8 +296,6 @@ export function OptimizedMapsPage() {
 
   // Handle store click from marker (for both single store and product stores)
   const handleStoreMarkerClick = (store: any) => {
-    console.log('[Marker] Store clicked:', store);
-
     // Open sidebar with store info
     dispatch(openSideNav({
       name: store.name || store.title,
@@ -407,13 +402,11 @@ export function OptimizedMapsPage() {
 
   // Handle shop near me marker click
   const handleShopNearMeClick = (store: any) => {
-    console.log('[Shop Near Me] Store clicked:', store);
     handleStoreMarkerClick(store);
   };
 
   // Handle location selection from search (from geocoding - pin marker)
   const handleLocationSelect = (location: { lat: number; lng: number; name: string; details?: string }) => {
-    console.log('[Search] Selected location:', location);
     // Clear post markers when selecting a location
     clearPostMarkers();
     // Location pin is independent - don't hide shop or product markers
@@ -431,7 +424,6 @@ export function OptimizedMapsPage() {
 
   // Handle product selection from search
   const handleProductSelect = async (productName: string) => {
-    console.log('[Search] Selected product:', productName);
     setProductNameForSearch(productName);
 
     // Clear post markers when selecting a product
@@ -483,7 +475,6 @@ export function OptimizedMapsPage() {
 
   // Handle post selection from search
   const handlePostSelect = async (postTitle: string) => {
-    console.log('[Search] Selected post title:', postTitle);
 
     // Fetch posts by title
     const result = await refetchPostsByTitle({ query: postTitle, page: 1, limit: 50 }) as { data?: { searchPostsByTitle?: { data: any[] } } };
@@ -575,11 +566,34 @@ export function OptimizedMapsPage() {
     };
   }, []);
 
+  useEffect(() => {
+  const params = new URLSearchParams(window.location.search);
+  const isCreateOpenInUrl = params.get('create') === 'true';
+
+  // If the 'create' flag is missing from the URL but our local state is open, close it
+  if (!isCreateOpenInUrl && isCreatePostModalOpen) {
+    setIsCreatePostModalOpen(false);
+  }
+}, [window.location.search, isCreatePostModalOpen]);
+
+useEffect(() => {
+  const params = new URLSearchParams(window.location.search);
+  const postIdFromUrl = params.get('post');
+
+  // If the post ID is gone from the URL, but our UI state says it's open, close it
+  if (!postIdFromUrl && isPostPreviewOpen) {
+    console.log('[OptimizedMapsPage] Back button detected, closing post preview');
+    dispatch(closePostPreview());
+    setSelectedPost(null);
+  }
+}, [window.location.search, isPostPreviewOpen, dispatch]);
+
   // Live posts subscription - only subscribe if authenticated
   const { data: livePostsData } = useSubscription<{ livePosts: Post[] }>(
     LIVE_POSTS_SUBSCRIPTION,
     { skip: !isAuthenticated }
   );
+
 
   // Store live posts in state
   const [livePosts, setLivePosts] = useState<Post[]>([]);
@@ -589,10 +603,8 @@ export function OptimizedMapsPage() {
     const newPosts = livePostsData?.livePosts;
     if (!newPosts || !Array.isArray(newPosts)) return;
 
-    console.log('[WebSocket] Received posts:', newPosts.length, newPosts.map(p => p.id));
 
     setLivePosts(prevPosts => {
-      console.log('[WebSocket] Previous posts:', prevPosts.length, prevPosts.map(p => p.id));
 
       const prevMap = new Map(prevPosts.map(p => [p.id, p]));
       const newMap = new Map(newPosts.map(p => [p.id, p]));
@@ -608,14 +620,12 @@ export function OptimizedMapsPage() {
       for (const [id, newPost] of newMap) {
         const oldPost = prevMap.get(id);
         if (!oldPost) {
-          console.log('[WebSocket] New post added:', id);
           merged.push(newPost);
           newPostIds.push(id);
 
           // Collect it for bulk insertion
           postsToSyncWithRedux.push(newPost);
         } else if (JSON.stringify(oldPost) !== JSON.stringify(newPost)) {
-          console.log('[WebSocket] Post updated:', id);
           merged.push(newPost);
           updatedPostIds.push(id);
           newlyEditedIds.add(id);
@@ -638,7 +648,6 @@ export function OptimizedMapsPage() {
       // Remove posts that are no longer in the live posts list (deleted)
       for (const [id, oldPost] of prevMap) {
         if (!handledIds.has(id)) {
-          console.log('[WebSocket] Post deleted/removed:', id);
           deletedPostIds.push(id);
           // Dispatch Redux action for deleted post
           dispatch(deletePostAction(id));
@@ -659,44 +668,55 @@ export function OptimizedMapsPage() {
         }, 350);
       }
 
-      console.log('[OptimizedMapsPage] Live posts total:', merged.length, merged.map(p => p.id));
-      console.log('[WebSocket Redux] New posts:', newPostIds, 'Updated:', updatedPostIds, 'Deleted:', deletedPostIds);
       return merged;
     });
   }, [livePostsData, dispatch]);
 
   // Handle post click
-  const handlePostClick = useCallback((post: Post) => {
-    console.log('[OptimizedMapsPage] Post clicked:', post.id);
-    console.log('[OptimizedMapsPage] Setting selectedPost:', post);
-    console.log('[OptimizedMapsPage] Setting isPostPreviewOpen to true');
-    // Clear any pending timeout that would clear selectedPost
-    if (closePostTimeoutRef.current) {
-      clearTimeout(closePostTimeoutRef.current);
-      closePostTimeoutRef.current = null;
-    }
-
+  const handlePostClick = (post: Post) => {
+    const params = new URLSearchParams(window.location.search);
+    params.set('post', post.id);
+    // Use your router's navigate/push function here. Examples:
+    // React Router: navigate(`?${params.toString()}`);
+    // Next.js:       router.push(`?${params.toString()}`, { scroll: false });
+    navigate(`?${params.toString()}`); 
     setSelectedPost(post);
     dispatch(openPostPreview(post.id));
-  }, [dispatch]);
+
+  };
 
   // Handle post preview modal close
-  const handleClosePostPreview = useCallback(() => {
+  const handleClosePostPreview = () => {
     dispatch(closePostPreview());
     // Delay clearing selectedPost to allow close animation to complete
+    navigate(-1);
     closePostTimeoutRef.current = setTimeout(() => setSelectedPost(null), 300);
-  }, [dispatch]);
+  };
 
   // Handle edit post
-  const handleEditPost = useCallback((post: Post) => {
+  const handleEditPost = (post: Post) => {
     setPostToEdit(post);
     setIsEditPostModalOpen(true);
-  }, [dispatch]);
+  };
 
   // Handle delete post - opens confirmation modal
   const handleDeletePost = useCallback((post: Post) => {
     setDeleteModal({ isOpen: true, post });
   }, []);
+
+  const handleCloseCreatePostModal = () => {
+    setIsCreatePostModalOpen(false);
+    navigate(-1);
+  };
+
+  const handleOpenCreatePostModal = () => {
+    setIsCreatePostModalOpen(true);
+    const params = new URLSearchParams(window.location.search);
+    params.set('create', 'true');
+  
+    navigate(`${window.location.pathname}?${params.toString()}`); 
+    
+  };
 
   return (
     <div className="w-full h-screen relative">
@@ -815,7 +835,7 @@ export function OptimizedMapsPage() {
         {/* Add Post Button - Only show if authenticated */}
         {isAuthenticated && (
           <button
-            onClick={() => setIsCreatePostModalOpen(true)}
+            onClick={handleOpenCreatePostModal}
             className="flex items-center gap-2 px-3 py-2 md:px-4 text-sm md:text-base md:py-3 bg-primary/80 backdrop-blur-[5px] [-webkit-backdrop-filter:blur(5px)] hover:bg-primary-700 text-white rounded-full shadow-md transition-colors"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -838,7 +858,7 @@ export function OptimizedMapsPage() {
       {/* Create Post Modal - always render, Modal handles visibility */}
       <CreatePostModal
         isOpen={isCreatePostModalOpen}
-        onClose={() => setIsCreatePostModalOpen(false)}
+        onClose={handleCloseCreatePostModal}
         onSubmit={handleCreatePost}
         isSubmitting={isCreatingPost}
         currentLocation={null}

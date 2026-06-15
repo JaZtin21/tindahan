@@ -347,7 +347,6 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
   const hasProfilePhoto = !!post?.author?.profilePhoto;
   const profilePhotoUrl = post?.author?.profilePhoto;
 
-  console.log(currentUser, 'current user');
 
   return (
     <Modal
