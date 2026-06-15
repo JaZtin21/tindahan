@@ -728,10 +728,12 @@ useEffect(() => {
 
   // Handle post preview modal close
   const handleClosePostPreview = () => {
+     
+
     dispatch(closePostPreview());
     // Delay clearing selectedPost to allow close animation to complete
     navigate(-1);
-    closePostTimeoutRef.current = setTimeout(() => setSelectedPost(null), 300);
+    setSelectedPost(null);
   };
 
   // Handle edit post

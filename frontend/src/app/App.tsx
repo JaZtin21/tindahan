@@ -28,19 +28,21 @@ export function App() {
   const isHomePage = location.pathname === '/'
 
   return (
-    <div className="min-h-dvh bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-900">
-      {/* Main content with top padding for fixed nav */}
-      <main className="relative">
-        {!isHomePage && <TopNav />}
-        <SideNav 
-          isOpen={isOpen} 
-          onClose={handleCloseSideNav}
-          selectedLocation={selectedLocation}
-        />
-        <Outlet />
-      </main>
-    </div>
-  )
+  <div className="min-h-dvh bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-900">
+    <main className="relative">
+      {!isHomePage && <TopNav />}
+      
+      {/* RESTORED: Leave it running normally so your slide animations work */}
+      <SideNav 
+        isOpen={isOpen} 
+        onClose={handleCloseSideNav}
+        selectedLocation={selectedLocation}
+      />
+      
+      <Outlet />
+    </main>
+  </div>
+)
 }
 
 // Add default export for compatibility

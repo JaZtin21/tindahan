@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, memo } from 'react';
 import { useDispatch } from 'react-redux';
 import { useQuery, useMutation } from '@apollo/client/react';
 import { clearSideNavContent } from '../../store';
@@ -34,7 +34,7 @@ interface SideNavProps {
 
 type TabType = 'about' | 'reviews';
 
-export function SideNav({ isOpen, onClose, selectedLocation }: SideNavProps) {
+function SideNavComponent({ isOpen, onClose, selectedLocation }: SideNavProps) {
   const dispatch = useDispatch();
   const isMobile = useIsMobile(768);
   const { userInfo, isAuthenticated } = useAuth();
@@ -143,8 +143,9 @@ export function SideNav({ isOpen, onClose, selectedLocation }: SideNavProps) {
       userID: userInfo?.id || '',
       shopID: selectedLocation?.storeId || ''
     },
-    skip: !selectedLocation?.storeId || !userInfo?.id,
-    fetchPolicy: 'cache-and-network'
+    skip: !isOpen || !selectedLocation?.storeId || !userInfo?.id,
+    // SWAPPED HERE: Skips reading or saving to Apollo storage
+    fetchPolicy: 'no-cache' 
   });
 
   const existingInquiry = userInquiryData?.userInquiryForShop?.data;
@@ -223,8 +224,6 @@ export function SideNav({ isOpen, onClose, selectedLocation }: SideNavProps) {
 
   const isStore = selectedLocation?.type === 'store';
   const hasStoreId = !!selectedLocation?.storeId;
-
-  console.log('selectedLocation', selectedLocation);
 
   return (
     <>
@@ -569,3 +568,4 @@ function SideNavContent({
     </>
   );
 }
+export const SideNav = memo(SideNavComponent);

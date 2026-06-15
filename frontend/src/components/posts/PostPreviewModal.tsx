@@ -24,6 +24,7 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
   const dispatch = useDispatch();
   const currentUser = useSelector((state: RootState) => state.user);
 
+
   const reduxCachedPost = useSelector((state: RootState) =>
     post?.id ? (state.posts.byId[post.id] as Post | undefined) : null
   );
@@ -448,7 +449,7 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
               {displayedPost?.author?.followers?.includes(currentUser?.id || '') ? 'Following' : 'Follow'}
             </button>)}
           </div>
-        ) : 'Loading...1'
+        ) : 'Loading...'
       }
     >
       {!displayedPost ? (
