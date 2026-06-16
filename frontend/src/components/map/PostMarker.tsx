@@ -116,7 +116,7 @@ export function getPostIcon(L: any, post: Post, animate: boolean = false) {
   return L.divIcon({
     html: getPostBubbleHtml(post),
     className: className,
-    iconSize: [200, 44],     // Only the avatar height matters for anchor
+    iconSize: [44, 44],     // Only the avatar height matters for anchor
     iconAnchor: [25, 22],    // Center of the 44px avatar circle (x=25, y=22 from bottom)
     popupAnchor: [0, -44]    // Popup above the avatar
   });

@@ -110,7 +110,6 @@ export function getMapMarkerStyles(): string {
       background: transparent !important;
       border: none !important;
       transition: opacity 0.2s ease, z-index 0s, transform 0.2s ease;
-      z-index: 400 !important;
     }
 
     .post-bubble-marker:hover {
@@ -140,7 +139,7 @@ export function getMapMarkerStyles(): string {
       display: flex;
       flex-direction: column;
       align-items: flex-start;
-      width: 200px;
+      width: 44px;
       /* Avatar is the anchor - positioned at bottom */
       height: auto;
     }

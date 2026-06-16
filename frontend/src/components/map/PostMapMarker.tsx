@@ -36,7 +36,7 @@ export function PostMapMarker({ post, onClick, isEdited }: PostMapMarkerProps) {
             const newIcon = L.divIcon({
               html: getPostBubbleHtml(post),
               className: isEdited ? 'post-bubble-marker' : 'post-bubble-marker animate-in',
-              iconSize: [200, 44],
+              iconSize: [44, 44],
               iconAnchor: [25, 22],
               popupAnchor: [0, -44]
             });
@@ -60,13 +60,16 @@ export function PostMapMarker({ post, onClick, isEdited }: PostMapMarkerProps) {
       const icon = L.divIcon({
         html: getPostBubbleHtml(post),
         className: className,
-        iconSize: [200, 44],
+        iconSize: [44, 44],
         iconAnchor: [25, 22],
         popupAnchor: [0, -44]
       });
 
       // Create marker with post location
       const marker = L.marker([post.location!.lat, post.location!.lng], { icon });
+
+      // @ts-ignore
+      marker._updateZIndex = function () {}; 
 
       // Add click handler using ref
       marker.on('click', () => {
