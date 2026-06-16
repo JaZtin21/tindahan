@@ -295,7 +295,7 @@ export function OptimizedMapsPage() {
 
     // Center map on store
     if (mapRef.current) {
-      mapRef.current.flyTo([store.lat, store.lng], 18, { duration: 1.5 });
+      mapRef.current.flyTo([store.lat, store.lng], 18, { duration: 1 });
     }
 
     // Set store marker data and show it
@@ -304,6 +304,7 @@ export function OptimizedMapsPage() {
     setSelectedStore(store);
 
     // Open sidebar with store info
+    setTimeout(()=>{
     dispatch(openSideNav({
       name: store.name,
       lat: store.lat,
@@ -315,12 +316,13 @@ export function OptimizedMapsPage() {
       phone: store.phone,
       storeId: store.id
     }));
+    }, 1000);
   };
 
   // Handle store click from marker (for both single store and product stores)
   const handleStoreMarkerClick = useCallback((store: any) => {
     // Open sidebar with store info
-    dispatch(openSideNav({
+   dispatch(openSideNav({
       name: store.name || store.title,
       lat: store.lat,
       lng: store.lng,
@@ -331,6 +333,7 @@ export function OptimizedMapsPage() {
       phone: store.phone,
       storeId: store.id
     }));
+ 
   }, [dispatch]);
 
   // Handle shop near me toggle
