@@ -3654,6 +3654,15 @@ func (r *Resolver) docToPost(doc bson.M) *Post {
 		post.CommentCount = 0
 	}
 
+	// Quality (optional)
+	if quality, ok := doc["quality"].(int32); ok {
+		q := int(quality)
+		post.Quality = &q
+	} else if quality, ok := doc["quality"].(int64); ok {
+		q := int(quality)
+		post.Quality = &q
+	}
+
 	// Author (required) - fetch actual user data from database
 	if authorID, ok := doc["author_id"].(primitive.ObjectID); ok {
 		// Try to fetch user from database
@@ -3673,6 +3682,7 @@ func (r *Resolver) docToPost(doc bson.M) *Post {
 					Role:         UserRole(user.Role),
 					ProfilePhoto: &user.ProfilePhoto,
 					IsActive:     user.IsActive,
+					Priority:     user.Priority,
 				}
 			} else {
 				// Fallback if user not found

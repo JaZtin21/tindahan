@@ -10,7 +10,7 @@ import type { RootState } from '../../store'
 
 
 export function TopNav() {
-  const { isAuthenticated, userInfo, logoutAndClear } = useAuth()
+  const { isAuthenticated, userInfo, logoutAndClear, isLoading } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const dispatch = useDispatch()
@@ -154,7 +154,9 @@ export function TopNav() {
             </Link>
           )}
 
-          {isAuthenticated && userInfo ? (
+
+           
+          {!isLoading ? isAuthenticated && userInfo  ? (
             <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
@@ -298,6 +300,10 @@ export function TopNav() {
             >
               Login
             </Link>
+          ) : (
+            <button className="flex items-center gap-2 focus:outline-none">
+              <div className="w-8 h-8 rounded-full bg-gray-300 dark:bg-gray-700 animate-pulse"></div>
+            </button>
           )}
         </nav>
       </div>

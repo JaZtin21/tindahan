@@ -22,7 +22,26 @@ export const LIVE_POSTS_SUBSCRIPTION = gql`
         lastName
         role
         profilePhoto
+        priority
       }
+      likes
+      isLiked
+      comments {
+        id
+        text
+        author {
+          id
+          name
+          email
+          firstName
+          lastName
+          profilePhoto
+        }
+        createdAt
+        updatedAt
+      }
+      commentCount
+      quality
       createdAt
       updatedAt
     }

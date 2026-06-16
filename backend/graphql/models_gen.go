@@ -316,6 +316,7 @@ type Post struct {
 	IsLiked      bool       `json:"isLiked"`
 	Comments     []*Comment `json:"comments"`
 	CommentCount int        `json:"commentCount"`
+	Quality      *int       `json:"quality,omitempty"`
 	CreatedAt    time.Time  `json:"createdAt"`
 	UpdatedAt    *time.Time `json:"updatedAt,omitempty"`
 }
@@ -558,6 +559,7 @@ type User struct {
 	FollowersCount int        `json:"followersCount"`
 	FollowingCount int        `json:"followingCount"`
 	IsFollowing    bool       `json:"isFollowing"`
+	Priority       *int       `json:"priority,omitempty"`
 	CreatedAt      time.Time  `json:"createdAt"`
 	UpdatedAt      *time.Time `json:"updatedAt,omitempty"`
 	IsActive       bool       `json:"isActive"`

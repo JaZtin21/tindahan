@@ -30,6 +30,7 @@ type User {
   followersCount: Int!
   followingCount: Int!
   isFollowing: Boolean!
+  priority: Int
   createdAt: Time!
   updatedAt: Time
   isActive: Boolean!

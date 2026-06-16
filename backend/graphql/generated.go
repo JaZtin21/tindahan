@@ -254,6 +254,7 @@ type ComplexityRoot struct {
 		Likes        func(childComplexity int) int
 		Location     func(childComplexity int) int
 		Photos       func(childComplexity int) int
+		Quality      func(childComplexity int) int
 		Text         func(childComplexity int) int
 		Title        func(childComplexity int) int
 		Types        func(childComplexity int) int
@@ -424,6 +425,7 @@ type ComplexityRoot struct {
 		LastName       func(childComplexity int) int
 		Name           func(childComplexity int) int
 		Phone          func(childComplexity int) int
+		Priority       func(childComplexity int) int
 		ProfilePhoto   func(childComplexity int) int
 		Role           func(childComplexity int) int
 		Shops          func(childComplexity int) int
@@ -1593,6 +1595,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Post.Photos(childComplexity), true
+	case "Post.quality":
+		if e.ComplexityRoot.Post.Quality == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Post.Quality(childComplexity), true
 	case "Post.text":
 		if e.ComplexityRoot.Post.Text == nil {
 			break
@@ -2519,6 +2527,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.User.Phone(childComplexity), true
+	case "User.priority":
+		if e.ComplexityRoot.User.Priority == nil {
+			break
+		}
+
+		return e.ComplexityRoot.User.Priority(childComplexity), true
 	case "User.profilePhoto":
 		if e.ComplexityRoot.User.ProfilePhoto == nil {
 			break
@@ -3825,6 +3839,8 @@ func (ec *executionContext) fieldContext_AuthResponse_user(_ context.Context, fi
 				return ec.fieldContext_User_followingCount(ctx, field)
 			case "isFollowing":
 				return ec.fieldContext_User_isFollowing(ctx, field)
+			case "priority":
+				return ec.fieldContext_User_priority(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_User_createdAt(ctx, field)
 			case "updatedAt":
@@ -4068,6 +4084,8 @@ func (ec *executionContext) fieldContext_Comment_author(_ context.Context, field
 				return ec.fieldContext_User_followingCount(ctx, field)
 			case "isFollowing":
 				return ec.fieldContext_User_isFollowing(ctx, field)
+			case "priority":
+				return ec.fieldContext_User_priority(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_User_createdAt(ctx, field)
 			case "updatedAt":
@@ -5225,6 +5243,8 @@ func (ec *executionContext) fieldContext_Inquiry_user(_ context.Context, field g
 				return ec.fieldContext_User_followingCount(ctx, field)
 			case "isFollowing":
 				return ec.fieldContext_User_isFollowing(ctx, field)
+			case "priority":
+				return ec.fieldContext_User_priority(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_User_createdAt(ctx, field)
 			case "updatedAt":
@@ -5736,6 +5756,8 @@ func (ec *executionContext) fieldContext_InquiryReply_author(_ context.Context, 
 				return ec.fieldContext_User_followingCount(ctx, field)
 			case "isFollowing":
 				return ec.fieldContext_User_isFollowing(ctx, field)
+			case "priority":
+				return ec.fieldContext_User_priority(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_User_createdAt(ctx, field)
 			case "updatedAt":
@@ -8923,6 +8945,8 @@ func (ec *executionContext) fieldContext_Post_author(_ context.Context, field gr
 				return ec.fieldContext_User_followingCount(ctx, field)
 			case "isFollowing":
 				return ec.fieldContext_User_isFollowing(ctx, field)
+			case "priority":
+				return ec.fieldContext_User_priority(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_User_createdAt(ctx, field)
 			case "updatedAt":
@@ -9101,6 +9125,35 @@ func (ec *executionContext) fieldContext_Post_commentCount(_ context.Context, fi
 	return fc, nil
 }
 
+func (ec *executionContext) _Post_quality(ctx context.Context, field graphql.CollectedField, obj *Post) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Post_quality,
+		func(ctx context.Context) (any, error) {
+			return obj.Quality, nil
+		},
+		nil,
+		ec.marshalOInt2ᚖint,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Post_quality(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Post",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Post_createdAt(ctx context.Context, field graphql.CollectedField, obj *Post) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -9263,6 +9316,8 @@ func (ec *executionContext) fieldContext_PostPayload_data(_ context.Context, fie
 				return ec.fieldContext_Post_comments(ctx, field)
 			case "commentCount":
 				return ec.fieldContext_Post_commentCount(ctx, field)
+			case "quality":
+				return ec.fieldContext_Post_quality(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_Post_createdAt(ctx, field)
 			case "updatedAt":
@@ -9531,6 +9586,8 @@ func (ec *executionContext) fieldContext_PostsPayload_data(_ context.Context, fi
 				return ec.fieldContext_Post_comments(ctx, field)
 			case "commentCount":
 				return ec.fieldContext_Post_commentCount(ctx, field)
+			case "quality":
+				return ec.fieldContext_Post_quality(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_Post_createdAt(ctx, field)
 			case "updatedAt":
@@ -11136,6 +11193,8 @@ func (ec *executionContext) fieldContext_Query_users(ctx context.Context, field 
 				return ec.fieldContext_User_followingCount(ctx, field)
 			case "isFollowing":
 				return ec.fieldContext_User_isFollowing(ctx, field)
+			case "priority":
+				return ec.fieldContext_User_priority(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_User_createdAt(ctx, field)
 			case "updatedAt":
@@ -11217,6 +11276,8 @@ func (ec *executionContext) fieldContext_Query_user(ctx context.Context, field g
 				return ec.fieldContext_User_followingCount(ctx, field)
 			case "isFollowing":
 				return ec.fieldContext_User_isFollowing(ctx, field)
+			case "priority":
+				return ec.fieldContext_User_priority(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_User_createdAt(ctx, field)
 			case "updatedAt":
@@ -11298,6 +11359,8 @@ func (ec *executionContext) fieldContext_Query_followers(ctx context.Context, fi
 				return ec.fieldContext_User_followingCount(ctx, field)
 			case "isFollowing":
 				return ec.fieldContext_User_isFollowing(ctx, field)
+			case "priority":
+				return ec.fieldContext_User_priority(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_User_createdAt(ctx, field)
 			case "updatedAt":
@@ -11379,6 +11442,8 @@ func (ec *executionContext) fieldContext_Query_following(ctx context.Context, fi
 				return ec.fieldContext_User_followingCount(ctx, field)
 			case "isFollowing":
 				return ec.fieldContext_User_isFollowing(ctx, field)
+			case "priority":
+				return ec.fieldContext_User_priority(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_User_createdAt(ctx, field)
 			case "updatedAt":
@@ -11460,6 +11525,8 @@ func (ec *executionContext) fieldContext_Query_usersByIds(ctx context.Context, f
 				return ec.fieldContext_User_followingCount(ctx, field)
 			case "isFollowing":
 				return ec.fieldContext_User_isFollowing(ctx, field)
+			case "priority":
+				return ec.fieldContext_User_priority(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_User_createdAt(ctx, field)
 			case "updatedAt":
@@ -11735,6 +11802,8 @@ func (ec *executionContext) fieldContext_Review_user(_ context.Context, field gr
 				return ec.fieldContext_User_followingCount(ctx, field)
 			case "isFollowing":
 				return ec.fieldContext_User_isFollowing(ctx, field)
+			case "priority":
+				return ec.fieldContext_User_priority(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_User_createdAt(ctx, field)
 			case "updatedAt":
@@ -13574,6 +13643,8 @@ func (ec *executionContext) fieldContext_Subscription_livePosts(_ context.Contex
 				return ec.fieldContext_Post_comments(ctx, field)
 			case "commentCount":
 				return ec.fieldContext_Post_commentCount(ctx, field)
+			case "quality":
+				return ec.fieldContext_Post_quality(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_Post_createdAt(ctx, field)
 			case "updatedAt":
@@ -14163,6 +14234,35 @@ func (ec *executionContext) fieldContext_User_isFollowing(_ context.Context, fie
 	return fc, nil
 }
 
+func (ec *executionContext) _User_priority(ctx context.Context, field graphql.CollectedField, obj *User) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_User_priority,
+		func(ctx context.Context) (any, error) {
+			return obj.Priority, nil
+		},
+		nil,
+		ec.marshalOInt2ᚖint,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_User_priority(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "User",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _User_createdAt(ctx context.Context, field graphql.CollectedField, obj *User) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -14364,6 +14464,8 @@ func (ec *executionContext) fieldContext_UserPayload_data(_ context.Context, fie
 				return ec.fieldContext_User_followingCount(ctx, field)
 			case "isFollowing":
 				return ec.fieldContext_User_isFollowing(ctx, field)
+			case "priority":
+				return ec.fieldContext_User_priority(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_User_createdAt(ctx, field)
 			case "updatedAt":
@@ -19069,6 +19171,8 @@ func (ec *executionContext) _Post(ctx context.Context, sel ast.SelectionSet, obj
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "quality":
+			out.Values[i] = ec._Post_quality(ctx, field, obj)
 		case "createdAt":
 			out.Values[i] = ec._Post_createdAt(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -20582,6 +20686,8 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "priority":
+			out.Values[i] = ec._User_priority(ctx, field, obj)
 		case "createdAt":
 			out.Values[i] = ec._User_createdAt(ctx, field, obj)
 			if out.Values[i] == graphql.Null {

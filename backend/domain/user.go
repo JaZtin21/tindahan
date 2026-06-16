@@ -20,6 +20,7 @@ type User struct {
 	IsActive     bool                 `bson:"is_active" json:"is_active"`
 	Followers    []primitive.ObjectID `bson:"followers,omitempty" json:"followers,omitempty"`
 	Following    []primitive.ObjectID `bson:"following,omitempty" json:"following,omitempty"`
+	Priority     *int                 `bson:"priority,omitempty" json:"priority,omitempty"`
 	CreatedAt    time.Time            `bson:"created_at" json:"created_at"`
 	UpdatedAt    time.Time            `bson:"updated_at" json:"updated_at"`
 }
@@ -35,6 +36,7 @@ type UserResponse struct {
 	CoverPhoto   string    `json:"cover_photo"`
 	Role         string    `json:"role"`
 	IsActive     bool      `json:"is_active"`
+	Priority     *int      `json:"priority,omitempty"`
 	CreatedAt    time.Time `json:"created_at"`
 	UpdatedAt    time.Time `json:"updated_at"`
 }

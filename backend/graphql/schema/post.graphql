@@ -33,6 +33,7 @@ type Post {
   isLiked: Boolean!
   comments: [Comment!]!
   commentCount: Int!
+  quality: Int
   createdAt: Time!
   updatedAt: Time
 }

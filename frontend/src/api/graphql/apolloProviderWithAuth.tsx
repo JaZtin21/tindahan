@@ -72,6 +72,8 @@ const ApolloProviderWithAuth = ({ children }: any) => {
     const [userInfo, setUserInfoState] = useState<UserInfo | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
+    console.log('isLoading', isLoading)
+
     const jwtRef = useRef<string>('');
     const isRefreshingRef = useRef(false);
     const hasCheckedAuthRef = useRef(false);

@@ -128,6 +128,7 @@ export function PostGroupMarker({ group, onClick }: PostGroupMarkerProps) {
     });
     
     marker.addTo(map);
+    
     markerRef.current = marker;
 
     return () => {
@@ -162,6 +163,12 @@ export function PostGroupMarker({ group, onClick }: PostGroupMarkerProps) {
       iconAnchor: [20, 44],
       popupAnchor: [0, -44]
     }));
+
+    const qualityValue = 0 + (Number(currentPost.quality) || 0);
+    const element = markerRef.current.getElement();
+    if (element) {
+        element.style.zIndex = String(qualityValue);
+    }
   }, [currentPostIndex, currentPost, isHovered, isResuming]);
 
   return null;

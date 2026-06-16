@@ -17,6 +17,7 @@ type Post struct {
 	Likes     int                  `bson:"likes" json:"likes"`
 	LikedBy   []primitive.ObjectID `bson:"liked_by" json:"liked_by"`
 	Comments  []Comment            `bson:"comments" json:"comments"`
+	Quality   *int                 `bson:"quality,omitempty" json:"quality,omitempty"`
 	CreatedAt time.Time            `bson:"created_at" json:"created_at"`
 	UpdatedAt time.Time            `bson:"updated_at" json:"updated_at"`
 }
@@ -49,6 +50,7 @@ type PostResponse struct {
 	IsLiked      bool              `json:"is_liked"`
 	Comments     []CommentResponse `json:"comments"`
 	CommentCount int               `json:"comment_count"`
+	Quality      *int              `json:"quality,omitempty"`
 	CreatedAt    time.Time         `json:"created_at"`
 	UpdatedAt    time.Time         `json:"updated_at"`
 }
