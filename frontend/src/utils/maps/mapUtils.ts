@@ -112,6 +112,3 @@ export function clusterPosts(posts: any[], thresholdMeters: number): PostOrGroup
 
 
 
-
-
-export const MIN_MARKER_ZOOM = 16; // Minimum zoom level to show post markers (city level zoom)

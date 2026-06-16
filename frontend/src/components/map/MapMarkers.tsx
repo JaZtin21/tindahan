@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, memo } from 'react';
 import { useMap } from 'react-leaflet';
 import type { LatLngBounds } from 'leaflet';
 import type { MapMarkersProps } from '../../types/map';
-import { clusterPosts, MIN_MARKER_ZOOM } from '../../utils/maps/mapUtils';
+import { clusterPosts } from '../../utils/maps/mapUtils';
 import { PostMapMarker } from './PostMapMarker';
 import { PostGroupMarker } from './PostGroupMarker';
 import { StoreMarker } from './StoreMarker';
@@ -38,7 +38,10 @@ function MapMarkersComponent({
 
   // Track zoom changes
   useEffect(() => {
-    const handleZoom = () => setZoom(map.getZoom());
+    const handleZoom = () => {
+      setZoom(map.getZoom());
+      console.log('zoom', map.getZoom());
+    };
     map.on('zoomend', handleZoom);
     return () => { map.off('zoomend', handleZoom); };
   }, [map]);
@@ -71,6 +74,10 @@ function MapMarkersComponent({
   const clusteredPosts = useMemo(() => {
     return clusterPosts(visiblePosts, 25);
   }, [visiblePosts]);
+
+  const MIN_MARKER_ZOOM = useMemo(() => {
+    return 13;
+  }, []);
 
   return (
     <>

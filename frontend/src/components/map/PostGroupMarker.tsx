@@ -106,6 +106,9 @@ export function PostGroupMarker({ group, onClick }: PostGroupMarkerProps) {
     });
 
     const marker = L.marker([lat, lng], { icon });
+
+    // @ts-ignore
+    marker._updateZIndex = function () {}; 
     
     marker.on('click', () => {
       if (onClick) {
