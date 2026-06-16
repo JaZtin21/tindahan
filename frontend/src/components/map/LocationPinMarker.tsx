@@ -53,6 +53,11 @@ export function LocationPinMarker({ location }: LocationPinMarkerProps) {
       
       
       marker.addTo(map);
+
+      const element = markerRef.current.getElement();
+      if (element) {
+          element.style.zIndex = '100';
+      }
       markerRef.current = marker;
     };
     

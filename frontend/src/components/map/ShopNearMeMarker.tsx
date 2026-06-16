@@ -85,6 +85,10 @@ export function ShopNearMeMarker({ store, onClick }: ShopNearMeMarkerProps) {
       });
 
       marker.addTo(map);
+      const element = marker.getElement();
+      if (element) {
+          element.style.zIndex = '100';
+      }
       markerRef.current = marker;
     };
 

@@ -104,6 +104,10 @@ export function ProductStoreMarkers({ stores, onStoreClick }: ProductStoreMarker
         marker.bindPopup(popupContent);
 
         marker.addTo(map);
+        const element = marker.getElement();
+        if (element) {
+            element.style.zIndex = '100';
+        }
         return marker;
       });
 

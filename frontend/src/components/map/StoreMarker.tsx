@@ -85,6 +85,10 @@ export function StoreMarker({ store, onClick }: StoreMarkerProps) {
       });
 
       marker.addTo(map);
+      const element = marker.getElement();
+      if (element) {
+          element.style.zIndex = '100';
+      }
       markerRef.current = marker;
     };
 

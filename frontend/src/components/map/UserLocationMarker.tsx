@@ -54,10 +54,13 @@ export function UserLocationMarker({ location }: UserLocationMarkerProps) {
       const marker = L.marker([location.lat, location.lng], { icon });
 
       // Set marker options to prevent it from moving during zoom
-      marker.options.zIndexOffset = 1000;
       marker.options.riseOnHover = false;
       marker.options.bubblingMouseEvents = false;
       marker.addTo(map);
+      const element = marker.getElement();
+      if (element) {
+          element.style.zIndex = '100';
+      }
       markerRef.current = marker;
     };
 

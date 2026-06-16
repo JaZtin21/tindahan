@@ -20,7 +20,7 @@ export function PostSearchMarker({ post, onClick }: PostSearchMarkerProps) {
   // Create custom icon with user profile picture
   const icon = L.divIcon({
     html: `
-      <div class="post-search-marker" style="position: relative; width: 50px; height: 60px; display: flex; flex-direction: column; align-items: center; cursor: pointer;">
+      <div class="post-search-marker" style="position: relative;z-index: 100; width: 50px; height: 60px; display: flex; flex-direction: column; align-items: center; cursor: pointer;">
         <div class="profile-picture" style="
           width: 40px; 
           height: 40px; 
