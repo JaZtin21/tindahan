@@ -48,7 +48,7 @@ export function getMapMarkerStyles(): string {
       width: 40px;
       height: 40px;
       border-radius: 50%;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: #f0c388;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -189,7 +189,7 @@ export function getMapMarkerStyles(): string {
       width: 44px;
       height: 44px;
       border-radius: 50%;
-      background: linear-gradient(135deg, #e57373 0%, #c62828 100%);
+      background: #f0c388;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -219,7 +219,7 @@ export function getMapMarkerStyles(): string {
       width: 100%;
       height: 100%;
       border-radius: 50%;
-      background: linear-gradient(135deg, #e57373 0%, #c62828 100%);
+      background: #f0c388;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -346,7 +346,7 @@ export function getMapMarkerStyles(): string {
       width: 28px;
       height: 28px;
       border-radius: 50%;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: #f0c388;
       display: flex;
       align-items: center;
       justify-content: center;

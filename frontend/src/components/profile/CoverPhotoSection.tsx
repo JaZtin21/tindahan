@@ -24,7 +24,7 @@ export function CoverPhotoSection({
           className="h-full w-full object-cover"
         />
       ) : (
-        <div className="flex h-full items-center justify-center bg-gradient-to-br from-zinc-800 to-zinc-900">
+        <div className="flex h-full items-center justify-center bg-gray-300 dark:bg-gray-700">
           <ImageIcon className="h-16 w-16 text-zinc-600" />
         </div>
       )}
