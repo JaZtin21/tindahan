@@ -127,15 +127,14 @@ export function Modal({ isOpen, onClose, title, message, type, onConfirm, showCa
               )}
               <button
                 onClick={onConfirm || onClose}
-                className={`px-6 py-2 rounded-lg font-medium transition-colors ${
-                  onConfirm
-                    ? 'bg-red-500 hover:bg-red-600 text-white'
-                    : type === 'success'
-                    ? 'bg-emerald-500 hover:bg-emerald-600 text-white'
+                className={`px-6 py-2 rounded-lg font-medium transition-colors ${onConfirm
+                  ? 'bg-red-500 hover:bg-red-600 text-white'
+                  : type === 'success'
+                    ? 'bg-secondary hover:bg-secondary-50 text-white dark:bg-secondary/80 dark:hover:bg-secondary-50'
                     : type === 'error'
-                    ? 'bg-red-500 hover:bg-red-600 text-white'
-                    : 'bg-blue-500 hover:bg-primary text-white'
-                }`}
+                      ? 'bg-red-500 hover:bg-red-600 text-white'
+                      : 'bg-blue-500 hover:bg-primary text-white'
+                  }`}
               >
                 {onConfirm ? 'Delete' : 'OK'}
               </button>
