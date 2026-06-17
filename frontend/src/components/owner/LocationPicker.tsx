@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import type { LocationPickerProps } from '../../types/owner';
+import { Modal } from '../Modal';
 
 export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5995, lng: 120.9842 }, initialAddress = '' }: LocationPickerProps) {
   const [selectedLocation, setSelectedLocation] = useState(initialLocation);
@@ -14,12 +15,12 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const L = (window as any).L;
 
-   // 1. Core function: Instantly moves the marker on the map UI
+  // 1. Core function: Instantly moves the marker on the map UI
   const handleMapClick = (lat: number, lng: number) => {
     setSelectedLocation({ lat, lng });
-    
+
     // Set a clean text state instead of putting numbers into your address box
-    setAddress('Retrieving address name...'); 
+    setAddress('Retrieving address name...');
 
     if (mapInstanceRef.current) {
       const L = (window as any).L;
@@ -79,7 +80,7 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
     }
 
     // Wait 300ms for the user to finish clicking before calling the API
-     debounceRef.current = setTimeout(() => {
+    debounceRef.current = setTimeout(() => {
       // 1. Grab your key from Vite's env bundle
       const key = import.meta.env.VITE_MAPTILE_KEY || '';
       if (!key) {
@@ -105,7 +106,7 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
         })
         .catch((error) => {
           console.error('MapTiler Geocoding failure:', error);
-          setAddress('Address name not found'); 
+          setAddress('Address name not found');
         });
     }, 500);
   };
@@ -127,7 +128,10 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
         const permissionStatus = await navigator.permissions.query({ name: 'geolocation' });
         if (permissionStatus.state === 'denied') {
           setIsLocating(false);
-          alert('Location access is blocked. Please open your browser settings or phone app permission settings and change Location to "Allow".');
+          showError(
+            'Location Permission Blocked',
+            'Please check if location is turned on in your device settings and check your browser settings. Go to Chrome > Settings > Site Settings > Location and set to "Allow" for this app or Settings > Safari > Location and set to "Allow" for this app for IOS.'
+          );
           return;
         }
       } catch (err) {
@@ -200,7 +204,7 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
     setIsSearching(true);
 
     // Debounce the API call
-  debounceRef.current = setTimeout(async () => {
+    debounceRef.current = setTimeout(async () => {
       // 1. Grab your key from Vite's env bundle
       const key = import.meta.env.VITE_MAPTILE_KEY || '';
       if (!key) {
@@ -214,7 +218,7 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
         const url = `https://api.maptiler.com/geocoding/${encodeURIComponent(query)}.json?key=${key}&limit=5`;
         const response = await fetch(url);
         const data = await response.json();
-        
+
         // 3. MapTiler stores search results inside the "features" array
         setSearchResults(data.features || []);
       } catch (error) {
@@ -235,15 +239,15 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
     };
   }, []);
 
-   const handleSearchResultClick = (result: any) => {
+  const handleSearchResultClick = (result: any) => {
     // 1. FIXED: MapTiler packs coordinates inside a [longitude, latitude] array!
     const [lng, lat] = result.center;
     const newLocation = { lat, lng };
-    
+
     // 2. FIXED: MapTiler uses place_name instead of display_name
     setSelectedLocation(newLocation);
     setAddress(result.place_name);
-    
+
     // 3. Reset states cleanly
     setSearchResults([]);
     setSearchQuery('');
@@ -287,7 +291,7 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
       const map = L.map(mapRef.current).setView([selectedLocation.lat, selectedLocation.lng], 15);
       mapInstanceRef.current = map;
 
-     const key = import.meta.env.VITE_MAPTILE_KEY || '';
+      const key = import.meta.env.VITE_MAPTILE_KEY || '';
       if (!key) {
         console.error('VITE_MAPTILE_KEY is missing from .env');
         return;
@@ -397,6 +401,21 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
     return '📍 Select Location on Map';
   };
 
+  const [feedbackModal, setFeedbackModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    type: 'success' | 'error'
+  }>({ isOpen: false, title: '', message: '', type: 'success' });
+
+  const showSuccess = (title: string, message: string) => {
+    setFeedbackModal({ isOpen: true, title, message, type: 'success' });
+  };
+
+  const showError = (title: string, message: string) => {
+    setFeedbackModal({ isOpen: true, title, message, type: 'error' });
+  };
+
   if (!showModal) {
     return (
       <button
@@ -466,7 +485,7 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
                         onClick={() => handleSearchResultClick(result)}
                         className="w-full px-3 py-2 text-left text-sm text-zinc-900 dark:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 border-b border-zinc-200 dark:border-zinc-700 last:border-b-0"
                       >
-                         {result.place_name} 
+                        {result.place_name}
                       </button>
                     ))}
                   </div>
@@ -523,6 +542,15 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
           </div>
         </div>
       </div>
+      {feedbackModal.isOpen && (
+        <Modal
+          isOpen={feedbackModal.isOpen}
+          onClose={() => setFeedbackModal(prev => ({ ...prev, isOpen: false }))}
+          title={feedbackModal.title}
+          message={feedbackModal.message}
+          type={feedbackModal.type}
+        />
+      )}
     </div>
   );
 }
