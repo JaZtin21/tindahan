@@ -120,7 +120,7 @@ export function InquiryConversationModal({ isOpen, onClose, inquiryId }: Inquiry
             profilePhoto: userInfo.profilePhoto
           } : undefined
         };
-        
+
         setLocalReplies(prev => [...prev, newReply]);
         setReplyMessage('');
       }
@@ -144,7 +144,7 @@ export function InquiryConversationModal({ isOpen, onClose, inquiryId }: Inquiry
   const ProfilePhoto = ({ user, size = 'w-8 h-8' }: { user?: { name?: string; profilePhoto?: string; id?: string }, size?: string }) => {
     const hasError = user?.id ? imgErrors.has(user.id) : false;
     const photo = user?.profilePhoto;
-    
+
     if (photo && !hasError) {
       return (
         <img
@@ -157,7 +157,7 @@ export function InquiryConversationModal({ isOpen, onClose, inquiryId }: Inquiry
         />
       );
     }
-    
+
     return (
       <div className={`${size} rounded-full bg-primary text-white flex items-center justify-center text-sm font-medium`}>
         {getUserInitials(user?.name)}
@@ -190,9 +190,8 @@ export function InquiryConversationModal({ isOpen, onClose, inquiryId }: Inquiry
         <div className="max-h-[60vh] overflow-y-auto p-4 space-y-4">
           {/* Initial inquiry message */}
           <div
-            className={`flex flex-col space-y-1 ${
-              inquiry.user?.id === userInfo?.id ? 'items-end' : 'items-start'
-            }`}
+            className={`flex flex-col space-y-1 ${inquiry.user?.id === userInfo?.id ? 'items-end' : 'items-start'
+              }`}
           >
             <div className="flex items-center space-x-2">
               {inquiry.user?.id === userInfo?.id ? (
@@ -212,11 +211,10 @@ export function InquiryConversationModal({ isOpen, onClose, inquiryId }: Inquiry
               )}
             </div>
             <div
-              className={`rounded-lg p-3 max-w-[80%] ${
-                inquiry.user?.id === userInfo?.id
+              className={`rounded-lg p-3 max-w-[80%] ${inquiry.user?.id === userInfo?.id
                   ? 'bg-primary text-white'
                   : 'bg-zinc-100 dark:bg-zinc-800'
-              }`}
+                }`}
             >
               <p className="text-sm">{inquiry.message}</p>
             </div>
@@ -226,9 +224,8 @@ export function InquiryConversationModal({ isOpen, onClose, inquiryId }: Inquiry
           {localReplies.map((reply) => (
             <div
               key={reply.id}
-              className={`flex flex-col space-y-1 ${
-                reply.author?.id === userInfo?.id ? 'items-end' : 'items-start'
-              }`}
+              className={`flex flex-col space-y-1 ${reply.author?.id === userInfo?.id ? 'items-end' : 'items-start'
+                }`}
             >
               <div className="flex items-center space-x-2">
                 {reply.author?.id === userInfo?.id ? (
@@ -248,11 +245,10 @@ export function InquiryConversationModal({ isOpen, onClose, inquiryId }: Inquiry
                 )}
               </div>
               <div
-                className={`rounded-lg p-3 max-w-[80%] ${
-                  reply.author?.id === userInfo?.id
+                className={`rounded-lg p-3 max-w-[80%] ${reply.author?.id === userInfo?.id
                     ? 'bg-primary text-white'
                     : 'bg-zinc-100 dark:bg-zinc-800'
-                }`}
+                  }`}
               >
                 <p className="text-sm">{reply.message}</p>
               </div>

@@ -12,7 +12,6 @@ interface ReviewCardProps {
 
 export function ReviewCard({ review, isMyReview, onEdit, onDelete }: ReviewCardProps) {
   const [showFullText, setShowFullText] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(false);
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -29,10 +28,11 @@ export function ReviewCard({ review, isMyReview, onEdit, onDelete }: ReviewCardP
     : review.text;
 
   return (
-    <div className={`bg-white dark:bg-zinc-800 rounded-xl p-4 ${isMyReview ? 'border-2 border-emerald-500' : ''}`}>
+    <div className={`bg-white dark:bg-zinc-800 rounded-xl p-4 ${isMyReview ? 'border-2 border-secondary' : ''}`}>
       {/* Header - User info and rating */}
       <div className="flex items-start justify-between mb-3">
-        <div className="flex items-center gap-3">
+        <div className="flex-row w-full gap-3 flex">
+
           {review.user?.profilePhoto ? (
             <img
               src={review.user.profilePhoto}
@@ -42,11 +42,11 @@ export function ReviewCard({ review, isMyReview, onEdit, onDelete }: ReviewCardP
               referrerPolicy="no-referrer"
             />
           ) : (
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-400 to-blue-500 flex items-center justify-center text-white font-semibold">
+            <div className="w-10 h-10 rounded-full bg-gray-300 dark:bg-gray-700  flex items-center justify-center text-white font-semibold">
               {review.user?.name?.charAt(0).toUpperCase() || '?'}
             </div>
           )}
-          <div>
+          <div className="flex flex-col gap-1">
             <p className="font-medium text-zinc-900 dark:text-zinc-100">
               {review.user?.name || 'Anonymous'}
               {isMyReview && (
@@ -55,13 +55,13 @@ export function ReviewCard({ review, isMyReview, onEdit, onDelete }: ReviewCardP
                 </span>
               )}
             </p>
-            <div className="flex items-center gap-2">
+
+            <div className="flex gap-1 flex-col">
               <StarRating rating={review.rating} size="sm" />
-              <span className="text-xs text-zinc-500 dark:text-zinc-400">
-                {formatDate(review.createdAt)}
-              </span>
             </div>
+
           </div>
+
         </div>
 
         {/* Edit/Delete actions for my review */}
@@ -91,8 +91,8 @@ export function ReviewCard({ review, isMyReview, onEdit, onDelete }: ReviewCardP
 
       {/* Review text */}
       {review.text && (
-        <div className="mb-3">
-          <p className="text-zinc-700 dark:text-zinc-300 text-sm leading-relaxed whitespace-pre-wrap">
+        <div className="mb-1">
+          <p className="text-zinc-700 dark:text-zinc-300 text-sm leading-relaxed whitespace-pre-wrap font-semibold">
             {displayText}
           </p>
           {shouldTruncate && (
@@ -108,10 +108,13 @@ export function ReviewCard({ review, isMyReview, onEdit, onDelete }: ReviewCardP
 
       {/* Photos */}
       {review.photos && review.photos.length > 0 && (
-        <div className="mb-2">
+        <div className="mb-1">
           <PhotoGallery photos={review.photos} size="small" />
         </div>
       )}
+      <span className="text-xs text-zinc-500 dark:text-zinc-400">
+        {formatDate(review.createdAt)}
+      </span>
     </div>
   );
 }

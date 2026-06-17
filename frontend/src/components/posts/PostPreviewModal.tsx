@@ -374,7 +374,7 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
               />
             ) : (
               <div
-                className={`w-10 h-10 rounded-full bg-gradient-to-br from-emerald-400 to-blue-500 flex items-center justify-center text-white font-semibold text-lg ${isCurrentUser ? '' : 'cursor-pointer hover:opacity-80'
+                className={`w-10 h-10 rounded-full bg-gray-300 dark:bg-gray-700 flex items-center justify-center text-white font-semibold text-lg ${isCurrentUser ? '' : 'cursor-pointer hover:opacity-80'
                   }`}
                 onClick={isCurrentUser ? undefined : handleProfileClick}
               >

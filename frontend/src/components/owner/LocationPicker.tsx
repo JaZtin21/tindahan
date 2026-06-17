@@ -522,7 +522,7 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
                 <button
                   onClick={handleConfirmLocation}
                   disabled={!address}
-                  className="w-full px-4 py-2 bg-emerald-500 text-white rounded-lg hover:bg-emerald-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full px-4 py-2 bg-secondary dark:bg-secondary/80 text-white rounded-lg hover:bg-secondary-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   type="button"
                 >
                   Confirm Location

@@ -139,109 +139,109 @@ export function AddReviewModal({ isOpen, onClose, storeId, storeName, existingRe
       maxWidth="md"
     >
       <div className="space-y-5">
-          {error && (
-            <div className="p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg text-sm">
-              {error}
+        {error && (
+          <div className="p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-lg text-sm">
+            {error}
+          </div>
+        )}
+
+        {/* Rating */}
+        <div className="text-center">
+          <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+            How would you rate this store?
+          </label>
+          <div className="flex justify-center">
+            <StarRating
+              rating={rating}
+              size="lg"
+              interactive
+              onRatingChange={setRating}
+            />
+          </div>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
+            {rating === 0 && 'Tap a star to rate'}
+            {rating === 1 && 'Terrible'}
+            {rating === 2 && 'Bad'}
+            {rating === 3 && 'Okay'}
+            {rating === 4 && 'Good'}
+            {rating === 5 && 'Excellent'}
+          </p>
+        </div>
+
+        {/* Review Text */}
+        <div>
+          <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+            Your Review (optional)
+          </label>
+          <textarea
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder="Share your experience with this store..."
+            rows={4}
+            maxLength={2000}
+            className="w-full px-4 py-3 bg-zinc-100 dark:bg-zinc-800 border-0 rounded-lg text-zinc-900 dark:text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none"
+          />
+          <p className="text-xs text-zinc-400 mt-1 text-right">{text.length}/2000</p>
+        </div>
+
+        {/* Photos */}
+        <div>
+          <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+            Add Photos (optional)
+          </label>
+
+          {/* Photo Gallery */}
+          {allPreviews.length > 0 && (
+            <div className="mb-3">
+              <div className="flex flex-wrap gap-2">
+                {allPreviews.map((photo, index) => (
+                  <div key={index} className="relative">
+                    <img
+                      src={photo}
+                      alt={`Review photo ${index + 1}`}
+                      className="w-20 h-20 object-cover rounded-lg"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removePhoto(index)}
+                      className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600"
+                    >
+                      <XIcon className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
-          {/* Rating */}
-          <div className="text-center">
-            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-              How would you rate this store?
-            </label>
-            <div className="flex justify-center">
-              <StarRating
-                rating={rating}
-                size="lg"
-                interactive
-                onRatingChange={setRating}
-              />
-            </div>
-            <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
-              {rating === 0 && 'Tap a star to rate'}
-              {rating === 1 && 'Terrible'}
-              {rating === 2 && 'Bad'}
-              {rating === 3 && 'Okay'}
-              {rating === 4 && 'Good'}
-              {rating === 5 && 'Excellent'}
-            </p>
-          </div>
-
-          {/* Review Text */}
-          <div>
-            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-              Your Review (optional)
-            </label>
-            <textarea
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              placeholder="Share your experience with this store..."
-              rows={4}
-              maxLength={2000}
-              className="w-full px-4 py-3 bg-zinc-100 dark:bg-zinc-800 border-0 rounded-lg text-zinc-900 dark:text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none"
+          {/* Upload Button */}
+          <label className="flex items-center justify-center gap-2 w-full py-3 px-4 border-2 border-dashed border-zinc-300 dark:border-zinc-600 rounded-lg cursor-pointer hover:border-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={handlePhotoSelect}
+              disabled={loading || allPreviews.length >= 5}
+              className="hidden"
             />
-            <p className="text-xs text-zinc-400 mt-1 text-right">{text.length}/2000</p>
-          </div>
-
-          {/* Photos */}
-          <div>
-            <label className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
-              Add Photos (optional)
-            </label>
-            
-            {/* Photo Gallery */}
-            {allPreviews.length > 0 && (
-              <div className="mb-3">
-                <div className="flex flex-wrap gap-2">
-                  {allPreviews.map((photo, index) => (
-                    <div key={index} className="relative">
-                      <img
-                        src={photo}
-                        alt={`Review photo ${index + 1}`}
-                        className="w-20 h-20 object-cover rounded-lg"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => removePhoto(index)}
-                        className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600"
-                      >
-                        <XIcon className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
+            {loading ? (
+              <>
+                <svg className="w-5 h-5 animate-spin text-emerald-600" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
+                <span className="text-emerald-600 font-medium">Submitting...</span>
+              </>
+            ) : (
+              <>
+                <ImageIcon className="w-5 h-5 text-zinc-500" />
+                <span className="text-zinc-600 dark:text-zinc-400 font-medium">Add Photos</span>
+              </>
             )}
-
-            {/* Upload Button */}
-            <label className="flex items-center justify-center gap-2 w-full py-3 px-4 border-2 border-dashed border-zinc-300 dark:border-zinc-600 rounded-lg cursor-pointer hover:border-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={handlePhotoSelect}
-                disabled={loading || allPreviews.length >= 5}
-                className="hidden"
-              />
-              {loading ? (
-                <>
-                  <svg className="w-5 h-5 animate-spin text-emerald-600" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                  </svg>
-                  <span className="text-emerald-600 font-medium">Submitting...</span>
-                </>
-              ) : (
-                <>
-                  <ImageIcon className="w-5 h-5 text-zinc-500" />
-                  <span className="text-zinc-600 dark:text-zinc-400 font-medium">Add Photos</span>
-                </>
-              )}
-            </label>
-            <p className="text-xs text-zinc-400 mt-1">Max 5 photos, 5MB each</p>
-          </div>
+          </label>
+          <p className="text-xs text-zinc-400 mt-1">Max 5 photos, 5MB each</p>
+        </div>
 
         {/* Submit Buttons */}
         <div className="flex gap-3 pt-2">
@@ -256,7 +256,7 @@ export function AddReviewModal({ isOpen, onClose, storeId, storeName, existingRe
             type="button"
             onClick={handleSubmit}
             disabled={loading || rating === 0}
-            className="flex-1 py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 disabled:bg-zinc-400 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors"
+            className="flex-1 py-2.5 px-4 bg-secondary hover:bg-secondary-50 dark:bg-secondary/80 disabled:bg-zinc-400 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors"
           >
             {loading ? 'Submitting...' : isEditing ? 'Update Review' : 'Post Review'}
           </button>

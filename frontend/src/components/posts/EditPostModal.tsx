@@ -217,7 +217,7 @@ function EditPostModalInner({ isOpen, onClose, post, onSuccess, onError }: EditP
                 type="button"
                 onClick={() => toggleType(type)}
                 className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${types.includes(type)
-                  ? 'bg-primary text-white dark:text-emerald-300'
+                  ? 'bg-primary text-white dark:text-white'
                   : 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700'
                   }`}
               >

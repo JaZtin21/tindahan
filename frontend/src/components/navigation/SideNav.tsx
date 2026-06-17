@@ -145,7 +145,7 @@ function SideNavComponent({ isOpen, onClose, selectedLocation }: SideNavProps) {
     },
     skip: !isOpen || !selectedLocation?.storeId || !userInfo?.id,
     // SWAPPED HERE: Skips reading or saving to Apollo storage
-    fetchPolicy: 'no-cache' 
+    fetchPolicy: 'no-cache'
   });
 
   const existingInquiry = userInquiryData?.userInquiryForShop?.data;
@@ -472,7 +472,7 @@ function SideNavContent({
                     <div className="pt-4 border-t border-zinc-200 dark:border-zinc-700">
                       <button
                         onClick={() => setIsSearchProductModalOpen(true)}
-                        className="w-full py-2 px-4 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
+                        className="w-full py-2 px-4 bg-secondary hover:bg-secondary-50 dark:bg-secondary/80 text-white text-sm font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />

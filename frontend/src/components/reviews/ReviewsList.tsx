@@ -217,7 +217,7 @@ export function ReviewsList({ storeId, onAddReview, onEditReview, onDeleteReview
           {hasReviewed ? (
             <button
               onClick={() => myReview && onEditReview(myReview)}
-              className="flex-1 py-2.5 px-4 bg-emerald-100 dark:bg-emerald-900/30 hover:bg-emerald-200 dark:hover:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400 font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
+              className="flex-1 py-2.5 px-4 bg-secondary dark:bg-secondary/80 hover:bg-secondary-50 dark:hover:bg-secondary/50 text-white dark:text-white font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -227,7 +227,7 @@ export function ReviewsList({ storeId, onAddReview, onEditReview, onDeleteReview
           ) : (
             <button
               onClick={onAddReview}
-              className="flex-1 py-2.5 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
+              className="flex-1 py-2.5 px-4 bg-secondary hover:bg-secondary-50 text-white font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
