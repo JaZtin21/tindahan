@@ -60,7 +60,7 @@ export interface CreatePostModalProps {
 export interface PostPreviewModalProps {
   post: Post | null;
   isOpen: boolean;
-  onClose: () => void;
+  onClose: (options?: { isNavigating?: boolean }) => void;
 }
 
 // Post type options - Food classifications

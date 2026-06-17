@@ -730,14 +730,20 @@ export function OptimizedMapsPage() {
   }, [navigate, dispatch]);
 
   // Handle post preview modal close
-  const handleClosePostPreview = () => {
+  const handleClosePostPreview = ({ isNavigating }: { isNavigating?: boolean } = {}) => {
+    if (isNavigating) {
+      dispatch(closePostPreview());
+      setSelectedPost(null);
+      window.history.replaceState({}, '');
+    } else {
+      dispatch(closePostPreview());
+      navigate(-1);
+      setSelectedPost(null);
+    }
+
+  }
 
 
-    dispatch(closePostPreview());
-    // Delay clearing selectedPost to allow close animation to complete
-    navigate(-1);
-    setSelectedPost(null);
-  };
 
   // Handle edit post
   const handleEditPost = (post: Post) => {

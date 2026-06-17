@@ -167,9 +167,25 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
 
     try {
       if (displayedPost?.author?.followers?.includes(currentUser.id)) {
+        console.log('Unfollowing...');
+        dispatch(mergePostData({
+          id: post!.id,
+          author: {
+            ...displayedPost.author,
+            followers: displayedPost.author.followers.filter(followerId => followerId !== currentUser.id)
+          }
+        }));
         await unfollow(effectivePost.author.id);
 
       } else {
+        console.log('following...');
+        dispatch(mergePostData({
+          id: post!.id,
+          author: {
+            ...displayedPost.author,
+            followers: [...displayedPost.author.followers, currentUser.id]
+          }
+        }));
         await follow(effectivePost.author.id);
       }
     } catch (error) {
@@ -180,7 +196,7 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
   const handleProfileClick = () => {
     if (effectivePost?.author?.id && !isCurrentUser) {
       navigate(`/profile/${effectivePost.author.id}`);
-      onClose();
+      onClose({ isNavigating: true });
     }
   };
 
@@ -347,6 +363,8 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
   // Use profilePhoto from post if available, otherwise use userInfo's profilePhoto if author is current user
   const hasProfilePhoto = !!post?.author?.profilePhoto;
   const profilePhotoUrl = post?.author?.profilePhoto;
+
+  console.log(displayedPost?.author?.followers?.includes(currentUser?.id || ''), 'is followingf')
 
 
   return (
