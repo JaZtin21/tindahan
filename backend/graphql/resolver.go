@@ -3208,7 +3208,7 @@ func (r *subscriptionResolver) LivePosts(ctx context.Context) (<-chan []*Post, e
 	go func() {
 		defer close(postChan)
 
-		twentyFourHoursAgo := time.Now().Add(-24 * time.Hour)
+		timeHoursAgo := time.Now().Add(-120 * time.Hour)
 		// Track sent post IDs to only send new ones on change
 		sentPostIDs := make(map[string]bool)
 
@@ -3228,7 +3228,7 @@ func (r *subscriptionResolver) LivePosts(ctx context.Context) (<-chan []*Post, e
 
 		// Send initial posts from last 24 hours
 		cursor, err := r.postResolver.GetDB().Collection("posts").Find(ctx, bson.M{
-			"created_at": bson.M{"$gte": twentyFourHoursAgo},
+			"created_at": bson.M{"$gte": timeHoursAgo},
 		})
 		if err == nil {
 			var rawDocs []bson.M
@@ -3262,7 +3262,7 @@ func (r *subscriptionResolver) LivePosts(ctx context.Context) (<-chan []*Post, e
 			// Query ALL posts from last 24 hours (not just new ones)
 			// This ensures first post is always sent when change detected
 			cursor, err := r.postResolver.GetDB().Collection("posts").Find(ctx, bson.M{
-				"created_at": bson.M{"$gte": twentyFourHoursAgo},
+				"created_at": bson.M{"$gte": timeHoursAgo},
 			})
 			if err != nil {
 				continue
