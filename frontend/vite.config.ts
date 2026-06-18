@@ -23,8 +23,8 @@ export default defineConfig(({ mode }) => {
               options: {
                 cacheName: 'maptiler-tiles-cache',
                 expiration: {
-                  maxEntries: 500,
-                  maxAgeSeconds: 60 * 60 * 24 * 7,
+                  maxEntries: 5000,                  // 🚀 Raised to 5,000 to cover wide geographic browsing
+                  maxAgeSeconds: 60 * 60 * 24 * 30,  // 📅 Extended to 30 days so returning users never hit your quota
                 },
                 cacheableResponse: {
                   statuses: [0, 200],
