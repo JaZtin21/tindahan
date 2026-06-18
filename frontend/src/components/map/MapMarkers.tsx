@@ -61,7 +61,7 @@ function MapMarkersComponent({
     if (!viewportBounds) {
       return [];
     }
-    
+
     const filtered = livePosts.filter(post => {
       if (!post.location || post.location.lat == null || post.location.lng == null) return false;
       if (deletedPostIds.has(post.id)) return false;
@@ -83,18 +83,18 @@ function MapMarkersComponent({
     <>
       {/* User Location Marker */}
       {showUserLocationMarker && userLocation && <UserLocationMarker location={userLocation} />}
-      
+
       {/* Store Marker */}
       {showStoreMarker && storeMarkerData && <StoreMarker store={storeMarkerData} onClick={onStoreMarkerClick} />}
-      
+
       {/* Location Pin Marker */}
       {showLocationPinMarker && locationPinData && <LocationPinMarker location={locationPinData} />}
-      
+
       {/* Product Store Markers */}
       {showProductStoreMarkers && productSearchStores.length > 0 && (
         <ProductStoreMarkers stores={productSearchStores} onStoreClick={onStoreMarkerClick} />
       )}
-      
+
       {/* Shops Near Me Markers */}
       {showShopsNearMe && shopsNearMe.length > 0 && (
         <>
@@ -107,23 +107,20 @@ function MapMarkersComponent({
           ))}
         </>
       )}
-      
+
       {/* Post Search Markers - show markers with user profile pictures */}
-      {showPostMarkers && postSearchResults.length > 0 && ( 
+      {showPostMarkers && postSearchResults.length > 0 && (
         <>
           {postSearchResults.map((post) => (
             <PostSearchMarker
               key={post.id}
               post={post}
-              onClick={() => {
-                // Handle post search marker click - could open post preview
-                console.log('Post search marker clicked:', post);
-              }}
+              onClick={onPostClick}
             />
           ))}
         </>
       )}
-      
+
       {/* Live Post Markers - only visible when zoomed in */}
       {zoom >= MIN_MARKER_ZOOM && (
         <>

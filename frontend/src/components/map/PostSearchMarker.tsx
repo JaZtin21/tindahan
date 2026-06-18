@@ -63,12 +63,6 @@ export function PostSearchMarker({ post, onClick }: PostSearchMarkerProps) {
         }
       }}
     >
-      <Popup>
-        <div style={{ fontFamily: 'system-ui', fontSize: '14px' }}>
-          <div style={{ fontWeight: 600, marginBottom: '4px' }}>{post.title}</div>
-          <div style={{ fontSize: '12px', color: '#666' }}>Posted by: {post.authorName}</div>
-        </div>
-      </Popup>
     </Marker>
   );
 }

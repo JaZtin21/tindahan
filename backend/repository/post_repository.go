@@ -260,20 +260,20 @@ func calculateDistance(lat1, lng1, lat2, lng2 float64) float64 {
 
 func (r *postRepository) LikePost(ctx context.Context, postID, userID primitive.ObjectID) error {
 	filter := bson.M{"_id": postID}
-	update := bson.M{
-		"$addToSet": bson.M{"liked_by": userID},
-		"$inc":      bson.M{"likes": 1},
-	}
+	
+	// Fast, native MongoDB operator. Adds the ID only if it doesn't exist.
+	update := bson.M{"$addToSet": bson.M{"liked_by": userID}}
+
 	_, err := r.collection.UpdateOne(ctx, filter, update)
 	return err
 }
 
 func (r *postRepository) UnlikePost(ctx context.Context, postID, userID primitive.ObjectID) error {
 	filter := bson.M{"_id": postID}
-	update := bson.M{
-		"$pull": bson.M{"liked_by": userID},
-		"$inc":  bson.M{"likes": -1},
-	}
+	
+	// Fast, native MongoDB operator. Deletes all instances of the ID instantly.
+	update := bson.M{"$pull": bson.M{"liked_by": userID}}
+
 	_, err := r.collection.UpdateOne(ctx, filter, update)
 	return err
 }

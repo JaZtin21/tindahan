@@ -809,7 +809,7 @@ func (r *PostResolver) formatPostData(ctx context.Context, post *domain.Post, cu
 		"types":        post.Types,
 		"author":       authorData,
 		"location":     locationData,
-		"likes":        post.Likes,
+		"likes":        len(post.LikedBy),
 		"isLiked":      isLiked,
 		"comments":     comments,
 		"commentCount": len(post.Comments),
