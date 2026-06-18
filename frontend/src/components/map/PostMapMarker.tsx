@@ -18,7 +18,6 @@ export function PostMapMarker({ post, onClick, isEdited }: PostMapMarkerProps) {
   const postRef = useRef<string>('');
   const onClickRef = useRef(onClick);
 
-  console.log(post, 'post on marker')
   // Keep callback ref updated
   onClickRef.current = onClick;
 
@@ -65,14 +64,13 @@ export function PostMapMarker({ post, onClick, isEdited }: PostMapMarkerProps) {
         popupAnchor: [0, -44]
       });
 
-      console.log('post', post)
 
       // Create marker with post location
       const marker = L.marker([post.location!.lat, post.location!.lng], { icon });
 
       // @ts-ignore
-      marker._updateZIndex = function () {}; 
-      
+      marker._updateZIndex = function () { };
+
 
       // Add click handler using ref
       marker.on('click', () => {

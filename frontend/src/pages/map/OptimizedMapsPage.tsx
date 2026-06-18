@@ -25,6 +25,8 @@ import { useNavigate } from 'react-router-dom';
 
 
 const MAPTILE_KEY = import.meta.env.VITE_MAPTILE_KEY || '';
+const MAP_TILE_URL = `https://api.maptiler.com/maps/voyager/{z}/{x}/{y}.png?key=${import.meta.env.VITE_MAPTILE_KEY || 'your_fallback_key'}`;
+
 
 export function OptimizedMapsPage() {
   const dispatch = useDispatch();
@@ -817,7 +819,7 @@ export function OptimizedMapsPage() {
       >
         {/* Custom cached tile layer - CartoDB Voyager (clean styling, free) */}
         <CachedTileLayer
-          url={`https://api.maptiler.com/maps/voyager/{z}/{x}/{y}.png?key=${MAPTILE_KEY}`}
+          url={MAP_TILE_URL}
           attribution='&copy; <a href="https://maptiler.com" target="_blank">MapTiler</a>'
           maxZoom={22}
         />

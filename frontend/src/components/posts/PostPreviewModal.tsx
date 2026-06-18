@@ -25,8 +25,6 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
   const currentUser = useSelector((state: RootState) => state.user);
 
 
-  console.log(post, 'post');
-
   const reduxCachedPost = useSelector((state: RootState) =>
     post?.id ? (state.posts.byId[post.id] as Post | undefined) : null
   );
@@ -169,7 +167,6 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
 
     try {
       if (displayedPost?.author?.followers?.includes(currentUser.id)) {
-        console.log('Unfollowing...');
         dispatch(mergePostData({
           id: post!.id,
           author: {
@@ -180,7 +177,6 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
         await unfollow(effectivePost.author.id);
 
       } else {
-        console.log('following...');
         dispatch(mergePostData({
           id: post!.id,
           author: {
@@ -365,8 +361,6 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
   // Use profilePhoto from post if available, otherwise use userInfo's profilePhoto if author is current user
   const hasProfilePhoto = !!post?.author?.profilePhoto || !!post?.authorProfilePhoto || false;
   const profilePhotoUrl = post?.author?.profilePhoto || post?.authorProfilePhoto || '';
-
-  console.log(displayedPost?.author?.followers?.includes(currentUser?.id || ''), 'is followingf')
 
 
   return (

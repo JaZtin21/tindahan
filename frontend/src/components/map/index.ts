@@ -1,6 +1,6 @@
 export { StorePinner } from './StorePinner';
 export { SearchBar } from './SearchBar';
-export { CachedTileLayer, tileCache } from './CachedTileLayer';
+export { CachedTileLayer } from './CachedTileLayer';
 export {
   getPostBubbleHtml,
   getPostIcon,
