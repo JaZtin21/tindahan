@@ -2,11 +2,24 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
+import fs from 'fs';
+import path from 'path';
 
+
+// Custom plugin that writes the exact build time to your public folder
+const generateVersionFile = () => ({
+  name: 'generate-version-file',
+  buildStart() {
+    const versionData = { version: `build-${Date.now()}` };
+    const filePath = path.resolve(__dirname, 'public/version.json');
+    fs.writeFileSync(filePath, JSON.stringify(versionData));
+  }
+});
 // 🚨 CHANGE THIS LINE: Wrap the configuration object inside an arrow function block
 export default defineConfig(({ mode }) => {
   return {
     plugins: [
+      generateVersionFile(),
       react(),
       tailwindcss(),
       VitePWA({

@@ -11,6 +11,45 @@ export function App() {
   const location = useLocation()
   const { isOpen, selectedLocation } = useSelector((state: RootState) => state.sideNav)
 
+
+  useEffect(() => {
+    const checkVersion = async () => {
+      try {
+        // Fetch version.json with cache-busting headers so it completely ignores the service worker
+        const response = await fetch(`/version.json?t=${Date.now()}`, {
+          cache: 'no-store'
+        });
+        const data = await response.json();
+
+        const localVersion = localStorage.getItem('tindahan_app_version');
+
+        if (!localVersion) {
+          // First time loading the app, just save the current version
+          localStorage.setItem('tindahan_app_version', data.version);
+        } else if (localVersion !== data.version) {
+          console.log('[VersionGuard] New deployment detected on Netlify! Syncing...');
+
+          // 1. Update the local storage flag
+          localStorage.setItem('tindahan_app_version', data.version);
+
+          // 2. Unregister the stubborn old Service Worker completely
+          if ('serviceWorker' in navigator) {
+            const regs = await navigator.serviceWorker.getRegistrations();
+            for (let registration of regs) {
+              await registration.unregister();
+            }
+          }
+
+          // 3. Clear native caches and reload to load the identical layout you see in Incognito
+          window.location.reload();
+        }
+      } catch (err) {
+        console.error('Failed to parse app metadata version check:', err);
+      }
+    };
+
+    checkVersion();
+  }, []); // 🚨
   // Memoize onClose to prevent unnecessary SideNav re-renders
   const handleCloseSideNav = useCallback(() => {
     dispatch(closeSideNav())
@@ -28,21 +67,21 @@ export function App() {
   const isHomePage = location.pathname === '/'
 
   return (
-  <div className="min-h-dvh bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-900">
-    <main className="relative">
-      {!isHomePage && <TopNav />}
-      
-      {/* RESTORED: Leave it running normally so your slide animations work */}
-      <SideNav 
-        isOpen={isOpen} 
-        onClose={handleCloseSideNav}
-        selectedLocation={selectedLocation}
-      />
-      
-      <Outlet />
-    </main>
-  </div>
-)
+    <div className="min-h-dvh bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-900">
+      <main className="relative">
+        {!isHomePage && <TopNav />}
+
+        {/* RESTORED: Leave it running normally so your slide animations work */}
+        <SideNav
+          isOpen={isOpen}
+          onClose={handleCloseSideNav}
+          selectedLocation={selectedLocation}
+        />
+
+        <Outlet />
+      </main>
+    </div>
+  )
 }
 
 // Add default export for compatibility
