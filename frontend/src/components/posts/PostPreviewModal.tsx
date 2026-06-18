@@ -354,8 +354,8 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
 
   // Pre-compute values used by both mobile and desktop
   const authorInitial = post?.author?.name.charAt(0).toUpperCase() || post?.authorName || '?';
-  const formattedDate = post?.createdAt
-    ? new Date(post.createdAt).toLocaleDateString('en-US', {
+  const formattedDate = displayedPost?.createdAt
+    ? new Date(displayedPost.createdAt).toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
       year: 'numeric'
