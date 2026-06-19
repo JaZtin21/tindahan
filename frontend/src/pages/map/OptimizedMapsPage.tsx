@@ -22,6 +22,7 @@ import { hideMobileSearch } from '../../store/slices/mobileSearchSlice';
 import type { RootState } from '../../store';
 import { useNavigate } from 'react-router-dom';
 import { Play, Square } from 'lucide-react';
+import { TutorialOverlay } from '../../components/common/TutorialOverlay';
 
 
 
@@ -653,6 +654,23 @@ export function OptimizedMapsPage() {
   const [currentPlayIndex, setCurrentPlayIndex] = useState(0);
   const [isNavigating, setIsNavigating] = useState(false);
 
+  // Tutorial state
+  const [showTutorial, setShowTutorial] = useState(false);
+
+  // Check if tutorial should be shown
+  useEffect(() => {
+    const isTutorialCompleted = localStorage.getItem('isTutorialCompleted');
+    if (!isTutorialCompleted && isAuthenticated) {
+      setShowTutorial(true);
+    }
+  }, [isAuthenticated]);
+
+  // Handle tutorial completion
+  const handleTutorialComplete = () => {
+    localStorage.setItem('isTutorialCompleted', 'true');
+    setShowTutorial(false);
+  };
+
   // Ref for PostPreviewModal to trigger close animation
   const postPreviewModalRef = useRef<{ animateClose: () => void }>(null);
 
@@ -1097,6 +1115,12 @@ export function OptimizedMapsPage() {
           type={feedbackModal.type}
         />
       )}
+
+      {/* Tutorial Overlay */}
+      <TutorialOverlay
+        isVisible={showTutorial}
+        onComplete={handleTutorialComplete}
+      />
     </div>
   );
 }
