@@ -6,8 +6,9 @@ import { ITEMS_QUERY } from '../../api/graphql/product/product-queries';
 import { SEARCH_POSTS_BY_TITLE_QUERY } from '../../api/graphql/post/post-queries';
 import { searchLocation } from '../../utils/maps';
 import type { SearchBarProps } from '../../types/map';
+import { Store } from 'lucide-react';
 
-export function SearchBar({ onSearch, onStoreSelect, onProductSelect, onPostSelect, onClearProductStores, onClearAllMarkers, showClearMarkersButton, placeholder = "Search for stores, products, or locations...", onClear }: SearchBarProps) {
+export function SearchBar({ onSearch, onStoreSelect, onProductSelect, onPostSelect, onClearProductStores, onClearAllMarkers, showClearMarkersButton, placeholder = "Search for stores, products, or locations...", onClear, handleToggleShopsNearMe, isLoadingShopsNearMe, showShopsNearMe }: SearchBarProps) {
   const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState<any[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -183,7 +184,8 @@ export function SearchBar({ onSearch, onStoreSelect, onProductSelect, onPostSele
     if (showClearMarkersButton && onClearAllMarkers)
       onClearAllMarkers()
     setQuery('')
-    if (onClear) onClear()
+    if (onClear) onClear();
+    if(handleToggleShopsNearMe) handleToggleShopsNearMe();
   }
 
   return (
@@ -210,13 +212,29 @@ export function SearchBar({ onSearch, onStoreSelect, onProductSelect, onPostSele
       {showClearMarkersButton && onClearAllMarkers && (
         <button
           onClick={cleanMarkers}
-          className="px-3 py-2 md:py-3 md:px-4 bg-primary hover:bg-primary-700 text-white rounded-full shadow-sm transition-colors flex items-center gap-2"
+          className="px-5 py-2 md:py-3 md:px-6 bg-primary hover:bg-primary-700 text-white rounded-full shadow-sm transition-colors flex items-center gap-2"
           title="Clear all markers"
         >
           <FiX size={20} />
           <span className="hidden sm:inline">Clear</span>
         </button>
       )}
+      <button
+        onClick={handleToggleShopsNearMe}
+        disabled={isLoadingShopsNearMe}
+        className={`absolute top-full left-0 mt-2 w-unset flex  items-center gap-1 px-2 py-1 md:px-3 text-xs md:text-sm md:py-1 rounded-full backdrop-blur-[5px] [-webkit-backdrop-filter:blur(5px)] focus:outline-none  shadow-sm transition-colors ${showShopsNearMe
+            ? 'text-white hover:text-white dark:hover:text-white dark:text-white bg-secondary/80 backdrop-blur-[5px] [-webkit-backdrop-filter:blur(5px)] hover:bg-secondary-50 text-white border border-secondary/80 hover:border-secondary/80  dark:border-secondary '
+            : 'text-zinc-600 hover:text-white  dark:hover:text-white dark:text-white bg-white/60 dark:bg-zinc-900 hover:bg-secondary/70 border border-white/80 hover:border-secondary/80  dark:border-zinc-700 '
+            }`}
+        title={showShopsNearMe ? 'Hide shops near me' : 'Show shops near me'}
+      >
+        {isLoadingShopsNearMe ? (
+          <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+        ) : (
+          <Store size={13} strokeWidth={2.5} />
+        )}
+        <span className=" font-semibold py-0.5 mr-1 ml-1 ">{showShopsNearMe ? 'Hide Shops' : 'Shops Near Me'}</span>
+      </button>
 
       {/* Suggestions dropdown */}
       {showSuggestions && suggestions.length > 0 && (

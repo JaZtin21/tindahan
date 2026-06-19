@@ -12,7 +12,7 @@ interface BottomSheetProps {
 }
 
 export interface BottomSheetRef {
-  animateClose: (options?: { isProgrammatic?: boolean }) => void;
+  animateClose: () => void;
 }
 
 export const BottomSheet = forwardRef<BottomSheetRef, BottomSheetProps>(({
@@ -39,7 +39,7 @@ export const BottomSheet = forwardRef<BottomSheetRef, BottomSheetProps>(({
     velocity: 0,
   });
 
-  const animateToSnap = useCallback((targetTranslateY: number, shouldClose = false, isProgrammatic = false) => {
+  const animateToSnap = useCallback((targetTranslateY: number, shouldClose = false) => {
     setIsAnimating(true);
     setTranslateY(targetTranslateY);
 
@@ -52,8 +52,8 @@ export const BottomSheet = forwardRef<BottomSheetRef, BottomSheetProps>(({
 
   // Expose animateClose function to parent
   useImperativeHandle(ref, () => ({
-    animateClose: (options?: { isProgrammatic?: boolean }) => {
-      animateToSnap(100, true, options?.isProgrammatic);
+    animateClose: () => {
+      animateToSnap(100, true);
     }
   }), [animateToSnap]);
 

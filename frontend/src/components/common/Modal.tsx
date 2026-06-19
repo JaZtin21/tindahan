@@ -46,7 +46,7 @@ export function Modal({
   const [isAnimatingOut, setIsAnimatingOut] = useState(false);
 
   // Ref for BottomSheet to expose animateClose function
-  const bottomSheetRef = useRef<{ animateClose: (options?: { isProgrammatic?: boolean }) => void }>(null);
+  const bottomSheetRef = useRef<{ animateClose: () => void }>(null);
 
   // Ref to track if close is programmatic (from animateClose)
   const isProgrammaticCloseRef = useRef(false);
@@ -58,7 +58,7 @@ export function Modal({
         animateClose: () => {
           isProgrammaticCloseRef.current = true;
           if (shouldUseBottomSheet && bottomSheetRef.current) {
-            bottomSheetRef.current.animateClose({ isProgrammatic: true });
+            bottomSheetRef.current.animateClose();
           } else {
             handleClose();
           }

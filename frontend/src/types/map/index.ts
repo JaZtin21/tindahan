@@ -129,6 +129,9 @@ export interface SearchBarProps {
   showClearMarkersButton?: boolean;
   placeholder?: string;
   onClear?: () => void;
+  handleToggleShopsNearMe?: () => void;
+  isLoadingShopsNearMe?: boolean;
+  showShopsNearMe?: boolean;
 }
 
 // Additional types from OptimizedMapsPage

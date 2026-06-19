@@ -2,7 +2,7 @@ import { useEffect, useState, useRef, memo, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { useMutation, useLazyQuery } from '@apollo/client/react';
-import type { PostPreviewModalProps, Comment, Post } from '../../types/post';
+import type { PostPreviewModalProps, Comment, Post, CommentsQueryResponse, PostQueryResponse, AddCommentMutationResponse, DeleteCommentMutationResponse, LoadMoreCommentsResponse } from '../../types/post';
 import type { RootState } from '../../store';
 import { mergePostData, updatePost } from '../../store';
 import { PhotoGallery } from '../common/PhotoGallery';
@@ -71,8 +71,8 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete, modalR
   // Mutations
   const [likePost] = useMutation(LIKE_POST_MUTATION);
   const [unlikePost] = useMutation(UNLIKE_POST_MUTATION);
-  const [addComment] = useMutation(ADD_COMMENT_MUTATION);
-  const [deleteComment] = useMutation(DELETE_COMMENT_MUTATION);
+  const [addComment] = useMutation<AddCommentMutationResponse>(ADD_COMMENT_MUTATION);
+  const [deleteComment] = useMutation<DeleteCommentMutationResponse>(DELETE_COMMENT_MUTATION);
 
 
   // Follow/unfollow hooks
@@ -87,10 +87,10 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete, modalR
   const commentInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch comments - use lazy query with proper dependencies
-  const [fetchComments, { data: commentsData }] = useLazyQuery(COMMENTS_QUERY, {
+  const [fetchComments] = useLazyQuery<CommentsQueryResponse>(COMMENTS_QUERY, {
     fetchPolicy: 'no-cache',
   });
-  const [fetchPostDetailsQuery, { data: postfetchData }] = useLazyQuery(POST_QUERY, {
+  const [fetchPostDetailsQuery] = useLazyQuery<PostQueryResponse>(POST_QUERY, {
     fetchPolicy: 'no-cache',
   });
 
@@ -101,23 +101,22 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete, modalR
       const [postDetailsData, commentsData] = await Promise.all([fetchPostDetailsQuery({ variables: { id: postId } }), fetchComments({ variables: { postId, page: 1, limit: 5 } })]);
 
 
-      const postDetails = postDetailsData.data?.post?.data;
-      const comments = commentsData.data?.comments?.data || [];
+      const postDetails = postDetailsData.data?.data?.post?.data;
+      const comments = commentsData.data?.data?.comments?.data || [];
 
       if (postDetails) {
         setEffectivePost(postDetails);
 
         // Update Redux cache with fresh post details
         dispatch(updatePost({
-          id: postDetails.id,
           ...postDetails,
         }));
       }
 
       if (comments) {
         setComments(comments);
-        setHasMoreComments(commentsData.data?.comments?.hasMore || false);
-        setLocalCommentCount(commentsData.data?.comments?.total || 0);
+        setHasMoreComments(commentsData.data?.data?.comments?.hasMore || false);
+        setLocalCommentCount(commentsData.data?.data?.comments?.total || 0);
       }
     } catch (error) {
       console.error('Error fetching comments:', error);
@@ -163,15 +162,15 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete, modalR
   // Handle follow/unfollow
   const handleFollowToggle = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!effectivePost?.author?.id || !currentUser?.id) return;
+    if (!effectivePost?.author?.id || !currentUser?.id || !displayedPost?.author) return;
 
     try {
-      if (displayedPost?.author?.followers?.includes(currentUser.id)) {
+      if (displayedPost.author.followers?.includes(currentUser.id)) {
         dispatch(mergePostData({
           id: post!.id,
           author: {
-            ...displayedPost.author,
-            followers: displayedPost.author.followers.filter(followerId => followerId !== currentUser.id)
+            ...(displayedPost?.author || {}),
+            followers: displayedPost.author.followers?.filter(followerId => followerId !== currentUser.id) || []
           }
         }));
         await unfollow(effectivePost.author.id);
@@ -180,8 +179,8 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete, modalR
         dispatch(mergePostData({
           id: post!.id,
           author: {
-            ...displayedPost.author,
-            followers: [...displayedPost.author.followers, currentUser.id]
+            ...(displayedPost?.author || {}),
+            followers: [...(displayedPost.author.followers || []), currentUser.id]
           }
         }));
         await follow(effectivePost.author.id);
@@ -251,7 +250,7 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete, modalR
         id: currentUser?.id || '',
         name: currentUser?.name || 'You',
         email: currentUser?.email || '',
-        profilePhoto: currentUser?.profilePhoto,
+        profilePhoto: currentUser?.profilePhoto || undefined,
       },
       createdAt: new Date().toISOString(),
     };
@@ -267,9 +266,9 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete, modalR
         variables: { postId: effectivePost.id, text: trimmedText }
       });
 
-      if (data?.addComment?.success) {
+      if (data?.data?.addComment?.success) {
         // Replace temp comment with real one from API
-        const realComment = data.addComment.data;
+        const realComment = data.data.addComment.data;
         setComments(prev => prev.map(c => c.id === tempId ? realComment : c));
 
         // Update Redux cache with new comment count
@@ -301,7 +300,7 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete, modalR
         variables: { commentId, postId: post.id }
       });
 
-      if (data?.deleteComment?.success) {
+      if (data?.data?.deleteComment?.success) {
         setComments(prev => prev.filter(c => c.id !== commentId));
         // Update comment count
         setLocalCommentCount(prev => Math.max(0, prev - 1));
@@ -312,7 +311,7 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete, modalR
   };
 
   // Separate lazy query for loading more (doesn't trigger the useEffect)
-  const [loadMoreComments] = useLazyQuery(COMMENTS_QUERY, {
+  const [loadMoreComments] = useLazyQuery<LoadMoreCommentsResponse>(COMMENTS_QUERY, {
     fetchPolicy: 'network-only',
   });
 
@@ -332,13 +331,13 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete, modalR
         }
       });
 
-      if (data?.comments?.data) {
+      if (data?.data?.comments?.data) {
         // Deduplicate - filter out comments we already have
         const existingIds = new Set(comments.map(c => c.id));
-        const newComments = data.comments.data.filter((c: Comment) => !existingIds.has(c.id));
+        const newComments = data.data.comments.data.filter((c: Comment) => !existingIds.has(c.id));
         // Append only new comments to the end
         setComments(prev => [...prev, ...newComments]);
-        setHasMoreComments(data.comments.hasMore);
+        setHasMoreComments(data.data.comments.hasMore);
         setCommentPage(nextPage);
         setIsLoadingMoreComments(false);
       }
@@ -349,7 +348,7 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete, modalR
   };
 
   // Pre-compute values used by both mobile and desktop
-  const authorInitial = post?.author?.name.charAt(0).toUpperCase() || post?.authorName || '?';
+  const authorInitial = post?.author?.name?.charAt(0).toUpperCase() || post?.authorName || '?';
   const formattedDate = displayedPost?.createdAt
     ? new Date(displayedPost.createdAt).toLocaleDateString('en-US', {
       month: 'short',

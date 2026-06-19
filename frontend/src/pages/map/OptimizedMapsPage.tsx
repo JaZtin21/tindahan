@@ -21,10 +21,10 @@ import { SearchBar } from '../../components/map/SearchBar';
 import { hideMobileSearch } from '../../store/slices/mobileSearchSlice';
 import type { RootState } from '../../store';
 import { useNavigate } from 'react-router-dom';
+import { Play, Square } from 'lucide-react';
 
 
 
-const MAPTILE_KEY = import.meta.env.VITE_MAPTILE_KEY || '';
 const MAP_TILE_URL = `https://api.maptiler.com/maps/voyager/{z}/{x}/{y}.png?key=${import.meta.env.VITE_MAPTILE_KEY || 'your_fallback_key'}`;
 
 
@@ -53,6 +53,9 @@ export function OptimizedMapsPage() {
     return () => {
       if (isMobile && isMobileSearchVisible) {
         dispatch(hideMobileSearch())
+        // Turn off - clear markers cleanly
+        setShowShopsNearMe(false);
+        setShopsNearMe([]);
       }
     }
   }, [isMobile, isMobileSearchVisible, dispatch])
@@ -817,7 +820,7 @@ export function OptimizedMapsPage() {
 
     // Zoom to post location
     if (mapRef.current) {
-      mapRef.current.flyTo([post.location.lat, post.location.lng], 18, {
+      mapRef.current.flyTo([post.location.lat, post.location.lng], 20, {
         duration: 1.5
       });
     }
@@ -910,6 +913,9 @@ export function OptimizedMapsPage() {
             showClearMarkersButton={showStoreMarker || showLocationPinMarker || showProductStoreMarkers || showPostMarkers}
             placeholder="Search for stores or products near you..."
             onClear={isMobile ? () => dispatch(hideMobileSearch()) : undefined}
+            handleToggleShopsNearMe={handleToggleShopsNearMe}
+            isLoadingShopsNearMe={isLoadingShopsNearMe}
+            showShopsNearMe={showShopsNearMe}
           />
         </div>
       )}
@@ -971,26 +977,6 @@ export function OptimizedMapsPage() {
           )}
         </button>
 
-        {/* Shop Near Me Toggle Button */}
-        <button
-          onClick={handleToggleShopsNearMe}
-          disabled={isLoadingShopsNearMe}
-          className={`flex items-center gap-2 px-3 py-2 md:px-4 text-sm md:text-base  md:py-3 rounded-full shadow-md transition-colors ${showShopsNearMe
-            ? 'bg-secondary/80 backdrop-blur-[5px] [-webkit-backdrop-filter:blur(5px)] hover:bg-secondary-50 text-white'
-            : 'bg-secondary/80 backdrop-blur-[5px] [-webkit-backdrop-filter:blur(5px)] hover:bg-secondary-50 text-white'
-            }`}
-          title={showShopsNearMe ? 'Hide shops near me' : 'Show shops near me'}
-        >
-          {isLoadingShopsNearMe ? (
-            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-          ) : (
-            <svg className="w-5 h-5" fill="none" stroke="white" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-          )}
-          <span className="font-medium">{showShopsNearMe ? 'Hide Shops' : 'Shop Near Me'}</span>
-        </button>
 
         {/* Add Post Button - Only show if authenticated */}
         {isAuthenticated && (
@@ -998,7 +984,7 @@ export function OptimizedMapsPage() {
             onClick={handleOpenCreatePostModal}
             className="flex items-center gap-2 px-3 py-2 md:px-4 text-sm md:text-base md:py-3 bg-primary/80 backdrop-blur-[5px] [-webkit-backdrop-filter:blur(5px)] hover:bg-primary-700 text-white rounded-full shadow-md transition-colors"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
             <span className="font-medium">Add Post</span>
@@ -1010,21 +996,12 @@ export function OptimizedMapsPage() {
           <button
             onClick={() => isPlayingPosts ? stopPlayingPosts() : startPlayingPosts()}
             className={`flex items-center gap-2 px-3 py-2 md:px-4 text-sm md:text-base md:py-3 rounded-full shadow-md transition-colors ${isPlayingPosts
-              ? 'bg-red-500/80 backdrop-blur-[5px] [-webkit-backdrop-filter:blur(5px)] hover:bg-red-600 text-white'
-              : 'bg-purple-600/80 backdrop-blur-[5px] [-webkit-backdrop-filter:blur(5px)] hover:bg-purple-700 text-white'
+              ? 'bg-secondary/80 backdrop-blur-[5px] [-webkit-backdrop-filter:blur(5px)] hover:bg-secondary-50 text-white'
+              : 'bg-secondary/80 backdrop-blur-[5px] [-webkit-backdrop-filter:blur(5px)] hover:bg-secondary-50 text-white'
               }`}
             title={isPlayingPosts ? 'Stop playing posts' : 'Play random posts'}
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              {isPlayingPosts ? (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              ) : (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-              )}
-              {isPlayingPosts && (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 10h6v4H9z" />
-              )}
-            </svg>
+            {isPlayingPosts ? <Square className="w-3 h-3 md:w-4 md:h-4 fill-current" /> : <Play className="w-3 h-3 md:w-4 md:h-4 fill-current" />}
             <span className="font-medium">{isPlayingPosts ? 'Stop' : 'Play Posts'}</span>
           </button>
         )}
@@ -1042,27 +1019,32 @@ export function OptimizedMapsPage() {
 
       {/* Play Mode Navigation Overlay - Only show when playing and post preview is open or navigating */}
       {isPlayingPosts && (isPostPreviewOpen || isNavigating) && (
-        <div className="fixed right-4 top-1/2 -translate-y-1/2 z-[100] flex flex-col gap-2">
+        <div className="fixed right-2 md:right-4 mt-[15%] top-3/5 md:top-1/2 -translate-y-1/2 z-[100] flex flex-col gap-2">
           <button
             onClick={playPreviousPost}
-            className="w-12 h-12 bg-white/90 backdrop-blur-sm rounded-full shadow-lg flex items-center justify-center hover:bg-gray-100 transition-colors"
+            className="w-10 h-10 md:w-12 md:h-12 border border-white/30 bg-white/25 backdrop-blur-xs rounded-full shadow-lg flex items-center justify-center hover:bg-gray-100 transition-colors"
             title="Previous post"
           >
-            <svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 md:w-5 md:h-5 text-black dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
           </button>
-          <div className="bg-white/90 backdrop-blur-sm rounded-full shadow-lg px-3 py-2 text-center">
+          {
+            /*
+                  <div className="bg-white/90 backdrop-blur-sm rounded-full shadow-lg px-3 py-2 text-center">
             <span className="text-sm font-medium text-gray-700">
               {currentPlayIndex + 1} / {playQueue.length}
             </span>
           </div>
+            */
+          }
+    
           <button
             onClick={playNextPost}
-            className="w-12 h-12 bg-white/90 backdrop-blur-sm rounded-full shadow-lg flex items-center justify-center hover:bg-gray-100 transition-colors"
+            className="w-10 h-10 md:w-12 md:h-12 border border-white/30 bg-white/25 backdrop-blur-xs rounded-full shadow-lg flex items-center justify-center hover:bg-gray-100 transition-colors"
             title="Next post"
           >
-            <svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 md:w-5 md:h-5 text-black dark:text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
           </button>

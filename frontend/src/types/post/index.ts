@@ -15,6 +15,52 @@ export interface Comment {
   updatedAt?: string;
 }
 
+// GraphQL response types
+export interface CommentsQueryResponse {
+  data?: {
+    comments?: {
+      data: Comment[];
+      hasMore: boolean;
+      total: number;
+    };
+  };
+}
+
+export interface PostQueryResponse {
+  data?: {
+    post?: {
+      data: Post;
+    };
+  };
+}
+
+export interface AddCommentMutationResponse {
+  data?: {
+    addComment?: {
+      success: boolean;
+      data: Comment;
+    };
+  };
+}
+
+export interface DeleteCommentMutationResponse {
+  data?: {
+    deleteComment?: {
+      success: boolean;
+    };
+  };
+}
+
+export interface LoadMoreCommentsResponse {
+  data?: {
+    comments?: {
+      data: Comment[];
+      hasMore: boolean;
+      total: number;
+    };
+  };
+}
+
 export interface Post {
   id: string;
   title?: string;
@@ -22,9 +68,9 @@ export interface Post {
   photos?: string[];
   types?: string[];
   author?: {
-    id: string;
-    name: string;
-    email: string;
+    id?: string;
+    name?: string;
+    email?: string;
     firstName?: string;
     lastName?: string;
     role?: string;
