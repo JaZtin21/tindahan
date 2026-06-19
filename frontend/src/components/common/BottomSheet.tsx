@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback, memo, type ReactNode } from 'react';
+import { useState, useRef, useEffect, useCallback, memo, type ReactNode, forwardRef, useImperativeHandle } from 'react';
 import { useIsMobile } from '../../hooks/useIsMobile';
 
 interface BottomSheetProps {
@@ -11,7 +11,11 @@ interface BottomSheetProps {
   closeOnBackdropClick?: boolean;
 }
 
-export function BottomSheet({
+export interface BottomSheetRef {
+  animateClose: (options?: { isProgrammatic?: boolean }) => void;
+}
+
+export const BottomSheet = forwardRef<BottomSheetRef, BottomSheetProps>(({
   isOpen,
   onClose,
   children,
@@ -19,7 +23,7 @@ export function BottomSheet({
   subtitle,
   showCloseButton = true,
   closeOnBackdropClick = true,
-}: BottomSheetProps) {
+}, ref) => {
   const isMobile = useIsMobile(768);
   const [isAnimating, setIsAnimating] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -35,7 +39,7 @@ export function BottomSheet({
     velocity: 0,
   });
 
-  const animateToSnap = useCallback((targetTranslateY: number, shouldClose = false) => {
+  const animateToSnap = useCallback((targetTranslateY: number, shouldClose = false, isProgrammatic = false) => {
     setIsAnimating(true);
     setTranslateY(targetTranslateY);
 
@@ -45,6 +49,13 @@ export function BottomSheet({
 
     setTimeout(() => setIsAnimating(false), 300);
   }, [onClose]);
+
+  // Expose animateClose function to parent
+  useImperativeHandle(ref, () => ({
+    animateClose: (options?: { isProgrammatic?: boolean }) => {
+      animateToSnap(100, true, options?.isProgrammatic);
+    }
+  }), [animateToSnap]);
 
   // Handle open/close animation
   useEffect(() => {
@@ -182,6 +193,8 @@ export function BottomSheet({
       </div>
     </div>
   );
-}
+});
+
+BottomSheet.displayName = 'BottomSheet';
 
 export default memo(BottomSheet);

@@ -648,6 +648,10 @@ export function OptimizedMapsPage() {
   const [isPlayingPosts, setIsPlayingPosts] = useState(false);
   const [playQueue, setPlayQueue] = useState<Post[]>([]);
   const [currentPlayIndex, setCurrentPlayIndex] = useState(0);
+  const [isNavigating, setIsNavigating] = useState(false);
+
+  // Ref for PostPreviewModal to trigger close animation
+  const postPreviewModalRef = useRef<{ animateClose: () => void }>(null);
 
   // Handle WebSocket updates - merge new data instead of replacing
   useEffect(() => {
@@ -821,40 +825,56 @@ export function OptimizedMapsPage() {
     // Use handlePostClick after zoom animation completes
     setTimeout(() => {
       handlePostClick(post);
-    }, 1500);
+    }, 2000);
   };
 
   const playNextPost = () => {
     if (!isPlayingPosts || playQueue.length === 0) return;
 
-    // Close existing post preview using existing onClose mechanism (without stopping play mode)
-    handleClosePostPreview({ stopPlaying: false });
+    // Set navigating state to keep controls visible
+    setIsNavigating(true);
+
+    // Close existing post preview using animateClose for proper animation
+    if (postPreviewModalRef.current) {
+      postPreviewModalRef.current.animateClose();
+    }
 
     // Calculate next index
     const nextIndex = currentPlayIndex + 1;
     const targetIndex = nextIndex >= playQueue.length ? 0 : nextIndex;
 
-    // Wait for modal to close, then navigate and open next post
+    // Wait for modal close animation (300ms), then navigate to next post
     setTimeout(() => {
+      dispatch(closePostPreview());
+      setSelectedPost(null);
       setCurrentPlayIndex(targetIndex);
       playPostAtIndex(targetIndex, playQueue);
+      setIsNavigating(false);
     }, 300);
   };
 
   const playPreviousPost = () => {
     if (!isPlayingPosts || playQueue.length === 0) return;
 
-    // Close existing post preview using existing onClose mechanism (without stopping play mode)
-    handleClosePostPreview({ stopPlaying: false });
+    // Set navigating state to keep controls visible
+    setIsNavigating(true);
+
+    // Close existing post preview using animateClose for proper animation
+    if (postPreviewModalRef.current) {
+      postPreviewModalRef.current.animateClose();
+    }
 
     // Calculate previous index
     const prevIndex = currentPlayIndex - 1;
     const targetIndex = prevIndex < 0 ? playQueue.length - 1 : prevIndex;
 
-    // Wait for modal to close, then navigate and open previous post
+    // Wait for modal close animation (300ms), then navigate to previous post
     setTimeout(() => {
+      dispatch(closePostPreview());
+      setSelectedPost(null);
       setCurrentPlayIndex(targetIndex);
       playPostAtIndex(targetIndex, playQueue);
+      setIsNavigating(false);
     }, 300);
   };
 
@@ -1017,10 +1037,11 @@ export function OptimizedMapsPage() {
         onClose={handleClosePostPreview}
         onEdit={handleEditPost}
         onDelete={handleDeletePost}
+        modalRef={postPreviewModalRef}
       />
 
-      {/* Play Mode Navigation Overlay - Only show when playing and post preview is open */}
-      {isPlayingPosts && isPostPreviewOpen && (
+      {/* Play Mode Navigation Overlay - Only show when playing and post preview is open or navigating */}
+      {isPlayingPosts && (isPostPreviewOpen || isNavigating) && (
         <div className="fixed right-4 top-1/2 -translate-y-1/2 z-[100] flex flex-col gap-2">
           <button
             onClick={playPreviousPost}

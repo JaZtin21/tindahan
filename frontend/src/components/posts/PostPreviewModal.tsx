@@ -19,7 +19,7 @@ import { useFollowUser, useUnfollowUser } from '../../hooks';
 import { Loader2 } from 'lucide-react';
 
 
-function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: PostPreviewModalProps & { onEdit?: (post: Post) => void; onDelete?: (post: Post) => void }) {
+function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete, modalRef }: PostPreviewModalProps & { onEdit?: (post: Post) => void; onDelete?: (post: Post) => void }) {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const currentUser = useSelector((state: RootState) => state.user);
@@ -370,6 +370,7 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete }: Post
       maxWidth="lg"
       mobileBottomSheet
       showCloseButton={true}
+      modalRef={modalRef}
       title={
         post ? (
           <div className="flex items-center gap-3">

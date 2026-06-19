@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, type ReactNode } from 'react';
+import { useEffect, useState, useCallback, useRef, type ReactNode } from 'react';
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { BottomSheet } from './BottomSheet';
 
@@ -21,6 +21,8 @@ interface ModalProps {
   closeOnEscape?: boolean;
   /** When true, modal becomes a bottom sheet on mobile screens */
   mobileBottomSheet?: boolean;
+  /** Ref to expose animateClose function for programmatic close animation */
+  modalRef?: React.RefObject<{ animateClose: () => void } | null>;
 }
 
 export function Modal({
@@ -34,6 +36,7 @@ export function Modal({
   closeOnBackdropClick = true,
   closeOnEscape = true,
   mobileBottomSheet = false,
+  modalRef,
 }: ModalProps) {
   const isMobile = useIsMobile(768);
   const shouldUseBottomSheet = mobileBottomSheet && isMobile;
@@ -41,6 +44,28 @@ export function Modal({
   // Internal state to track if modal should be visible (handles close animation)
   const [isVisible, setIsVisible] = useState(false);
   const [isAnimatingOut, setIsAnimatingOut] = useState(false);
+
+  // Ref for BottomSheet to expose animateClose function
+  const bottomSheetRef = useRef<{ animateClose: (options?: { isProgrammatic?: boolean }) => void }>(null);
+
+  // Ref to track if close is programmatic (from animateClose)
+  const isProgrammaticCloseRef = useRef(false);
+
+  // Expose animateClose function to parent ref
+  useEffect(() => {
+    if (modalRef) {
+      modalRef.current = {
+        animateClose: () => {
+          isProgrammaticCloseRef.current = true;
+          if (shouldUseBottomSheet && bottomSheetRef.current) {
+            bottomSheetRef.current.animateClose({ isProgrammatic: true });
+          } else {
+            handleClose();
+          }
+        }
+      };
+    }
+  }, [modalRef, shouldUseBottomSheet]);
 
   // Handle open/close with animation
   useEffect(() => {
@@ -63,7 +88,13 @@ export function Modal({
     if (isAnimatingOut) return; // Prevent double-close
     setIsAnimatingOut(true);
     setTimeout(() => {
-      onClose();
+      // Skip parent's onClose if this is a programmatic close (from playNextPost/playPreviousPost)
+      if (isProgrammaticCloseRef.current) {
+        isProgrammaticCloseRef.current = false;
+        // Don't call parent's onClose - the parent handles cleanup in playNextPost/playPreviousPost
+      } else {
+        onClose();
+      }
     }, 200); // Match animation duration
   }, [onClose, isAnimatingOut]);
 
@@ -86,6 +117,7 @@ export function Modal({
         style={{ outline: 'none' }}
       >
         <BottomSheet
+          ref={bottomSheetRef}
           isOpen={!isAnimatingOut}
           onClose={handleClose}
           title={title}

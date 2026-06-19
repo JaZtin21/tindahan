@@ -61,6 +61,7 @@ export interface PostPreviewModalProps {
   post: Post | null;
   isOpen: boolean;
   onClose: (options?: { isNavigating?: boolean }) => void;
+  modalRef?: React.RefObject<{ animateClose: () => void } | null>;
 }
 
 // Post type options - Food classifications
