@@ -78,7 +78,7 @@ define(['./workbox-afac4cd2'], (function (workbox) { 'use strict';
    */
   workbox.precacheAndRoute([{
     "url": "index.html",
-    "revision": "0.d6ig0rja4lo"
+    "revision": "0.nlq807v7o9g"
   }], {});
   workbox.cleanupOutdatedCaches();
   workbox.registerRoute(new workbox.NavigationRoute(workbox.createHandlerBoundToURL("index.html"), {
@@ -87,8 +87,8 @@ define(['./workbox-afac4cd2'], (function (workbox) { 'use strict';
   workbox.registerRoute(/^https:\/\/api\.maptiler\.com\/maps\/.*?\.(png|jpg|jpeg|webp|pbf)/i, new workbox.CacheFirst({
     "cacheName": "maptiler-tiles-cache",
     plugins: [new workbox.ExpirationPlugin({
-      maxEntries: 500,
-      maxAgeSeconds: 604800
+      maxEntries: 5000,
+      maxAgeSeconds: 2592000
     }), new workbox.CacheableResponsePlugin({
       statuses: [0, 200]
     })]

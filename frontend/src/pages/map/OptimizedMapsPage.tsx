@@ -644,6 +644,11 @@ export function OptimizedMapsPage() {
   // Store live posts in state
   const [livePosts, setLivePosts] = useState<Post[]>([]);
 
+  // Play posts mode state
+  const [isPlayingPosts, setIsPlayingPosts] = useState(false);
+  const [playQueue, setPlayQueue] = useState<Post[]>([]);
+  const [currentPlayIndex, setCurrentPlayIndex] = useState(0);
+
   // Handle WebSocket updates - merge new data instead of replacing
   useEffect(() => {
     const newPosts = livePostsData?.livePosts;
@@ -732,7 +737,12 @@ export function OptimizedMapsPage() {
   }, [navigate, dispatch]);
 
   // Handle post preview modal close
-  const handleClosePostPreview = ({ isNavigating }: { isNavigating?: boolean } = {}) => {
+  const handleClosePostPreview = ({ isNavigating, stopPlaying }: { isNavigating?: boolean; stopPlaying?: boolean } = {}) => {
+    // Stop playing posts if modal is closed and stopPlaying is true (default)
+    if (stopPlaying !== false && isPlayingPosts) {
+      stopPlayingPosts();
+    }
+
     if (isNavigating) {
       dispatch(closePostPreview());
       setSelectedPost(null);
@@ -770,6 +780,82 @@ export function OptimizedMapsPage() {
 
     navigate(`${window.location.pathname}?${params.toString()}`);
 
+  };
+
+  // Play posts functions
+  const startPlayingPosts = () => {
+    if (livePosts.length === 0) return;
+
+    // Shuffle posts to create random queue
+    const shuffled = [...livePosts].sort(() => Math.random() - 0.5);
+    setPlayQueue(shuffled);
+    setCurrentPlayIndex(0);
+    setIsPlayingPosts(true);
+
+    // Play the first post
+    playPostAtIndex(0, shuffled);
+  };
+
+  const stopPlayingPosts = () => {
+    setIsPlayingPosts(false);
+    setPlayQueue([]);
+    setCurrentPlayIndex(0);
+  };
+
+  const playPostAtIndex = (index: number, queue: Post[]) => {
+    if (index >= queue.length) {
+      stopPlayingPosts();
+      return;
+    }
+
+    const post = queue[index];
+    if (!post || !post.location) return;
+
+    // Zoom to post location
+    if (mapRef.current) {
+      mapRef.current.flyTo([post.location.lat, post.location.lng], 18, {
+        duration: 1.5
+      });
+    }
+
+    // Use handlePostClick after zoom animation completes
+    setTimeout(() => {
+      handlePostClick(post);
+    }, 1500);
+  };
+
+  const playNextPost = () => {
+    if (!isPlayingPosts || playQueue.length === 0) return;
+
+    // Close existing post preview using existing onClose mechanism (without stopping play mode)
+    handleClosePostPreview({ stopPlaying: false });
+
+    // Calculate next index
+    const nextIndex = currentPlayIndex + 1;
+    const targetIndex = nextIndex >= playQueue.length ? 0 : nextIndex;
+
+    // Wait for modal to close, then navigate and open next post
+    setTimeout(() => {
+      setCurrentPlayIndex(targetIndex);
+      playPostAtIndex(targetIndex, playQueue);
+    }, 300);
+  };
+
+  const playPreviousPost = () => {
+    if (!isPlayingPosts || playQueue.length === 0) return;
+
+    // Close existing post preview using existing onClose mechanism (without stopping play mode)
+    handleClosePostPreview({ stopPlaying: false });
+
+    // Calculate previous index
+    const prevIndex = currentPlayIndex - 1;
+    const targetIndex = prevIndex < 0 ? playQueue.length - 1 : prevIndex;
+
+    // Wait for modal to close, then navigate and open previous post
+    setTimeout(() => {
+      setCurrentPlayIndex(targetIndex);
+      playPostAtIndex(targetIndex, playQueue);
+    }, 300);
   };
 
   return (
@@ -898,6 +984,30 @@ export function OptimizedMapsPage() {
             <span className="font-medium">Add Post</span>
           </button>
         )}
+
+        {/* Play Posts Button - Only show if authenticated and has live posts */}
+        {isAuthenticated && livePosts.length > 0 && (
+          <button
+            onClick={() => isPlayingPosts ? stopPlayingPosts() : startPlayingPosts()}
+            className={`flex items-center gap-2 px-3 py-2 md:px-4 text-sm md:text-base md:py-3 rounded-full shadow-md transition-colors ${isPlayingPosts
+              ? 'bg-red-500/80 backdrop-blur-[5px] [-webkit-backdrop-filter:blur(5px)] hover:bg-red-600 text-white'
+              : 'bg-purple-600/80 backdrop-blur-[5px] [-webkit-backdrop-filter:blur(5px)] hover:bg-purple-700 text-white'
+              }`}
+            title={isPlayingPosts ? 'Stop playing posts' : 'Play random posts'}
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              {isPlayingPosts ? (
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              ) : (
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+              )}
+              {isPlayingPosts && (
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 10h6v4H9z" />
+              )}
+            </svg>
+            <span className="font-medium">{isPlayingPosts ? 'Stop' : 'Play Posts'}</span>
+          </button>
+        )}
       </div>
 
       {/* Post Preview Modal - always render, Modal handles visibility */}
@@ -908,6 +1018,35 @@ export function OptimizedMapsPage() {
         onEdit={handleEditPost}
         onDelete={handleDeletePost}
       />
+
+      {/* Play Mode Navigation Overlay - Only show when playing and post preview is open */}
+      {isPlayingPosts && isPostPreviewOpen && (
+        <div className="fixed right-4 top-1/2 -translate-y-1/2 z-[100] flex flex-col gap-2">
+          <button
+            onClick={playPreviousPost}
+            className="w-12 h-12 bg-white/90 backdrop-blur-sm rounded-full shadow-lg flex items-center justify-center hover:bg-gray-100 transition-colors"
+            title="Previous post"
+          >
+            <svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+          <div className="bg-white/90 backdrop-blur-sm rounded-full shadow-lg px-3 py-2 text-center">
+            <span className="text-sm font-medium text-gray-700">
+              {currentPlayIndex + 1} / {playQueue.length}
+            </span>
+          </div>
+          <button
+            onClick={playNextPost}
+            className="w-12 h-12 bg-white/90 backdrop-blur-sm rounded-full shadow-lg flex items-center justify-center hover:bg-gray-100 transition-colors"
+            title="Next post"
+          >
+            <svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </button>
+        </div>
+      )}
 
       {/* Create Post Modal - always render, Modal handles visibility */}
       <CreatePostModal

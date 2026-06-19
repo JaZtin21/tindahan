@@ -9,7 +9,6 @@ interface CachedTileLayerProps {
 }
 
 function CachedTileLayerComponent({ url, attribution, maxZoom = 22 }: CachedTileLayerProps) {
-  console.log('[CachedTileLayer] Component mount/render control initialization');
 
   const map = useMap();
   const layerRef = useRef<L.TileLayer | null>(null);
