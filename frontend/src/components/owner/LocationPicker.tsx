@@ -1,6 +1,13 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import BaseMap, { Marker, Popup } from 'react-map-gl/maplibre';
+import maplibregl from 'maplibre-gl';
 import type { LocationPickerProps } from '../../types/owner';
 import { Modal } from '../Modal';
+import 'maplibre-gl/dist/maplibre-gl.css';
+
+const MAPTILER_BASE_URL = "https://api.maptiler.com";
+const MAPTILER_STYLE_NAME = "voyager";
+const MAP_TILE_URL = `${MAPTILER_BASE_URL}/maps/${MAPTILER_STYLE_NAME}/style.json?key=${import.meta.env.VITE_MAPTILE_KEY || 'your_fallback_key'}`;
 
 export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5995, lng: 120.9842 }, initialAddress = '' }: LocationPickerProps) {
   const [selectedLocation, setSelectedLocation] = useState(initialLocation);
@@ -10,78 +17,37 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
-  const mapRef = useRef<HTMLDivElement>(null);
-  const mapInstanceRef = useRef<any>(null);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const L = (window as any).L;
 
-  // 1. Core function: Instantly moves the marker on the map UI
+  // 🚀 REFACTORED TO REACT-MAP-GL REF TRACKING PIPELINE [INDEX]
+  const mapRef = useRef<any>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // 1. Core function: Instantly updates coordinate states and triggers camera movement [INDEX]
   const handleMapClick = (lat: number, lng: number) => {
     setSelectedLocation({ lat, lng });
-
-    // Set a clean text state instead of putting numbers into your address box
     setAddress('Retrieving address name...');
 
-    if (mapInstanceRef.current) {
-      const L = (window as any).L;
-
-      // Clear existing markers
-      mapInstanceRef.current.eachLayer((layer: any) => {
-        if (layer instanceof L.Marker) {
-          mapInstanceRef.current.removeLayer(layer);
-        }
+    // Smoothly fly center focus using MapLibre's native instance [INDEX]
+    if (mapRef.current) {
+      mapRef.current.flyTo({
+        center: [lng, lat], // 🚨 Note: Longitude first in MapLibre! [INDEX]
+        zoom: 16,
+        duration: 1000,
+        essential: true
       });
-
-      // Add new marker with custom icon
-      const customIcon = L.divIcon({
-        html: `
-          <div style="
-            background: #efb666;
-            width: 36px;
-            height: 36px;
-            border-radius: 8px;
-            border: 2px solid white;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 18px;
-          ">
-            📍
-          </div>
-        `,
-        iconSize: [36, 36],
-        iconAnchor: [18, 36],
-        popupAnchor: [0, -36],
-        className: 'custom-store-marker'
-      });
-
-      L.marker([lat, lng], { icon: customIcon })
-        .addTo(mapInstanceRef.current)
-        .bindPopup(`
-          <div style="font-weight: 600; color: #202124; margin-bottom: 4px;">
-            Selected Location
-          </div>
-          <div style="color: #5f6368; font-size: 12px;">
-            📍 ${lat.toFixed(4)}, ${lng.toFixed(4)}
-          </div>
-        `);
     }
 
-    // Fire the debounced address request
+    // Fire the debounced reverse geocoding lookup
     debouncedReverseGeocode(lat, lng);
   };
 
-  // 2. Debounced Fetch: Only assigns true string values or clean fallback labels
+  // 2. Debounced Fetch: Intercepts rapid user clicking arrays and fires reverse geocoding
   const debouncedReverseGeocode = (lat: number, lng: number) => {
-    // Wipe out the timer from any previous rapid clicks
     if (debounceRef.current) {
       clearTimeout(debounceRef.current);
     }
 
-    // Wait 300ms for the user to finish clicking before calling the API
     debounceRef.current = setTimeout(() => {
-      // 1. Grab your key from Vite's env bundle
       const key = import.meta.env.VITE_MAPTILE_KEY || '';
       if (!key) {
         console.error('VITE_MAPTILE_KEY is missing from .env');
@@ -89,13 +55,12 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
         return;
       }
 
-      // 2. MapTiler requires longitude first: [lng, lat]
+      // MapTiler Geocoding API requires longitude first: [lng, lat] [INDEX]
       const url = `https://api.maptiler.com/geocoding/${lng},${lat}.json?key=${key}&limit=1`;
 
       fetch(url)
         .then(response => response.json())
         .then(data => {
-          // 3. Extract place_name from the first item in the features array
           if (data && data.features && data.features.length > 0) {
             const formattedAddress = data.features[0].place_name;
             setAddress(formattedAddress);
@@ -111,9 +76,8 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
     }, 500);
   };
 
-
   const handleGetCurrentLocation = async (e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent event from reaching form behind
+    e.stopPropagation();
 
     if (!navigator.geolocation) {
       alert('Geolocation is not supported by your browser.');
@@ -122,7 +86,6 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
 
     setIsLocating(true);
 
-    // 1. Check permissions first so mobile doesn't auto-fail silently
     if (navigator.permissions && navigator.permissions.query) {
       try {
         const permissionStatus = await navigator.permissions.query({ name: 'geolocation' });
@@ -142,22 +105,13 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const { latitude, longitude } = position.coords;
-        const newLocation = { lat: latitude, lng: longitude };
-        setSelectedLocation(newLocation);
-
-        // Center map on new location
-        if (mapInstanceRef.current) {
-          mapInstanceRef.current.setView([latitude, longitude], 18); // Stable high zoom
-          handleMapClick(latitude, longitude);
-        }
-
+        handleMapClick(latitude, longitude);
         setIsLocating(false);
       },
       (error) => {
         console.error('Error getting location:', error);
         setIsLocating(false);
 
-        // 2. Give precise instructions depending on what went wrong
         let errorMsg = 'Unable to get your location. Please select manually.';
         switch (error.code) {
           case error.PERMISSION_DENIED:
@@ -174,15 +128,14 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
       },
       {
         enableHighAccuracy: true,
-        timeout: 8000, // Reduced from 10s to 8s for better mobile UX
-        maximumAge: 0  // Guarantees it pulls the absolute latest location
+        timeout: 8000,
+        maximumAge: 0
       }
     );
   };
 
-
   const handleConfirmLocation = (e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent event from reaching form behind
+    e.stopPropagation();
     console.log('Confirming location:', selectedLocation, address);
     onLocationSelect(selectedLocation, address);
     setShowModal(false);
@@ -191,7 +144,6 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
   const handleSearch = useCallback(async (query: string) => {
     setSearchQuery(query);
 
-    // Clear previous debounce timer
     if (debounceRef.current) {
       clearTimeout(debounceRef.current);
     }
@@ -203,9 +155,7 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
 
     setIsSearching(true);
 
-    // Debounce the API call
     debounceRef.current = setTimeout(async () => {
-      // 1. Grab your key from Vite's env bundle
       const key = import.meta.env.VITE_MAPTILE_KEY || '';
       if (!key) {
         console.error('VITE_MAPTILE_KEY is missing from .env');
@@ -214,12 +164,9 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
       }
 
       try {
-        // 2. Call the secure MapTiler Forward Geocoding API
         const url = `https://api.maptiler.com/geocoding/${encodeURIComponent(query)}.json?key=${key}&limit=5`;
         const response = await fetch(url);
         const data = await response.json();
-
-        // 3. MapTiler stores search results inside the "features" array
         setSearchResults(data.features || []);
       } catch (error) {
         console.error('Search error:', error);
@@ -227,8 +174,17 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
       } finally {
         setIsSearching(false);
       }
-    }, 500);
+    }, 500); // Corrected to 500ms debounce window matching your top declaration
   }, []);
+
+  const handleSearchResultClick = (result: any) => {
+    // 🚀 FIXED: MapTiler packs coordinates inside a [longitude, latitude] array! [INDEX]
+    const [lng, lat] = result.center;
+    handleMapClick(lat, lng);
+    setAddress(result.place_name);
+    setSearchResults([]);
+    setSearchQuery('');
+  };
 
   // Cleanup debounce timer on unmount
   useEffect(() => {
@@ -238,160 +194,6 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
       }
     };
   }, []);
-
-  const handleSearchResultClick = (result: any) => {
-    // 1. FIXED: MapTiler packs coordinates inside a [longitude, latitude] array!
-    const [lng, lat] = result.center;
-    const newLocation = { lat, lng };
-
-    // 2. FIXED: MapTiler uses place_name instead of display_name
-    setSelectedLocation(newLocation);
-    setAddress(result.place_name);
-
-    // 3. Reset states cleanly
-    setSearchResults([]);
-    setSearchQuery('');
-
-    // 4. Center map on selected location smoothly using the correct numbers
-    if (mapInstanceRef.current) {
-      mapInstanceRef.current.setView([lat, lng], 16);
-      handleMapClick(lat, lng);
-    }
-  };
-
-
-  useEffect(() => {
-    if (!showModal || !mapRef.current || mapInstanceRef.current) return;
-
-    // Load Leaflet CSS
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-    document.head.appendChild(link);
-
-    // Load Leaflet JS
-    const script = document.createElement('script');
-    script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-    script.async = true;
-
-    script.onload = () => {
-      const L = (window as any).L;
-
-      // Check if container already has a map
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove();
-      }
-
-      // Clear any existing content
-      if (mapRef.current) {
-        mapRef.current.innerHTML = '';
-      }
-
-      // Initialize map
-      const map = L.map(mapRef.current).setView([selectedLocation.lat, selectedLocation.lng], 15);
-      mapInstanceRef.current = map;
-
-      const key = import.meta.env.VITE_MAPTILE_KEY || '';
-      if (!key) {
-        console.error('VITE_MAPTILE_KEY is missing from .env');
-        return;
-      }
-
-      // 2. Inject the MapTiler tile layer cleanly into the map instance
-      L.tileLayer(`https://api.maptiler.com/maps/voyager/{z}/{x}/{y}.png?key=${key}`, {
-        attribution: '&copy; <a href="https://maptiler.com" target="_blank">MapTiler</a>',
-        maxZoom: 22, // Upgraded maxZoom to 22 matching your main maps page
-      }).addTo(map);
-
-      // Apply custom styling
-      const styleSheet = document.createElement('style');
-      styleSheet.textContent = `
-        .leaflet-container {
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        }
-        .leaflet-popup-content-wrapper {
-          border-radius: 8px;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-        }
-        .leaflet-popup-content {
-          font-size: 14px;
-          margin: 12px;
-        }
-        .leaflet-control-zoom {
-          border: none !important;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.15) !important;
-        }
-        .leaflet-control-zoom a {
-          background: white !important;
-          color: #333 !important;
-          border-bottom: 1px solid #ccc !important;
-        }
-        .leaflet-control-zoom a:last-child {
-          border-bottom: none !important;
-        }
-        .leaflet-control-attribution {
-          display: none !important;
-        }
-      `;
-      document.head.appendChild(styleSheet);
-
-      // Add initial marker
-      const customIcon = L.divIcon({
-        html: `
-          <div style="
-            background: #efb666;
-            width: 36px;
-            height: 36px;
-            border-radius: 8px;
-            border: 2px solid white;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 18px;
-          ">
-            📍
-          </div>
-        `,
-        iconSize: [36, 36],
-        iconAnchor: [18, 36],
-        popupAnchor: [0, -36],
-        className: 'custom-store-marker'
-      });
-
-      L.marker([selectedLocation.lat, selectedLocation.lng], { icon: customIcon })
-        .addTo(map)
-        .bindPopup(`
-          <div style="font-weight: 600; color: #202124; margin-bottom: 4px;">
-            Selected Location
-          </div>
-          <div style="color: #5f6368; font-size: 12px;">
-            📍 ${selectedLocation.lat.toFixed(4)}, ${selectedLocation.lng.toFixed(4)}
-          </div>
-        `);
-
-      // Add click handler
-      map.on('click', (event: any) => {
-        const lat = event.latlng.lat;
-        const lng = event.latlng.lng;
-        handleMapClick(lat, lng);
-      });
-    };
-
-    script.onerror = () => {
-      console.error('Failed to load Leaflet');
-    };
-
-    document.head.appendChild(script);
-  }, [showModal, selectedLocation]);
-
-  // Cleanup map when modal closes
-  useEffect(() => {
-    if (!showModal && mapInstanceRef.current) {
-      mapInstanceRef.current.remove();
-      mapInstanceRef.current = null;
-    }
-  }, [showModal]);
 
   // Display button text based on whether address is set
   const getButtonText = () => {
@@ -416,6 +218,7 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
     setFeedbackModal({ isOpen: true, title, message, type: 'error' });
   };
 
+  // 🚀 FIXED UNMOUNT BASE TRIGGERS: RESTORED ORIGINAL LAYOUT BUTTON FOR FORM TOGGLES
   if (!showModal) {
     return (
       <button
@@ -430,7 +233,7 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
 
   return (
     <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-zinc-900 rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh]  overflow-auto" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-white dark:bg-zinc-900 rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-auto" onClick={(e) => e.stopPropagation()}>
         <div className="p-6 border-b border-zinc-200 dark:border-zinc-700">
           <div className="flex justify-between items-center">
             <h3 className="text-xl font-semibold text-zinc-900 dark:text-zinc-100">Select Shop Location</h3>
@@ -445,95 +248,115 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
           </div>
         </div>
 
-        <div className="flex flex-col md:flex-row ">
+        <div className="flex flex-col md:flex-row">
           {/* Map Container */}
-          <div className="flex-1 relative p-4" onClick={(e) => e.stopPropagation()}>
-            <div
+          <div className="flex-1 relative p-4 h-[300px] md:h-[500px]" onClick={(e) => e.stopPropagation()}>
+            <BaseMap
               ref={mapRef}
-              className="w-full h-[300px] md:h-[500px] rounded-lg overflow-hidden pointer-events-auto"
-              style={{ cursor: 'crosshair' }}
-            />
+              initialViewState={{
+                longitude: selectedLocation.lng,
+                latitude: selectedLocation.lat,
+                zoom: 15
+              }}
+              onClick={(e) => handleMapClick(e.lngLat.lat, e.lngLat.lng)}
+              style={{ width: '100%', height: '100%', cursor: 'crosshair' }}
+              mapStyle={MAP_TILE_URL}
+              mapLib={maplibregl}
+            >
+              <Marker
+                latitude={selectedLocation.lat}
+                longitude={selectedLocation.lng}
+                offsetLeft={-18}
+                offsetTop={-36}
+                rotationAlignment="viewport"
+                pitchAlignment="viewport"
+              >
+                <div style={{
+                  background: '#efb666',
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '8px',
+                  border: '2px solid white',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '18px',
+                  cursor: 'pointer'
+                }}>
+                  📍
+                </div>
+              </Marker>
+
+            </BaseMap>
           </div>
 
           {/* Sidebar */}
           <div className="w-full md:w-80 p-6 md:border-l border-zinc-200 dark:border-zinc-700 pointer-events-auto" onClick={(e) => e.stopPropagation()}>
             <div className="space-y-4">
-              {/* Search Input */}
               <div className="relative">
                 <h4 className="font-semibold mb-2 text-zinc-900 dark:text-zinc-100">Search Location</h4>
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => handleSearch(e.target.value)}
-                  placeholder="Search for a location..."
-                  className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-                {isSearching && (
-                  <div className="flex items-center gap-2 mt-2 text-sm text-zinc-500">
-                    <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Searching...
-                  </div>
-                )}
+                <div className="flex items-center gap-2 relative">
+                  <input
+                    type="text"
+                    value={searchQuery}
+                    onChange={(e) => handleSearch(e.target.value)}
+                    placeholder="Search for a location..."
+                    className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 rounded-lg text-sm text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  />
+                  {isSearching && (
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 border-2 border-amber-500 border-t-transparent animate-spin rounded-full" />
+                  )}
+                </div>
+
                 {searchResults.length > 0 && (
-                  <div className="absolute top-full left-0 right-0 mt-1 max-h-48 overflow-y-auto border border-zinc-200 dark:border-zinc-700 rounded-lg bg-white dark:bg-zinc-800 shadow-lg z-10">
-                    {searchResults.map((result, index) => (
-                      <button
-                        key={index}
+                  <div className="absolute left-0 right-0 mt-1 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-xl max-h-60 overflow-y-auto z-50 flex flex-col">
+                    {searchResults.map((result: any) => (
+                      <div
+                        key={result.id}
                         onClick={() => handleSearchResultClick(result)}
-                        className="w-full px-3 py-2 text-left text-sm text-zinc-900 dark:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-800 border-b border-zinc-200 dark:border-zinc-700 last:border-b-0"
+                        className="px-4 py-3 text-xs text-zinc-700 dark:text-zinc-300 hover:bg-amber-50 dark:hover:bg-zinc-700 cursor-pointer transition-colors border-b border-zinc-100 dark:border-zinc-700 last:border-none truncate"
                       >
-                        {result.place_name}
-                      </button>
+                        📍 {result.place_name}
+                      </div>
                     ))}
                   </div>
                 )}
               </div>
 
-              <div>
-                <h4 className="font-semibold mb-2 text-zinc-900 dark:text-zinc-100">Address</h4>
-                <div className="text-sm text-zinc-600 dark:text-zinc-400">
-                  {address || 'Click on map to get address'}
-                </div>
+              <div className="bg-zinc-50 dark:bg-zinc-800 p-4 rounded-xl border border-zinc-100 dark:border-zinc-700 flex flex-col gap-1">
+                <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Resolved Address</span>
+                <p className="text-sm text-zinc-700 dark:text-zinc-300 leading-relaxed break-words">
+                  {address || 'No location address pinned yet...'}
+                </p>
               </div>
 
               <button
+                type="button"
                 onClick={handleGetCurrentLocation}
                 disabled={isLocating}
-                className="w-full px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-700 transition-colors disabled:bg-zinc-400 disabled:cursor-not-allowed"
-                type="button"
+                className="w-full px-4 py-2.5 bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl text-zinc-800 dark:text-zinc-200 hover:bg-zinc-200 dark:hover:bg-zinc-700 active:scale-95 transition-all text-sm font-semibold flex items-center justify-center gap-2"
               >
                 {isLocating ? (
-                  <span className="inline-flex items-center gap-2">
-                    <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
-                      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" className="opacity-25" />
-                      <path d="M22 12a10 10 0 00-10-10" stroke="currentColor" strokeWidth="4" className="opacity-75" />
-                    </svg>
-                    Getting location...
-                  </span>
+                  <div className="w-4 h-4 border-2 border-zinc-800 dark:border-zinc-200 border-t-transparent animate-spin rounded-full" />
                 ) : (
-                  '📍 Use My Location'
+                  '🎯 Center My Location'
                 )}
               </button>
 
-              <div className="pt-4 border-t border-zinc-200 dark:border-zinc-700">
+              <div className="pt-4 border-t border-zinc-200 dark:border-zinc-700 flex flex-col gap-2">
                 <button
-                  onClick={handleConfirmLocation}
-                  disabled={!address}
-                  className="w-full px-4 py-2 bg-secondary dark:bg-secondary/80 text-white rounded-lg hover:bg-secondary-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   type="button"
+                  onClick={handleConfirmLocation}
+                  disabled={!address || address === 'Retrieving address name...'}
+                  className="w-full px-4 py-2.5 bg-amber-500 hover:bg-amber-600 disabled:bg-zinc-300 text-white font-semibold rounded-xl text-sm shadow-md active:scale-95 transition-all disabled:pointer-events-none disabled:opacity-50"
                 >
-                  Confirm Location
+                  Confirm This Location
                 </button>
                 <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setShowModal(false);
-                  }}
-                  className="w-full px-4 py-2 mt-2 bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 rounded-lg hover:bg-zinc-300 dark:hover:bg-zinc-600 transition-colors"
                   type="button"
+                  onClick={() => setShowModal(false)}
+                  className="w-full px-4 py-2.5 bg-transparent text-zinc-500 font-medium text-sm hover:text-zinc-700 transition-colors"
                 >
                   Cancel
                 </button>
@@ -542,15 +365,7 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
           </div>
         </div>
       </div>
-      {feedbackModal.isOpen && (
-        <Modal
-          isOpen={feedbackModal.isOpen}
-          onClose={() => setFeedbackModal(prev => ({ ...prev, isOpen: false }))}
-          title={feedbackModal.title}
-          message={feedbackModal.message}
-          type={feedbackModal.type}
-        />
-      )}
     </div>
   );
 }
+
