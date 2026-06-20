@@ -91,7 +91,7 @@ export function PostGroupMarker({ group, onClick }: PostGroupMarkerProps) {
   if (!currentPost?.location?.lat || !currentPost?.location?.lng) return null;
 
   const isCurrentlyPaused = isHovered || isMyPostOpen;
-  const qualityValue = isCurrentlyPaused ? 1000 : (0 + (Number(currentPost.quality) || 0));
+  const qualityValue = isCurrentlyPaused ? 10 : (0 + (Number(currentPost.quality) || 0));
 
   return (
     <Marker

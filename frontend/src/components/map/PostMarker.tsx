@@ -50,7 +50,7 @@ export function PostMarkerDesign({
     if (maplibreWrapper) {
       if (isHoveredLocal) {
         // Force the absolute maximum stacking height over the entire map tile grid
-        maplibreWrapper.style.zIndex = '1000';
+        maplibreWrapper.style.zIndex = '10';
       } else {
         // Cleanly restore to your base sorting score calculation formula when the mouse exits
         maplibreWrapper.style.zIndex = String(qualityValue);
@@ -73,7 +73,6 @@ export function PostMarkerDesign({
   const currentOpacity = isHoveredLocal ? 1 : opacityValue;
 
   const hardcodedMarkerStyle = {
-    zIndex: isHoveredLocal ? 1000 : qualityValue,
     transform: `scale(${currentScale})`,
     opacity: currentOpacity, // 🚀 Binds your fade layer cleanly into the element styles
     // Injects opacity directly into the smooth timing properties [INDEX]
