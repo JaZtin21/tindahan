@@ -78,16 +78,16 @@ define(['./workbox-afac4cd2'], (function (workbox) { 'use strict';
    */
   workbox.precacheAndRoute([{
     "url": "index.html",
-    "revision": "0.j88jpp6r8lo"
+    "revision": "0.h515bpg6vno"
   }], {});
   workbox.cleanupOutdatedCaches();
   workbox.registerRoute(new workbox.NavigationRoute(workbox.createHandlerBoundToURL("index.html"), {
     allowlist: [/^\/$/]
   }));
-  workbox.registerRoute(/^https:\/\/api\.maptiler\.com\/maps\/.*?\.(png|jpg|jpeg|webp|pbf)/i, new workbox.CacheFirst({
-    "cacheName": "maptiler-tiles-cache",
+  workbox.registerRoute(/^https:\/\/api\.maptiler\.com\/(maps|tiles)\/.*?\.(json|pbf)/i, new workbox.CacheFirst({
+    "cacheName": "maptiler-vector-cache",
     plugins: [new workbox.ExpirationPlugin({
-      maxEntries: 5000,
+      maxEntries: 1500,
       maxAgeSeconds: 2592000
     }), new workbox.CacheableResponsePlugin({
       statuses: [0, 200]

@@ -5,7 +5,6 @@ import { VitePWA } from 'vite-plugin-pwa'
 import fs from 'fs';
 import path from 'path';
 
-
 // Custom plugin that writes the exact build time to your public folder
 const generateVersionFile = () => ({
   name: 'generate-version-file',
@@ -15,6 +14,7 @@ const generateVersionFile = () => ({
     fs.writeFileSync(filePath, JSON.stringify(versionData));
   }
 });
+
 // 🚨 CHANGE THIS LINE: Wrap the configuration object inside an arrow function block
 export default defineConfig(({ mode }) => {
   return {
@@ -31,12 +31,14 @@ export default defineConfig(({ mode }) => {
         workbox: {
           runtimeCaching: [
             {
-              urlPattern: /^https:\/\/api\.maptiler\.com\/maps\/.*?\.(png|jpg|jpeg|webp|pbf)/i,
+              // 🚀 Targets MapLibre Vector Tile packets (.pbf) and Style JSON sheets
+              urlPattern: /^https:\/\/api\.maptiler\.com\/(maps|tiles)\/.*?\.(json|pbf)/i,
               handler: 'CacheFirst',
               options: {
-                cacheName: 'maptiler-tiles-cache',
+                cacheName: 'maptiler-vector-cache',
                 expiration: {
-                  maxEntries: 5000,                  // 🚀 Raised to 5,000 to cover wide geographic browsing
+                  // Vector files are highly compressed data; 1,500 entries covers huge regional territories
+                  maxEntries: 1500,
                   maxAgeSeconds: 60 * 60 * 24 * 30,  // 📅 Extended to 30 days so returning users never hit your quota
                 },
                 cacheableResponse: {

@@ -11,68 +11,85 @@ interface PhotoGalleryProps {
   size?: 'small' | 'medium' | 'large';
 }
 
+interface PhotoGridProps {
+  photos: string[];
+  size?: 'small' | 'medium' | 'large';
+}
+
 /**
- * Generate HTML string for photo grid (for Leaflet markers/popups)
- * Returns the same grid layout as PhotoGallery component
+ * 🚀 FIXED: Pure React Photo Grid Component using native Tailwind utilities
+ * Replaces the old string template function while preserving exact grid heights and counters
  */
-export function getPhotoGridHtml(photos: string[], size: 'small' | 'medium' | 'large' = 'medium'): string {
-  if (!photos || photos.length === 0) return '';
-  
+export function PhotoGrid({ photos, size = 'medium' }: PhotoGridProps) {
+  if (!photos || photos.length === 0) return null;
+
   const displayCount = Math.min(photos.length, 4);
   const remainingCount = photos.length - 4;
   const displayPhotos = photos.slice(0, displayCount);
-  
-  // Size configurations
+
+  // Size layout specs mapped directly to explicit Tailwind values
   const sizes = {
-    small: { height: 80, width: 100, gap: 2 },
-    medium: { height: 120, width: 150, gap: 4 },
-    large: { height: 300, width: 400, gap: 4 }
+    small: { height: 'h-[80px]', width: 100, gap: 'gap-[2px]', text: 'text-sm' },
+    medium: { height: 'h-[120px]', width: 150, gap: 'gap-1', text: 'text-lg' },
+    large: { height: 'h-[300px]', width: 400, gap: 'gap-1', text: 'text-3xl' }
   };
   const cfg = sizes[size];
-  
-  // Generate optimized URLs
-  const getUrl = (url: string, w: number, h: number) => 
+
+  const getUrl = (url: string, w: number, h: number) =>
     optimizeCloudinaryUrl(url, { width: w, height: h, crop: 'fill', quality: 'auto' });
 
-  // CSS Base template utility to remove repetitive markup lines
-  const makeBgDiv = (url: string, w: number, h: number, extraStyles: string = '') => `
-    <div style="background-image: url('${getUrl(url, w, h)}'); width: 100%; height: 100%; background-size: cover; background-position: center; ${extraStyles}"></div>
-  `;
-  
-  // 1 photo
+  // 1 photo layout pattern
   if (displayCount === 1) {
-    return `<div class="photoContainer" style="width: 100%; height: ${cfg.height}px; border-radius: 8px; overflow: hidden; margin-bottom: 8px;">
-      ${makeBgDiv(displayPhotos[0], cfg.width * 2, cfg.height)}
-    </div>`;
+    return (
+      <div className={`photoContainer w-full ${cfg.height} rounded-lg overflow-hidden mb-2`}>
+        <div
+          className="w-full h-full bg-cover bg-center"
+          style={{ backgroundImage: `url('${getUrl(displayPhotos[0], cfg.width * 2, size === 'small' ? 80 : size === 'medium' ? 120 : 300)}')` }}
+        />
+      </div>
+    );
   }
-  
-  // 2 photos - side by side 50/50
+
+  // 2 photos - side by side 50/50 layout pattern
   if (displayCount === 2) {
-    return `<div class="photoContainer" style="display: grid; grid-template-columns: 1fr 1fr; gap: ${cfg.gap}px; height: ${cfg.height}px; margin-bottom: 8px; border-radius: 8px; overflow: hidden;">
-      ${makeBgDiv(displayPhotos[0], cfg.width, cfg.height)}
-      ${makeBgDiv(displayPhotos[1], cfg.width, cfg.height)}
-    </div>`;
+    return (
+      <div className={`photoContainer grid grid-cols-2 ${cfg.gap} ${cfg.height} mb-2 rounded-lg overflow-hidden`}>
+        <div className="w-full h-full bg-cover bg-center" style={{ backgroundImage: `url('${getUrl(displayPhotos[0], cfg.width, size === 'small' ? 80 : size === 'medium' ? 120 : 300)}')` }} />
+        <div className="w-full h-full bg-cover bg-center" style={{ backgroundImage: `url('${getUrl(displayPhotos[1], cfg.width, size === 'small' ? 80 : size === 'medium' ? 120 : 300)}')` }} />
+      </div>
+    );
   }
-  
-  // 3 photos - large left, 2 stacked right
+
+  // 3 photos - large left, 2 stacked right layout pattern
   if (displayCount === 3) {
-    return `<div class="photoContainer" style="display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: ${cfg.gap}px; height: ${cfg.height}px; margin-bottom: 8px; border-radius: 8px; overflow: hidden;">
-      ${makeBgDiv(displayPhotos[0], cfg.width, cfg.height, 'grid-row: 1 / 3;')}
-      ${makeBgDiv(displayPhotos[1], cfg.width, cfg.height / 2)}
-      ${makeBgDiv(displayPhotos[2], cfg.width, cfg.height / 2)}
-    </div>`;
+    return (
+      <div className={`photoContainer grid grid-cols-2 grid-rows-2 ${cfg.gap} ${cfg.height} mb-2 rounded-lg overflow-hidden`}>
+        <div
+          className="w-full h-full bg-cover bg-center row-span-2"
+          style={{ backgroundImage: `url('${getUrl(displayPhotos[0], cfg.width, size === 'small' ? 80 : size === 'medium' ? 120 : 300)}')` }}
+        />
+        <div className="w-full h-full bg-cover bg-center" style={{ backgroundImage: `url('${getUrl(displayPhotos[1], cfg.width, (size === 'small' ? 80 : size === 'medium' ? 120 : 300) / 2)}')` }} />
+        <div className="w-full h-full bg-cover bg-center" style={{ backgroundImage: `url('${getUrl(displayPhotos[2], cfg.width, (size === 'small' ? 80 : size === 'medium' ? 120 : 300) / 2)}')` }} />
+      </div>
+    );
   }
-  
-  // 4+ photos - 2x2 grid with overlay
-  return `<div class="photoContainer" style="display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: ${cfg.gap}px; height: ${cfg.height}px; margin-bottom: 8px; border-radius: 8px; overflow: hidden;">
-    ${makeBgDiv(displayPhotos[0], cfg.width, cfg.height / 2)}
-    ${makeBgDiv(displayPhotos[1], cfg.width, cfg.height / 2)}
-    ${makeBgDiv(displayPhotos[2], cfg.width, cfg.height / 2)}
-    <div style="position: relative; width: 100%; height: 100%;">
-      ${makeBgDiv(displayPhotos[3], cfg.width, cfg.height / 2)}
-      ${remainingCount > 0 ? `<div style="position: absolute; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: ${size === 'small' ? '14px' : '18px'};">+${remainingCount}</div>` : ''}
+
+  // 4+ photos - 2x2 grid with absolute item counter layout pattern
+  return (
+    <div className={`photoContainer grid grid-cols-2 grid-rows-2 ${cfg.gap} ${cfg.height} mb-2 rounded-lg overflow-hidden`}>
+      <div className="w-full h-full bg-cover bg-center" style={{ backgroundImage: `url('${getUrl(displayPhotos[0], cfg.width, (size === 'small' ? 80 : size === 'medium' ? 120 : 300) / 2)}')` }} />
+      <div className="w-full h-full bg-cover bg-center" style={{ backgroundImage: `url('${getUrl(displayPhotos[1], cfg.width, (size === 'small' ? 80 : size === 'medium' ? 120 : 300) / 2)}')` }} />
+      <div className="w-full h-full bg-cover bg-center" style={{ backgroundImage: `url('${getUrl(displayPhotos[2], cfg.width, (size === 'small' ? 80 : size === 'medium' ? 120 : 300) / 2)}')` }} />
+      <div className="relative w-full h-full">
+        <div className="w-full h-full bg-cover bg-center" style={{ backgroundImage: `url('${getUrl(displayPhotos[3], cfg.width, (size === 'small' ? 80 : size === 'medium' ? 120 : 300) / 2)}')` }} />
+        {remainingCount > 0 && (
+          <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-white font-bold tracking-wide">
+            <span className={cfg.text}>+{remainingCount}</span>
+          </div>
+        )}
+      </div>
     </div>
-  </div>`;
+  );
 }
 
 /**
@@ -117,13 +134,12 @@ export function PhotoGallery({ photos, className = '', maxDisplay = 6, size = 'l
 
   return (
     <div className={className}>
-      <div className={`grid gap-1 rounded-xl overflow-hidden ${
-        photos.length === 1 ? `grid-cols-1 ${size === 'large' ? 'h-72 lg:h-96' : size === 'medium' ? 'h-48 lg:h-64' : 'h-40'}` :
+      <div className={`grid gap-1 rounded-xl overflow-hidden ${photos.length === 1 ? `grid-cols-1 ${size === 'large' ? 'h-72 lg:h-96' : size === 'medium' ? 'h-48 lg:h-64' : 'h-40'}` :
         photos.length === 2 ? `grid-cols-2 ${size === 'large' ? 'h-72 lg:h-96' : size === 'medium' ? 'h-48 lg:h-64' : 'h-40'}` :
-        photos.length === 3 ? `grid-cols-2 grid-rows-2 ${size === 'large' ? 'h-72 lg:h-96' : size === 'medium' ? 'h-48 lg:h-64' : 'h-40'}` :
-        photos.length === 4 ? `grid-cols-2 grid-rows-2 ${size === 'large' ? 'h-72 lg:h-96' : size === 'medium' ? 'h-48 lg:h-64' : 'h-40'}` :
-        `grid-cols-2 grid-rows-2 ${size === 'large' ? 'h-72 lg:h-96' : size === 'medium' ? 'h-48 lg:h-64' : 'h-40'}`
-      }`}>
+          photos.length === 3 ? `grid-cols-2 grid-rows-2 ${size === 'large' ? 'h-72 lg:h-96' : size === 'medium' ? 'h-48 lg:h-64' : 'h-40'}` :
+            photos.length === 4 ? `grid-cols-2 grid-rows-2 ${size === 'large' ? 'h-72 lg:h-96' : size === 'medium' ? 'h-48 lg:h-64' : 'h-40'}` :
+              `grid-cols-2 grid-rows-2 ${size === 'large' ? 'h-72 lg:h-96' : size === 'medium' ? 'h-48 lg:h-64' : 'h-40'}`
+        }`}>
         {photos.slice(0, Math.min(maxDisplay, 4)).map((photo, index) => {
           const isLastVisible = index === 3 && photos.length > 4;
           const remainingCount = photos.length - 4;
@@ -169,7 +185,7 @@ export function PhotoGallery({ photos, className = '', maxDisplay = 6, size = 'l
           fade: 300,
           swipe: 300,
         }}
-   
+
       />
     </div>
   );

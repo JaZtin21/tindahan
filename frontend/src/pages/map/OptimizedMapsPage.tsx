@@ -23,12 +23,15 @@ import type { RootState } from '../../store';
 import { useNavigate } from 'react-router-dom';
 import { Play, Square } from 'lucide-react';
 import { TutorialOverlay } from '../../components/common/TutorialOverlay';
+import { default as BaseMap } from 'react-map-gl/maplibre';
+import maplibregl from 'maplibre-gl';
+import 'maplibre-gl/dist/maplibre-gl.css';
+import { Marker, Popup } from 'react-map-gl/maplibre';
 
 
-
-const MAP_TILE_URL = `https://api.maptiler.com/maps/voyager/{z}/{x}/{y}.png?key=${import.meta.env.VITE_MAPTILE_KEY || 'your_fallback_key'}`;
-
-
+const MAPTILER_BASE_URL = "https://api.maptiler.com";
+const MAPTILER_STYLE_NAME = "voyager";
+export const MAP_TILE_URL = `${MAPTILER_BASE_URL}/maps/${MAPTILER_STYLE_NAME}/style.json?key=${import.meta.env.VITE_MAPTILE_KEY || 'your_fallback_key'}`;
 export function OptimizedMapsPage() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -63,6 +66,11 @@ export function OptimizedMapsPage() {
 
   // Handle getting current location
   const handleGetCurrentLocation = async () => {
+
+    if (showLocationMarker) {
+      setShowLocationMarker(false);
+      return
+    }
     if (!navigator.geolocation) {
       showError('Location Error', 'Geolocation is not supported by your browser.');
       return;
@@ -96,9 +104,15 @@ export function OptimizedMapsPage() {
         setUserLocation({ lat: latitude, lng: longitude });
         setShowLocationMarker(true);
 
+        // 🚀 Updated MapLibre flight execution parameters
         if (mapRef.current) {
-          mapRef.current.flyTo([latitude, longitude], 18, {
-            duration: 1.5
+          const nativeMapInstance = mapRef.current.getMap();
+
+          nativeMapInstance.flyTo({
+            center: [longitude, latitude], // 🚨 Note: Longitude first in MapLibre!
+            zoom: 18,
+            duration: 1500, // Declared in milliseconds (1.5 seconds)
+            essential: true // Guarantees execution even if user has reduced motion settings
           });
         }
 
@@ -204,67 +218,6 @@ export function OptimizedMapsPage() {
   };
 
   // Handle user location marker
-  useEffect(() => {
-    if (!mapRef.current || !userLocation || !showLocationMarker) {
-      // Remove marker if conditions aren't met
-      if (locationMarkerRef.current && mapRef.current) {
-        mapRef.current.removeLayer(locationMarkerRef.current);
-        locationMarkerRef.current = null;
-      }
-      return;
-    }
-
-    const init = async () => {
-      const L = await import('leaflet');
-      const map = mapRef.current;
-
-      if (!map) return;
-
-      // Remove existing marker if any (prevent duplicates)
-      if (locationMarkerRef.current) {
-        map.removeLayer(locationMarkerRef.current);
-        locationMarkerRef.current = null;
-      }
-
-      // Create custom pin icon for user location
-      const icon = L.divIcon({
-        html: `
-          <div class="user-location-marker" style="width: 40px; height: 40px; position: relative; display: flex; align-items: center; justify-content: center;">
-            <div class="user-location-pulse" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 40px; height: 40px; background: rgba(239, 68, 68, 0.3); border: 2px solid rgba(239, 68, 68, 0.5); border-radius: 50%; animation: pulse-ring 2s ease-out infinite;"></div>
-            <div class="user-location-pin" style="position: relative; z-index: 2; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3)); animation: location-bounce 2s ease-in-out infinite;">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="#EF4444" stroke="none" style="display: block;">
-                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
-                <circle cx="12" cy="10" r="3" fill="white"/>
-              </svg>
-            </div>
-          </div>
-        `,
-        className: 'user-location-icon',
-        iconSize: [40, 40],
-        iconAnchor: [20, 20], // Center the 40x40 box
-        popupAnchor: [0, -20]
-      });
-
-      const marker = L.marker([userLocation.lat, userLocation.lng], { icon });
-
-      // Set marker options to prevent it from moving during zoom
-      marker.options.zIndexOffset = 1000;
-      marker.options.riseOnHover = false;
-      marker.options.bubblingMouseEvents = false;
-      marker.bindPopup('<div style="font-family: system-ui; font-size: 14px; font-weight: 600;">Your Location</div>');
-      marker.addTo(map);
-      locationMarkerRef.current = marker;
-    };
-
-    init();
-
-    return () => {
-      if (locationMarkerRef.current && mapRef.current) {
-        mapRef.current.removeLayer(locationMarkerRef.current);
-        locationMarkerRef.current = null;
-      }
-    };
-  }, [userLocation, showLocationMarker]); // Remove map from dependencies
 
   // GraphQL mutations
   const [createPost, { loading: isCreatingPost }] = useCreatePost();
@@ -901,7 +854,12 @@ export function OptimizedMapsPage() {
 
   return (
     <div className="w-full h-screen relative">
+
+
+
+
       {/* Map info */}
+
 
 
       {/* Search Bar - Fixed at top, hidden on mobile by default */}
@@ -938,22 +896,50 @@ export function OptimizedMapsPage() {
         </div>
       )}
 
+
       {/* Map container - use ref to get map instance, avoid controlled props */}
-      <MapContainer
-        center={[14.5995, 120.9842]}
-        zoom={12}
-        className="w-full h-full"
-        preferCanvas={true}
-        zoomControl={false}
+      <BaseMap
         ref={mapRef}
+        mapLib={maplibregl}
+        initialViewState={{
+          latitude: 14.5995,
+          longitude: 120.9842,
+          zoom: 12
+        }}
+        // Bypasses extra map container overlays entirely
+        mapStyle={MAP_TILE_URL}
+        // Keeps attribution without needing the old <CachedTileLayer> component
+        attributionControl={false}
       >
-        {/* Custom cached tile layer - CartoDB Voyager (clean styling, free) */}
-        <CachedTileLayer
-          url={MAP_TILE_URL}
-          attribution='&copy; <a href="https://maptiler.com" target="_blank">MapTiler</a>'
-          maxZoom={22}
-        />
-        {/* All markers - isolated in MapMarkers component to prevent page re-renders */}
+        {showLocationMarker && userLocation && (
+          <>
+            <Marker
+              latitude={userLocation.lat}
+              longitude={userLocation.lng}
+              anchor="center"
+            >
+              {/* Flex layout container handles strict alignment centers */}
+              <div className="user-location-marker relative flex h-10 w-10 items-center justify-center">
+
+                {/* Pulsing ring background centered flawlessly */}
+                <div className="user-location-pulse absolute h-10 w-10 animate-[pulse-ring_2s_ease-out_infinite] rounded-full border-2 border-red-500/50 bg-red-500/30" />
+
+                {/* Clean coordinate SVG anchor mapping */}
+                <div className="user-location-pin relative z-10 animate-[location-bounce_2s_ease-in-out_infinite] drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)]">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="#EF4444" className="block">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                    <circle cx="12" cy="10" r="3" fill="white" />
+                  </svg>
+                </div>
+
+              </div>
+            </Marker>
+
+          </>
+        )}
+        {/* All markers - remains perfectly isolated to prevent page re-renders 
+                
+        */}
         <MapMarkersComponent
           livePosts={livePosts}
           deletedPostIds={deletedPostIds}
@@ -974,7 +960,7 @@ export function OptimizedMapsPage() {
           shopsNearMe={shopsNearMe}
           onShopNearMeClick={handleShopNearMeClick}
         />
-      </MapContainer>
+      </BaseMap>
 
       {/* Button Container - Fixed to bottom right, aligned to end */}
       <div className="fixed bottom-4 right-4 z-40 flex flex-col items-end gap-2">
@@ -1056,7 +1042,7 @@ export function OptimizedMapsPage() {
           </div>
             */
           }
-    
+
           <button
             onClick={playNextPost}
             className="w-10 h-10 md:w-12 md:h-12 border border-white/30 bg-white/25 backdrop-blur-xs rounded-full shadow-lg flex items-center justify-center hover:bg-gray-100 transition-colors"
