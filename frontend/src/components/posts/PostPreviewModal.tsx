@@ -97,12 +97,11 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete, modalR
   const fetchPostDetails = async (postId: string | undefined) => {
     setCommentIsLoading(true);
     try {
-
       const [postDetailsData, commentsData] = await Promise.all([fetchPostDetailsQuery({ variables: { id: postId } }), fetchComments({ variables: { postId, page: 1, limit: 5 } })]);
 
 
-      const postDetails = postDetailsData.data?.data?.post?.data;
-      const comments = commentsData.data?.data?.comments?.data || [];
+      const postDetails = postDetailsData.data?.post?.data;
+      const comments = commentsData.data?.comments?.data || [];
 
       if (postDetails) {
         setEffectivePost(postDetails);
@@ -115,8 +114,8 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete, modalR
 
       if (comments) {
         setComments(comments);
-        setHasMoreComments(commentsData.data?.data?.comments?.hasMore || false);
-        setLocalCommentCount(commentsData.data?.data?.comments?.total || 0);
+        setHasMoreComments(commentsData.data?.comments?.hasMore || false);
+        setLocalCommentCount(commentsData.data?.comments?.total || 0);
       }
     } catch (error) {
       console.error('Error fetching comments:', error);
@@ -237,6 +236,7 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete, modalR
   // Handle add comment - optimistic update
   const handleAddComment = async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (!effectivePost?.id || !commentText.trim()) return;
 
     const trimmedText = commentText.trim();
@@ -266,9 +266,9 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete, modalR
         variables: { postId: effectivePost.id, text: trimmedText }
       });
 
-      if (data?.data?.addComment?.success) {
+      if (data?.addComment?.success) {
         // Replace temp comment with real one from API
-        const realComment = data.data.addComment.data;
+        const realComment = data.addComment.data;
         setComments(prev => prev.map(c => c.id === tempId ? realComment : c));
 
         // Update Redux cache with new comment count
@@ -300,7 +300,7 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete, modalR
         variables: { commentId, postId: post.id }
       });
 
-      if (data?.data?.deleteComment?.success) {
+      if (data?.deleteComment?.success) {
         setComments(prev => prev.filter(c => c.id !== commentId));
         // Update comment count
         setLocalCommentCount(prev => Math.max(0, prev - 1));
@@ -331,13 +331,13 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete, modalR
         }
       });
 
-      if (data?.data?.comments?.data) {
+      if (data?.comments?.data) {
         // Deduplicate - filter out comments we already have
         const existingIds = new Set(comments.map(c => c.id));
-        const newComments = data.data.comments.data.filter((c: Comment) => !existingIds.has(c.id));
+        const newComments = data.comments.data.filter((c: Comment) => !existingIds.has(c.id));
         // Append only new comments to the end
         setComments(prev => [...prev, ...newComments]);
-        setHasMoreComments(data.data.comments.hasMore);
+        setHasMoreComments(data.comments.hasMore);
         setCommentPage(nextPage);
         setIsLoadingMoreComments(false);
       }

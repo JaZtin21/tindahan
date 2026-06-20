@@ -17,47 +17,37 @@ export interface Comment {
 
 // GraphQL response types
 export interface CommentsQueryResponse {
-  data?: {
-    comments?: {
-      data: Comment[];
-      hasMore: boolean;
-      total: number;
-    };
+  comments?: {
+    data: Comment[];
+    hasMore: boolean;
+    total: number;
   };
 }
 
 export interface PostQueryResponse {
-  data?: {
-    post?: {
-      data: Post;
-    };
+  post?: {
+    data: Post;
   };
 }
 
 export interface AddCommentMutationResponse {
-  data?: {
-    addComment?: {
-      success: boolean;
-      data: Comment;
-    };
+  addComment?: {
+    success: boolean;
+    data: Comment;
   };
 }
 
 export interface DeleteCommentMutationResponse {
-  data?: {
-    deleteComment?: {
-      success: boolean;
-    };
+  deleteComment?: {
+    success: boolean;
   };
 }
 
 export interface LoadMoreCommentsResponse {
-  data?: {
-    comments?: {
-      data: Comment[];
-      hasMore: boolean;
-      total: number;
-    };
+  comments?: {
+    data: Comment[];
+    hasMore: boolean;
+    total: number;
   };
 }
 
