@@ -4,6 +4,12 @@ import type { MapMarkersProps } from '../../types/map';
 import { clusterPosts } from '../../utils/maps/mapUtils';
 import { PostMapMarker } from './PostMapMarker';
 import { PostGroupMarker } from './PostGroupMarker';
+import { StoreMarker } from './StoreMarker';
+import { LocationPinMarker } from './LocationPinMarker';
+import { ProductStoreMarkers } from './ProductStoreMarkers';
+import { UserLocationMarker } from './UserLocationMarker';
+import { PostSearchMarker } from './PostSearchMarker';
+import { ShopNearMeMarker } from './ShopNearMeMarker';
 
 function MapMarkersComponent({
   livePosts,
@@ -87,6 +93,45 @@ function MapMarkersComponent({
 
   return (
     <>
+      {/* User Location Marker */}
+      {showUserLocationMarker && userLocation && <UserLocationMarker location={userLocation} />}
+
+      {/* Store Marker */}
+      {showStoreMarker && storeMarkerData && <StoreMarker store={storeMarkerData} onClick={onStoreMarkerClick} />}
+
+      {/* Location Pin Marker */}
+      {showLocationPinMarker && locationPinData && <LocationPinMarker location={locationPinData} />}
+
+      {/* Product Store Markers */}
+      {showProductStoreMarkers && productSearchStores.length > 0 && (
+        <ProductStoreMarkers stores={productSearchStores} onStoreClick={onStoreMarkerClick} />
+      )}
+
+      {/* Shops Near Me Markers */}
+      {showShopsNearMe && shopsNearMe.length > 0 && (
+        <>
+          {shopsNearMe.map((shop) => (
+            <ShopNearMeMarker
+              key={shop.id}
+              store={shop}
+              onClick={onShopNearMeClick}
+            />
+          ))}
+        </>
+      )}
+
+      {/* Post Search Markers - show markers with user profile pictures */}
+      {showPostMarkers && postSearchResults.length > 0 && (
+        <>
+          {postSearchResults.map((post) => (
+            <PostSearchMarker
+              key={post.id}
+              post={post}
+              onClick={onPostClick}
+            />
+          ))}
+        </>
+      )}
       {/* Live Post Markers - rendering dynamically on map view calculations */}
       {zoom >= MIN_MARKER_ZOOM && (
         <>

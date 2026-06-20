@@ -1,7 +1,6 @@
 export { StorePinner } from './StorePinner';
 export { SearchBar } from './SearchBar';
 export { CachedTileLayer } from './CachedTileLayer';
-
 export {
   getStoreMarkerHtml,
   getStorePopupHtml,

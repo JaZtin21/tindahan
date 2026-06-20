@@ -1,5 +1,5 @@
-import { useRef, useEffect } from 'react';
-import { useMap } from 'react-leaflet';
+import React, { useState, useRef, useEffect } from 'react';
+import { Marker } from 'react-map-gl/maplibre'; // 🚀 NATIVE GEO-POSITIONING
 import type { StoreLocationData } from '../../types/map';
 
 interface ShopNearMeMarkerProps {
@@ -8,99 +8,63 @@ interface ShopNearMeMarkerProps {
 }
 
 export function ShopNearMeMarker({ store, onClick }: ShopNearMeMarkerProps) {
-  const map = useMap();
-  const markerRef = useRef<any>(null);
-  const storeRef = useRef<string>('');
-  const onClickRef = useRef(onClick);
+  const [isHovered, setIsHovered] = useState(false);
+  const elementRef = useRef<HTMLDivElement>(null);
 
-  // Keep callback ref updated
-  onClickRef.current = onClick;
-
+  // 🚀 Bypasses container boundaries to elevate the root MapLibre marker z-index on hover
   useEffect(() => {
-    if (!store || !store.lat || !store.lng) return;
-
-    // Create a key to detect actual store changes
-    const storeKey = `${store.id}-${store.lat}-${store.lng}`;
-
-    // If same store, don't re-render
-    if (storeKey === storeRef.current && markerRef.current) {
-      return;
+    if (!elementRef.current) return;
+    const wrapper = elementRef.current.parentElement;
+    if (wrapper) {
+      wrapper.style.zIndex = isHovered ? '20' : '10';
     }
+  }, [isHovered]);
 
-    storeRef.current = storeKey;
+  if (!store || !store.lat || !store.lng) return null;
 
-    const init = async () => {
-      const L = await import('leaflet');
+  // Implements your exact larger layout style variables
+  const nearMeIconStyle = {
+    position: 'relative',
+    width: '32px',
+    height: '32px',
+    background: 'white',
+    borderRadius: '50%',
+    border: '2px solid #63c6a6',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: '18px',
+    cursor: 'pointer',
+    boxShadow: '0 2px 6px rgba(0,0,0,0.3)',
+    transform: isHovered ? 'scale(1.1)' : 'scale(1)',
+    transition: 'transform 0.2s ease-out',
+    willChange: 'transform',
+    WebkitBackfaceVisibility: 'hidden',
+    backfaceVisibility: 'hidden'
+  } as React.CSSProperties;
 
-      // Remove existing marker
-      if (markerRef.current) {
-        map.removeLayer(markerRef.current);
-        markerRef.current = null;
-      }
-
-      // Create shop icon using emoji - with different color for "near me" markers
-      const icon = L.divIcon({
-        html: `
-          <div style="position: relative; width: 32px; height: 32px; background: white; border-radius: 50%; border: 2px solid #63c6a6; display: flex; align-items: center; justify-content: center; font-size: 18px; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.3); transition: transform 0.2s; will-change: transform;">
-            🏪
-          </div>
-        `,
-        className: 'shop-near-me-marker-icon',
-        iconSize: [32, 32],
-        iconAnchor: [16, 16],
-        popupAnchor: [0, -16]
-      });
-
-      const marker = L.marker([store.lat, store.lng], {
-        icon,
-        zIndexOffset: 1000,
-        riseOnHover: false,
-        bubblingMouseEvents: false
-      });
-
-      // Add click handler using ref
-      marker.on('click', () => {
-        onClickRef.current?.(store);
-      });
-
-      // Add hover effects
-      marker.on('mouseover', () => {
-        const element = marker.getElement();
-        if (element) {
-          const innerDiv = element.querySelector('div');
-          if (innerDiv) {
-            (innerDiv as HTMLElement).style.transform = 'scale(1.1)';
-          }
-        }
-      });
-
-      marker.on('mouseout', () => {
-        const element = marker.getElement();
-        if (element) {
-          const innerDiv = element.querySelector('div');
-          if (innerDiv) {
-            (innerDiv as HTMLElement).style.transform = 'scale(1)';
-          }
-        }
-      });
-
-      marker.addTo(map);
-      const element = marker.getElement();
-      if (element) {
-          element.style.zIndex = '100';
-      }
-      markerRef.current = marker;
-    };
-
-    init();
-
-    return () => {
-      if (markerRef.current) {
-        map.removeLayer(markerRef.current);
-        markerRef.current = null;
-      }
-    };
-  }, [store, map]);
-
-  return null;
+  return (
+    <Marker
+      latitude={store.lat}
+      longitude={store.lng}
+      // Matches iconAnchor: [16, 16] precisely
+      offsetLeft={-16}
+      offsetTop={-16}
+      rotationAlignment="viewport"
+      pitchAlignment="viewport"
+    >
+      <div
+        ref={elementRef}
+        style={nearMeIconStyle}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+        onClick={(e) => {
+          e.stopPropagation(); // Prevents underlying map clicks from breaking panel triggers
+          onClick?.(store);     // Forwards your data object up cleanly
+        }}
+      >
+        🏪
+      </div>
+    </Marker>
+  );
 }

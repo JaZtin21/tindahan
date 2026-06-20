@@ -483,15 +483,39 @@ export function OptimizedMapsPage() {
     setStoreMarkerData(null);
     setShowProductStoreMarkers(true);
 
-    // Zoom out to fit all stores using fitBounds
+    // Zoom out to fit all stores safely without crashing on single results
     if (mapRef.current && storeMarkers.length > 0) {
-      const bounds = storeMarkers.map(s => [s.lat, s.lng]);
-      mapRef.current.fitBounds(bounds, { padding: [50, 50], maxZoom: 15, duration: 1.5 });
+      const nativeMapInstance = mapRef.current.getMap();
+
+      if (storeMarkers.length === 1) {
+        // 🚀 SINGLE STORE FALLBACK: Prevent bounding errors by centering on the lone result
+        nativeMapInstance.flyTo({
+          center: [storeMarkers[0].lng, storeMarkers[0].lat], // 🚨 Longitude first!
+          zoom: 15,
+          duration: 1500,
+          essential: true
+        });
+      } else {
+        // 🚀 MULTI-STORE BOUNDS ENGINE: Build a native bounding box instance safely
+        const bounds = new maplibregl.LngLatBounds();
+        storeMarkers.forEach(s => {
+          bounds.extend([s.lng, s.lat]); // 🚨 CRITICAL CONVERSION: Longitude MUST come first in MapLibre!
+        });
+
+        // 🚀 FIXED SIGNATURE: Pass options in a unified MapLibre object config block
+        nativeMapInstance.fitBounds(bounds, {
+          padding: 50,
+          maxZoom: 15,
+          duration: 1500,
+          essential: true
+        });
+      }
     }
 
     // Show success message with store count
     showSuccess('Product Search', `Found ${storeMarkers.length} stores with "${productName}"`);
   };
+
 
   // Clear product search stores
   const clearProductStores = () => {
@@ -528,15 +552,39 @@ export function OptimizedMapsPage() {
     setShowProductStoreMarkers(false);
     setProductSearchStores([]);
 
-    // Zoom out to fit all posts using fitBounds
+    // Zoom out to fit all posts safely without breaking on single results
     if (mapRef.current && postMarkers.length > 0) {
-      const bounds = postMarkers.map(p => [p.lat, p.lng]);
-      mapRef.current.fitBounds(bounds, { padding: [50, 50], maxZoom: 15, duration: 1.5 });
+      const nativeMapInstance = mapRef.current.getMap();
+
+      if (postMarkers.length === 1) {
+        // 🚀 SINGLE POST FALLBACK: Use flyTo to center on the lone item safely
+        nativeMapInstance.flyTo({
+          center: [postMarkers[0].lng, postMarkers[0].lat],
+          zoom: 15,
+          duration: 1500,
+          essential: true
+        });
+      } else {
+        // 🚀 MULTI-POST BOUNDS ENGINE: Build a native bounding box instance safely
+        const bounds = new maplibregl.LngLatBounds();
+        postMarkers.forEach(p => {
+          bounds.extend([p.lng, p.lat]); // Extends corners sequentially [Longitude, Latitude]
+        });
+
+        nativeMapInstance.fitBounds(bounds, {
+          padding: 50,
+          maxZoom: 15,
+          duration: 1500,
+          essential: true
+        });
+      }
     }
 
     // Show success message with post count
     showSuccess('Post Search', `Found ${postMarkers.length} posts matching "${postTitle}"`);
   };
+
+
 
   // Clear post search markers
   const clearPostMarkers = () => {
