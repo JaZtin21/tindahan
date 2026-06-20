@@ -254,7 +254,15 @@ export function OptimizedMapsPage() {
 
     // Center map on store
     if (mapRef.current) {
-      mapRef.current.flyTo([store.lat, store.lng], 18, { duration: 1 });
+      // 🚀 FIXED MAPLIBRE SIGNATURE: Replaced Leaflet parameters with MapLibre's configuration object structure via getMap()
+      const nativeMapInstance = mapRef.current.getMap();
+
+      nativeMapInstance.flyTo({
+        center: [store.lng, store.lat], // 🚨 Note: Longitude first in MapLibre!
+        zoom: 18,
+        duration: 1000,                // Converted 1s to 1000ms for smooth hardware rendering
+        essential: true
+      });
     }
 
     // Set store marker data and show it
@@ -277,6 +285,7 @@ export function OptimizedMapsPage() {
       }));
     }, 1000);
   };
+
 
   // Handle store click from marker (for both single store and product stores)
   const handleStoreMarkerClick = useCallback((store: any) => {
@@ -338,9 +347,15 @@ export function OptimizedMapsPage() {
         setUserLocation({ lat: latitude, lng: longitude });
         setShowLocationMarker(true);
 
+        // 🚀 FIXED MAPLIBRE FLIGHT BOUNDS MATCHING YOUR EXACT WORKING PATTERN:
         if (mapRef.current) {
-          mapRef.current.flyTo([latitude, longitude], 18, {
-            duration: 1.5
+          const nativeMapInstance = mapRef.current.getMap();
+
+          nativeMapInstance.flyTo({
+            center: [longitude, latitude], // 🚨 Note: Longitude first in MapLibre!
+            zoom: 18,
+            duration: 1500, // Declared in milliseconds (1.5 seconds)
+            essential: true // Guarantees execution even if user has reduced motion settings
           });
         }
 
@@ -403,6 +418,7 @@ export function OptimizedMapsPage() {
   };
 
 
+
   // Handle shop near me marker click
   const handleShopNearMeClick = useCallback((store: any) => {
     handleStoreMarkerClick(store);
@@ -417,13 +433,22 @@ export function OptimizedMapsPage() {
 
     // Center map on location
     if (mapRef.current) {
-      mapRef.current.flyTo([location.lat, location.lng], 18, { duration: 1.5 });
+      // 🚀 FIXED MAPLIBRE SIGNATURE: Replaced Leaflet parameter layout with MapLibre object configuration
+      const nativeMapInstance = mapRef.current.getMap();
+
+      nativeMapInstance.flyTo({
+        center: [location.lng, location.lat], // 🚨 Note: Longitude first in MapLibre!
+        zoom: 18,
+        duration: 1500,                      // Converted 1.5s to 1500ms for accurate hardware timing
+        essential: true
+      });
     }
 
     // Set location pin data and show it
     setLocationPinData(location);
     setShowLocationPinMarker(true);
   };
+
 
   // Handle product selection from search
   const handleProductSelect = async (productName: string) => {
@@ -791,8 +816,14 @@ export function OptimizedMapsPage() {
 
     // Zoom to post location
     if (mapRef.current) {
-      mapRef.current.flyTo([post.location.lat, post.location.lng], 20, {
-        duration: 1.5
+      // 🚀 FIXED MAPLIBRE SIGNATURE: Replaced Leaflet parameter layout with MapLibre object configuration via getMap()
+      const nativeMapInstance = mapRef.current.getMap();
+
+      nativeMapInstance.flyTo({
+        center: [post.location.lng, post.location.lat], // 🚨 Note: Longitude first in MapLibre!
+        zoom: 20,
+        duration: 1500,                               // Converted 1.5s to 1500ms for accurate hardware timing
+        essential: true
       });
     }
 
@@ -801,6 +832,7 @@ export function OptimizedMapsPage() {
       handlePostClick(post);
     }, 2000);
   };
+
 
   const playNextPost = () => {
     if (!isPlayingPosts || playQueue.length === 0) return;
