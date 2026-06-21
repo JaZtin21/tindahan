@@ -38,7 +38,7 @@ export default defineConfig(({ mode }) => {
                 cacheName: 'maptiler-vector-cache',
                 expiration: {
                   // Vector files are highly compressed data; 1,500 entries covers huge regional territories
-                  maxEntries: 1500,
+                  maxEntries: 3500,
                   maxAgeSeconds: 60 * 60 * 24 * 30,  // 📅 Extended to 30 days so returning users never hit your quota
                 },
                 cacheableResponse: {
