@@ -136,7 +136,7 @@ export function PostMarkerDesign({
           )}
 
           <div className="w-[180px] max-w-[180px] p-2.5 max-md:w-[138px] max-md:max-w-[138px] bg-[#fffffff1] rounded-2xl border border-[#efb666] shadow-[0_3px_2px_rgba(0,0,0,0.15)] relative mb-0">
-            <div className="font-normal md:font-semibold text-[#333] leading-[1.4] text-xs md:text-md mt-0.5 line-clamp-1">
+            <div className="font-normal md:font-semibold text-[#333] leading-[1.4] text-xs md:text-md md:mt-0.5 line-clamp-1 font-semibold">
               {shortText}
             </div>
 

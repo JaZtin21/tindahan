@@ -57,6 +57,7 @@ export function OptimizedMapsPage() {
     return () => {
       if (isMobile && isMobileSearchVisible) {
         dispatch(hideMobileSearch())
+        clearAllSearchMarkers();
         // Turn off - clear markers cleanly
         setShowShopsNearMe(false);
         setShopsNearMe([]);
@@ -161,7 +162,6 @@ export function OptimizedMapsPage() {
 
   // Post preview modal state
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
-  const closePostTimeoutRef = useRef<number | null>(null);
 
   // Success/Error feedback modal state
   const [feedbackModal, setFeedbackModal] = useState<{
@@ -206,8 +206,6 @@ export function OptimizedMapsPage() {
   const [storeMarkerData, setStoreMarkerData] = useState<any | null>(null);
   const [locationPinData, setLocationPinData] = useState<any | null>(null);
 
-  // User Location Marker Management
-  const locationMarkerRef = useRef<any>(null);
 
   const showSuccess = (title: string, message: string) => {
     setFeedbackModal({ isOpen: true, title, message, type: 'success' });

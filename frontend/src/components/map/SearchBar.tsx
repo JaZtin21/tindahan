@@ -6,7 +6,6 @@ import { ITEMS_QUERY } from '../../api/graphql/product/product-queries';
 import { SEARCH_POSTS_BY_TITLE_QUERY } from '../../api/graphql/post/post-queries';
 import { searchLocation } from '../../utils/maps';
 import type { SearchBarProps } from '../../types/map';
-import { Store } from 'lucide-react';
 
 export function SearchBar({ onSearch, onStoreSelect, onProductSelect, onPostSelect, onClearProductStores, onClearAllMarkers, showClearMarkersButton, placeholder = "Search for stores, products, or locations...", onClear, handleToggleShopsNearMe, isLoadingShopsNearMe, showShopsNearMe }: SearchBarProps) {
   const [query, setQuery] = useState('');
@@ -185,7 +184,6 @@ export function SearchBar({ onSearch, onStoreSelect, onProductSelect, onPostSele
       onClearAllMarkers()
     setQuery('')
     if (onClear) onClear();
-    if(handleToggleShopsNearMe) handleToggleShopsNearMe();
   }
 
   return (
@@ -223,17 +221,20 @@ export function SearchBar({ onSearch, onStoreSelect, onProductSelect, onPostSele
         onClick={handleToggleShopsNearMe}
         disabled={isLoadingShopsNearMe}
         className={`absolute top-full left-0 mt-2 w-unset flex  items-center gap-1 px-2 py-1 md:px-3 text-xs md:text-sm md:py-1 rounded-full backdrop-blur-[5px] [-webkit-backdrop-filter:blur(5px)] focus:outline-none  shadow-sm transition-colors ${showShopsNearMe
-            ? 'text-white hover:text-white dark:hover:text-white dark:text-white bg-secondary/80 backdrop-blur-[5px] [-webkit-backdrop-filter:blur(5px)] hover:bg-secondary-50 text-white border border-secondary/80 hover:border-secondary/80  dark:border-secondary '
-            : 'text-zinc-600 hover:text-white  dark:hover:text-white dark:text-white bg-white/60 dark:bg-zinc-900 hover:bg-secondary/70 border border-white/80 hover:border-secondary/80  dark:border-zinc-700 '
-            }`}
+          ? 'text-white hover:text-white dark:hover:text-white dark:text-white bg-secondary/80 backdrop-blur-[5px] [-webkit-backdrop-filter:blur(5px)] hover:bg-secondary-50 text-white border border-secondary/80 hover:border-secondary/80  dark:border-secondary '
+          : 'text-zinc-600 hover:text-white  dark:hover:text-white dark:text-white bg-white/60 dark:bg-zinc-900 hover:bg-secondary/70 border border-white/80 hover:border-secondary/80  dark:border-zinc-700 '
+          }`}
         title={showShopsNearMe ? 'Hide shops near me' : 'Show shops near me'}
       >
         {isLoadingShopsNearMe ? (
           <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
         ) : (
-          <Store size={13} strokeWidth={2.5} />
+          <svg className="w-3 h-3 md:w-4 md:h-4 ml-1 stroke-current" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
         )}
-        <span className=" font-semibold py-0.5 mr-1 ml-1 ">{showShopsNearMe ? 'Hide Shops' : 'Shops Near Me'}</span>
+        <span className=" font-semibold py-0.5 mr-2 ml-1 ">{showShopsNearMe ? 'Hide Shops' : 'Shops Near Me'}</span>
       </button>
 
       {/* Suggestions dropdown */}

@@ -31,7 +31,7 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
     if (mapRef.current) {
       mapRef.current.flyTo({
         center: [lng, lat], // 🚨 Note: Longitude first in MapLibre! [INDEX]
-        zoom: 16,
+        zoom: 19,
         duration: 1000,
         essential: true
       });
@@ -232,7 +232,7 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
   }
 
   return (
-    <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center md:p-4 p-0">
       <div className="bg-white dark:bg-zinc-900 rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-auto" onClick={(e) => e.stopPropagation()}>
         <div className="p-6 border-b border-zinc-200 dark:border-zinc-700">
           <div className="flex justify-between items-center">
@@ -250,7 +250,7 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
 
         <div className="flex flex-col md:flex-row">
           {/* Map Container */}
-          <div className="flex-1 relative p-4 h-[300px] md:h-[500px]" onClick={(e) => e.stopPropagation()}>
+          <div className=" relative p-0 md:p-4 h-[450px] md:flex-1 md:h-[500px]" onClick={(e) => e.stopPropagation()}>
             <BaseMap
               ref={mapRef}
               initialViewState={{
@@ -262,6 +262,7 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
               style={{ width: '100%', height: '100%', cursor: 'crosshair' }}
               mapStyle={MAP_TILE_URL}
               mapLib={maplibregl}
+              attributionControl={false}
             >
               <Marker
                 latitude={selectedLocation.lat}
@@ -275,7 +276,7 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
                   background: '#efb666',
                   width: '36px',
                   height: '36px',
-                  borderRadius: '8px',
+                  borderRadius: '100px',
                   border: '2px solid white',
                   boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
                   display: 'flex',
@@ -302,7 +303,7 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
                     value={searchQuery}
                     onChange={(e) => handleSearch(e.target.value)}
                     placeholder="Search for a location..."
-                    className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 rounded-lg text-sm text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 rounded-lg text-sm text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-secondary"
                   />
                   {isSearching && (
                     <div className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 border-2 border-amber-500 border-t-transparent animate-spin rounded-full" />
@@ -325,7 +326,7 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
               </div>
 
               <div className="bg-zinc-50 dark:bg-zinc-800 p-4 rounded-xl border border-zinc-100 dark:border-zinc-700 flex flex-col gap-1">
-                <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Resolved Address</span>
+                <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider">selected Address</span>
                 <p className="text-sm text-zinc-700 dark:text-zinc-300 leading-relaxed break-words">
                   {address || 'No location address pinned yet...'}
                 </p>
@@ -335,12 +336,12 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
                 type="button"
                 onClick={handleGetCurrentLocation}
                 disabled={isLocating}
-                className="w-full px-4 py-2.5 bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl text-zinc-800 dark:text-zinc-200 hover:bg-zinc-200 dark:hover:bg-zinc-700 active:scale-95 transition-all text-sm font-semibold flex items-center justify-center gap-2"
+                className="w-full px-4 py-2.5 bg-zinc-100 dark:bg-zinc-800  border border-zinc-200 dark:border-zinc-700 rounded-full text-zinc-800 dark:text-zinc-200 hover:bg-zinc-200 dark:hover:bg-zinc-700 active:scale-95 transition-all text-sm font-semibold flex items-center justify-center gap-2"
               >
                 {isLocating ? (
-                  <div className="w-4 h-4 border-2 border-zinc-800 dark:border-zinc-200 border-t-transparent animate-spin rounded-full" />
+                  <div className="w-4 h-4 border-2 border-zinc-800 dark:border-zinc-200 border-t-transparent animate-spin rounded-full " />
                 ) : (
-                  '🎯 Center My Location'
+                  '🎯 Use My Location'
                 )}
               </button>
 
@@ -349,14 +350,14 @@ export function LocationPicker({ onLocationSelect, initialLocation = { lat: 14.5
                   type="button"
                   onClick={handleConfirmLocation}
                   disabled={!address || address === 'Retrieving address name...'}
-                  className="w-full px-4 py-2.5 bg-amber-500 hover:bg-amber-600 disabled:bg-zinc-300 text-white font-semibold rounded-xl text-sm shadow-md active:scale-95 transition-all disabled:pointer-events-none disabled:opacity-50"
+                  className="w-full px-4 py-2.5 bg-secondary hover:bg-secondary-50 disabled:bg-zinc-300 text-white font-semibold rounded-full text-sm shadow-md active:scale-95 transition-all disabled:pointer-events-none disabled:opacity-50"
                 >
                   Confirm This Location
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="w-full px-4 py-2.5 bg-transparent text-zinc-500 font-medium text-sm hover:text-zinc-700 transition-colors"
+                  className="w-full px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-zinc-500 font-medium text-sm hover:text-zinc-700 rounded-full transition-colors"
                 >
                   Cancel
                 </button>
