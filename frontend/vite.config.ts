@@ -36,6 +36,9 @@ export default defineConfig(({ mode }) => {
               handler: 'CacheFirst',
               options: {
                 cacheName: 'maptiler-vector-cache',
+                matchOptions: {
+                  ignoreSearch: true,
+                },
                 expiration: {
                   // Vector files are highly compressed data; 1,500 entries covers huge regional territories
                   maxEntries: 3500,
