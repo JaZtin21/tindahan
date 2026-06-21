@@ -980,9 +980,9 @@ export function OptimizedMapsPage() {
         ref={mapRef}
         mapLib={maplibregl}
         initialViewState={{
-          latitude: 14.5995,
-          longitude: 120.9842,
-          zoom: 12
+          latitude: 14.599710314289638,
+          longitude: 120.9736820397427,
+          zoom: 12.8
         }}
         // Bypasses extra map container overlays entirely
         mapStyle={MAP_TILE_URL}
