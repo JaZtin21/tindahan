@@ -11,6 +11,7 @@ import type { RootState } from '../../store'
 
 export function TopNav() {
   const { isAuthenticated, userInfo, logoutAndClear, isLoading } = useAuth()
+
   const navigate = useNavigate()
   const location = useLocation()
   const dispatch = useDispatch()
@@ -139,6 +140,7 @@ export function TopNav() {
             >
               <FiSearch size={20} />
             </button>
+
           )}
 
           {/* ThemeToggle, Map, Owner - hide on mobile */}

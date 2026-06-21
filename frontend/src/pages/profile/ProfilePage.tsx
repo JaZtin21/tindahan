@@ -165,6 +165,8 @@ export function ProfilePage() {
     setIsEditing(true)
   }
 
+  const { setUserInfo, userInfo } = useAuth()
+
   const handleSave = async () => {
     const result = await updateProfile({
       firstName: editForm.firstName,
@@ -191,6 +193,14 @@ export function ProfilePage() {
           }
         }
       })
+      if (setUserInfo && currentUser) {
+        setUserInfo({
+          ...userInfo,
+          firstName: editForm.firstName || '',
+          lastName: editForm.lastName || '',
+          name: `${editForm.firstName} ${editForm.lastName}`.trim() || '',
+        } as any)
+      }
       setModal({
         isOpen: true,
         type: 'success',
@@ -212,6 +222,13 @@ export function ProfilePage() {
     if (file) {
       const result = await uploadProfilePhoto(file)
       if (result?.success && result.url) {
+
+        if (userInfo && setUserInfo) {
+          setUserInfo({
+            ...userInfo,
+            profilePhoto: result.url
+          })
+        }
         // Update cache directly instead of refetching
         client.cache.modify({
           id: client.cache.identify({ __typename: 'User', id: currentUserId }),

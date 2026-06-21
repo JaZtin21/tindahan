@@ -2,7 +2,7 @@ import type { ShopCardProps } from '../../types/owner';
 
 export function ShopCard({ shop, onManageShop, onDeleteShop }: ShopCardProps) {
   return (
-    <div className="bg-zinc-50 dark:bg-zinc-800 rounded-lg p-6 shadow-lg flex flex-col">
+    <div className="bg-zinc-50 dark:bg-zinc-800 rounded-lg p-6 shadow-md flex flex-col">
       <div className="aspect-video mb-4 rounded-lg overflow-hidden">
         {shop.coverPhoto ? (
           <img
