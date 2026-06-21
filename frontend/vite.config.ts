@@ -32,7 +32,7 @@ export default defineConfig(({ mode }) => {
           runtimeCaching: [
             {
               // 🚀 Targets MapLibre Vector Tile packets (.pbf) and Style JSON sheets
-              urlPattern: /^https:\/\/api\.maptiler\.com\/(maps|tiles)\/.*?\.(json|pbf)/i,
+              urlPattern: /^https:\/\/api\.maptiler\.com\/.*\.(json|pbf)/i,
               handler: 'CacheFirst',
               options: {
                 cacheName: 'maptiler-vector-cache',

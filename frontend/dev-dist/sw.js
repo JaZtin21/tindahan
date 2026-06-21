@@ -67,7 +67,7 @@ if (!self.define) {
     });
   };
 }
-define(['./workbox-afac4cd2'], (function (workbox) { 'use strict';
+define(['./workbox-16ad23c7'], (function (workbox) { 'use strict';
 
   self.skipWaiting();
   workbox.clientsClaim();
@@ -78,16 +78,19 @@ define(['./workbox-afac4cd2'], (function (workbox) { 'use strict';
    */
   workbox.precacheAndRoute([{
     "url": "index.html",
-    "revision": "0.5vbtn93brp8"
+    "revision": "0.bdhbqb8ghug"
   }], {});
   workbox.cleanupOutdatedCaches();
   workbox.registerRoute(new workbox.NavigationRoute(workbox.createHandlerBoundToURL("index.html"), {
     allowlist: [/^\/$/]
   }));
-  workbox.registerRoute(/^https:\/\/api\.maptiler\.com\/(maps|tiles)\/.*?\.(json|pbf)/i, new workbox.CacheFirst({
+  workbox.registerRoute(/^https:\/\/api\.maptiler\.com\/.*\.(json|pbf)/i, new workbox.StaleWhileRevalidate({
     "cacheName": "maptiler-vector-cache",
+    "matchOptions": {
+      "ignoreSearch": true
+    },
     plugins: [new workbox.ExpirationPlugin({
-      maxEntries: 1500,
+      maxEntries: 3500,
       maxAgeSeconds: 2592000
     }), new workbox.CacheableResponsePlugin({
       statuses: [0, 200]
