@@ -17,13 +17,14 @@ import {
 import { Modal, DropdownMenu, DropdownItem } from '../common/Modal';
 import { useFollowUser, useUnfollowUser } from '../../hooks';
 import { Loader2 } from 'lucide-react';
+import { useAuth } from '../../api/graphql/apolloProviderWithAuth';
 
 
 function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete, modalRef }: PostPreviewModalProps & { onEdit?: (post: Post) => void; onDelete?: (post: Post) => void }) {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const currentUser = useSelector((state: RootState) => state.user);
-
+  const { isAuthenticated } = useAuth();
 
   const reduxCachedPost = useSelector((state: RootState) =>
     post?.id ? (state.posts.byId[post.id] as Post | undefined) : null
@@ -190,7 +191,7 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete, modalR
   };
 
   const handleProfileClick = () => {
-    if (effectivePost?.author?.id && !isCurrentUser) {
+    if (effectivePost?.author?.id && !isCurrentUser && isAuthenticated) {
       navigate(`/profile/${effectivePost.author.id}`);
       onClose({ isNavigating: true });
     }
@@ -456,7 +457,7 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete, modalR
                 </DropdownMenu>
               </div>
             ) : (<button
-              className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${displayedPost?.author?.followers?.includes(currentUser?.id || '') ? 'bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-600' : 'bg-primary hover:bg-primary-700 text-white'}`}
+              className={`px-3 py-1 text-xs font-medium ${isAuthenticated ? '' : 'hidden'} rounded-full transition-colors ${displayedPost?.author?.followers?.includes(currentUser?.id || '') ? 'bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-600' : 'bg-primary hover:bg-primary-700 text-white'}`}
               onClick={handleFollowToggle}
               disabled={followLoading || unfollowLoading}
             >
@@ -621,33 +622,36 @@ function PostPreviewModalInner({ post, isOpen, onClose, onEdit, onDelete, modalR
                     ) : (
                       <button
                         onClick={handleLoadMoreComments}
-                        className="w-full py-2 text-sm text-primary dark:text-primary font-medium hover:bg-primary/70 dark:hover:bgprimary/70 rounded-lg transition-colors"
+                        className="w-full py-2 text-sm text-primary hover:text-white dark:text-primary font-medium hover:bg-primary/70 dark:hover:bgprimary/70 rounded-lg transition-colors"
                       >
                         Load more comments
                       </button>)
                   )}
                 </div>
 
-                <div className="p-4 border-t border-zinc-100 dark:border-zinc-800 bg-white dark:bg-zinc-900 fixed md:sticky bottom-0 md:-bottom-6 left-0 right-0 ">
-                  <form onSubmit={handleAddComment} className="flex gap-2">
-                    <input
-                      ref={commentInputRef}
-                      type="text"
-                      value={commentText}
-                      onChange={(e) => setCommentText(e.target.value)}
-                      placeholder="Write a comment..."
-                      className="flex-1 px-4 py-2 bg-zinc-100 dark:bg-zinc-800 border-0 rounded-lg text-zinc-900 dark:text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-primary"
-                      disabled={isSubmittingComment}
-                    />
-                    <button
-                      type="submit"
-                      disabled={!commentText.trim() || isSubmittingComment}
-                      className="px-4 py-2 bg-primary hover:bg-primary-700 disabled:bg-zinc-400 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors"
-                    >
-                      {isSubmittingComment ? '...' : 'Post'}
-                    </button>
-                  </form>
-                </div>
+                {isAuthenticated && (
+                  <div className="p-4 border-t border-zinc-100 dark:border-zinc-800 bg-white dark:bg-zinc-900 fixed md:sticky bottom-0 md:-bottom-6 left-0 right-0 ">
+                    <form onSubmit={handleAddComment} className="flex gap-2">
+                      <input
+                        ref={commentInputRef}
+                        type="text"
+                        value={commentText}
+                        onChange={(e) => setCommentText(e.target.value)}
+                        placeholder="Write a comment..."
+                        className="flex-1 px-4 py-2 bg-zinc-100 dark:bg-zinc-800 border-0 rounded-lg text-zinc-900 dark:text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-primary"
+                        disabled={isSubmittingComment}
+                      />
+                      <button
+                        type="submit"
+                        disabled={!commentText.trim() || isSubmittingComment}
+                        className="px-4 py-2 bg-primary hover:bg-primary-700 disabled:bg-zinc-400 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors"
+                      >
+                        {isSubmittingComment ? '...' : 'Post'}
+                      </button>
+                    </form>
+                  </div>
+                )}
+
               </>
             )}
           </div>
