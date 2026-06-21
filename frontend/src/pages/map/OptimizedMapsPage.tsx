@@ -1061,7 +1061,7 @@ export function OptimizedMapsPage() {
 
 
         {/* Add Post Button - Only show if authenticated */}
-        {isAuthenticated && (
+        {isAuthenticated ? (
           <button
             onClick={handleOpenCreatePostModal}
             className="flex items-center gap-2 px-3 py-2 md:px-4 text-sm md:text-base md:py-3 bg-primary/80 backdrop-blur-[5px] [-webkit-backdrop-filter:blur(5px)] hover:bg-primary-700 text-white rounded-full shadow-md transition-colors"
@@ -1071,7 +1071,16 @@ export function OptimizedMapsPage() {
             </svg>
             <span className="font-medium">Add Post</span>
           </button>
-        )}
+        ) :
+          <button
+            onClick={() => navigate('/login')}
+            className="flex items-center gap-2 px-3 py-2 md:px-4 text-sm md:text-base md:py-3 bg-primary/80 backdrop-blur-[5px] [-webkit-backdrop-filter:blur(5px)] hover:bg-primary-700 text-white rounded-full shadow-md transition-colors"
+          >
+            <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            <span className="font-medium">Add Post</span>
+          </button>}
 
         {/* Play Posts Button - Only show if authenticated and has live posts */}
         {isAuthenticated && livePosts.length > 0 && (
